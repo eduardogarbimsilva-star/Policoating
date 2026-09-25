@@ -176,10 +176,10 @@
     $("#ola-email").textContent = Conta.usuario.email;
     const selo = $("#selo-tipo");
     selo.hidden = !p.tipo;
-    selo.textContent = p.tipo === "pj" ? "🏢 Empresa" : "👤 Pessoa física";
+    selo.textContent = p.tipo === "pj" ? "Empresa" : "Pessoa física";
     const pct = progressoCadastro(p);
     $("#progresso-valor").style.width = pct + "%";
-    $("#progresso-texto").textContent = pct === 100 ? "✓ Cadastro completo" : `Cadastro ${pct}% completo`;
+    $("#progresso-texto").textContent = pct === 100 ? "Cadastro completo" : `Cadastro ${pct}% completo`;
     $("#progresso").classList.toggle("completo", pct === 100);
     $("#alerta-cadastro").hidden = Conta.perfilCompleto();
     const favs = CW.lerFavoritos().length;
@@ -243,13 +243,13 @@
     return `<article class="pedido">
       <header>
         <div><strong>Pedido ${esc(p.numero)}</strong><small>${dataHora(p.criado_em)} · ${total} ${total === 1 ? "item" : "itens"}</small></div>
-        <span class="status">✓ Enviado ao vendedor</span>
+        <span class="status">Enviado ao vendedor</span>
       </header>
       <ul>${lista}</ul>
-      ${p.observacoes ? `<p class="obs">📝 ${esc(p.observacoes)}</p>` : ""}
+      ${p.observacoes ? `<p class="obs">${window.Icone("nota")}${esc(p.observacoes)}</p>` : ""}
       ${compacto ? "" : `<footer>
         <button type="button" class="btn btn-primario" data-repetir="${i}">↻ Repetir pedido</button>
-        <button type="button" class="btn btn-contorno-azul" data-falar="${i}">💬 Falar sobre este pedido</button>
+        <button type="button" class="btn btn-contorno-azul" data-falar="${i}">${window.Icone("conversa")}Falar sobre este pedido</button>
       </footer>`}
     </article>`;
   }
@@ -286,7 +286,7 @@
     catch (err) { box.innerHTML = `<p class="erro">${esc(err.message)}</p>`; return; }
     atualizarLateral();
     if (!pedidos.length) {
-      box.innerHTML = `<div class="vazio cartao-info"><p style="font-size:2.4rem">📦</p><p>Você ainda não enviou pedidos.</p>
+      box.innerHTML = `<div class="vazio cartao-info"><div class="icone-vazio">${window.Icone("caixa")}</div><p>Você ainda não enviou pedidos.</p>
         <p><a class="btn btn-primario" href="produtos.html" style="margin-top:12px">Ver produtos</a></p></div>`;
       return;
     }
@@ -371,7 +371,7 @@
       if (end.bairro) campo("bairro").value = end.bairro;
       campo("cidade").value = end.cidade;
       campo("uf").value = end.uf;
-      dica.textContent = "Endereço encontrado ✓";
+      dica.textContent = "Endereço encontrado.";
       (end.logradouro ? campo("numero") : campo("logradouro")).focus();
     } catch (err) {
       dica.textContent = err.message + " Preencha manualmente.";
@@ -397,7 +397,7 @@
       set("uf", d.uf);
       if (!campo("telefone").value && d.telefone) campo("telefone").value = BR.mascaras.telefone(d.telefone);
       ultimoCep = BR.so(d.cep);
-      CW.mostrarToast(d.situacao && d.situacao !== "ATIVA" ? `Atenção: situação cadastral ${esc(d.situacao)}` : "Dados da empresa preenchidos ✓");
+      CW.mostrarToast(d.situacao && d.situacao !== "ATIVA" ? `Atenção: situação cadastral ${esc(d.situacao)}` : "Dados da empresa preenchidos.");
     } catch (err) {
       erro("#erro-dados", err.message);
     } finally {
@@ -452,7 +452,7 @@
       await Conta.salvarPerfil(d);
       sess.del(CHAVE_ACEITE);
       sess.del(CHAVE_TIPO);
-      CW.mostrarToast("Dados salvos com sucesso ✓");
+      CW.mostrarToast("Dados salvos com sucesso.");
       if (voltarAoCarrinhoSePreciso()) return;
       abrirPainel("resumo");
     } catch (err) {
@@ -467,7 +467,7 @@
     const favs = CW.lerFavoritos().map(CW.buscarProduto);
     const box = $("#lista-favoritos");
     if (!favs.length) {
-      box.innerHTML = `<div class="vazio"><p style="font-size:2.4rem">♡</p><p>Você ainda não favoritou produtos. Toque no ♡ de um produto para salvá-lo aqui.</p></div>`;
+      box.innerHTML = `<div class="vazio"><div class="icone-vazio">${window.Icone("coracao")}</div><p>Você ainda não favoritou produtos. Use o ícone de coração de um produto para salvá-lo aqui.</p></div>`;
       return;
     }
     CW.renderProdutos(box, favs);

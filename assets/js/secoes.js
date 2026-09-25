@@ -21,7 +21,7 @@
     const foto = F ? F.fotoCor(cat.cor, (cat.acabamentos || [""])[0], { largura: 480, altura: 300, po: true }) : "";
     const n = cat.notas || {};
     return `<article class="tipo-card">
-      <div class="tipo-foto"><div class="tipo-foto-img">${foto ? `<img src="${foto}" alt="Tinta em pó ${CW.esc(cat.nome)}" loading="lazy">` : ""}</div><span class="tipo-icone" aria-hidden="true">${cat.icone}</span></div>
+      <div class="tipo-foto"><div class="tipo-foto-img">${foto ? `<img src="${foto}" alt="Tinta em pó ${CW.esc(cat.nome)}" loading="lazy">` : ""}</div><span class="tipo-icone" aria-hidden="true">${window.Icone ? window.Icone(cat.icone) : ""}</span></div>
       <div class="tipo-info">
         <h3>${CW.esc(cat.nome)}</h3>
         <p>${CW.esc(cat.descricao)}</p>
@@ -143,7 +143,7 @@
 
   /* ---------- Guia "Qual pó usar?" ---------- */
   const PERGUNTAS = [
-    { id: "ambiente", texto: "Onde a peça vai ficar?", opcoes: [["externo", "☀️ Área externa (sol e chuva)"], ["interno", "🏠 Ambiente interno"], ["agressivo", "🌊 Ambiente agressivo (maresia, química)"], ["calor", "🔥 Calor intenso (acima de 200 °C)"]] },
+    { id: "ambiente", texto: "Onde a peça vai ficar?", opcoes: [["externo", "Área externa (sol e chuva)"], ["interno", "Ambiente interno"], ["agressivo", "Ambiente agressivo (maresia, química)"], ["calor", "Calor intenso (acima de 200 °C)"]] },
     { id: "acabamento", texto: "Qual acabamento você procura?", opcoes: [["brilhante", "Liso brilhante"], ["fosco", "Fosco / acetinado"], ["textura", "Texturizado ou martelado"], ["metal", "Metálico"], ["qualquer", "Ainda não sei"]] },
     { id: "metal", texto: "Qual é o metal da peça?", opcoes: [["aco", "Aço carbono / ferro"], ["aluminio", "Alumínio"], ["galvanizado", "Aço galvanizado"]] }
   ];
@@ -199,7 +199,7 @@
     function mostrar() {
       const r = recomendar(resp);
       const produtos = r.ids.map((id) => (window.PRODUTOS || []).find((p) => p.id === id)).filter(Boolean);
-      const resumo = PERGUNTAS.map((q) => q.opcoes.find((o) => o[0] === resp[q.id])[1].replace(/^[^\wÀ-ú]+\s*/, "")).join(" · ");
+      const resumo = PERGUNTAS.map((q) => q.opcoes.find((o) => o[0] === resp[q.id])[1]).join(" · ");
       res.hidden = false;
       res.innerHTML = `<div class="guia-cabecalho"><div><span class="rotulo">Nossa recomendação</span><h3>${produtos.length > 1 ? "Estes produtos são ideais" : "Este produto é ideal"} para você</h3>
         <p class="guia-resumo">${CW.esc(resumo)}</p></div>

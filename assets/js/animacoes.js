@@ -24,66 +24,36 @@
   }
 
   /* ---------- Artes dos slides ---------- */
-  const CORES_LINHA = ["#1558d6", "#f7c600", "#e53935", "#3cb043"];
-
   function arteLinha() {
-    const placas = CORES_LINHA.map((cor, i) => {
-      const x = 70 + i * 120;
-      const furos = [];
-      for (let l = 0; l < 7; l++) for (let c = 0; c < 4; c++) furos.push(`<circle cx="${x - 27 + c * 18}" cy="${150 + l * 22}" r="4"/>`);
-      return `<g class="placa-balanco" style="transform-origin:${x}px 40px;animation-delay:${-i * 0.9}s">
-        <path d="M${x} 40 V86" stroke="#7d8792" stroke-width="3"/>
-        <path d="M${x - 8} 94 a8 8 0 1 1 16 0" fill="none" stroke="#7d8792" stroke-width="3"/>
-        <rect x="${x - 45}" y="96" width="90" height="220" rx="5" fill="${cor}"/>
-        <g fill="#eef2f8" opacity=".85">${furos.join("")}</g>
-        <rect x="${x - 45}" y="96" width="90" height="220" rx="5" fill="url(#brilho-linha)"/>
-      </g>`;
-    }).join("");
-    return `<svg viewBox="0 0 520 380" aria-hidden="true">
-      <defs><linearGradient id="brilho-linha" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0" stop-color="#fff" stop-opacity=".45"/><stop offset=".35" stop-color="#fff" stop-opacity="0"/>
-        <stop offset=".5" stop-color="#fff" stop-opacity=".22"/><stop offset=".56" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".2"/></linearGradient>
-        <linearGradient id="trilho" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#dfe4ea"/><stop offset="1" stop-color="#7d8792"/></linearGradient></defs>
-      <rect x="0" y="28" width="520" height="14" rx="3" fill="url(#trilho)"/>
-      ${placas}
-      <ellipse cx="260" cy="350" rx="230" ry="12" fill="#0b1424" opacity=".08"/>
-    </svg>`;
+    const F = window.Fotos;
+    if (!F) return "";
+    return `<img class="cena" src="${F.cenaLinha(["#1558d6", "#e9ecef", "#383E42", "#A72920"])}" alt="Placas metálicas pintadas com tinta em pó na linha de pintura">`;
   }
 
-  function arteCores() {
-    const cores = [["#0E0E10", "RAL 9005"], ["#1558d6", "RAL 5005"], ["#3cb043", "RAL 6018"], ["#f7c600", "RAL 1003"],
-      ["#f47b20", "RAL 2004"], ["#A72920", "RAL 3000"], ["#F1F0EA", "RAL 9016"]];
-    return `<div class="leque">${cores.map(([hex, nome], i) =>
-      `<div class="leque-carta" style="--i:${i - 3};background:${hex};color:${i === 6 || i === 3 ? "#222" : "#fff"}"><span>${nome}</span></div>`).join("")}</div>`;
+  function arteCartela() {
+    const cores = [["#0E0E10", "RAL 9005", "Preto intenso"], ["#383E42", "RAL 7016", "Cinza antracite"], ["#8A9597", "RAL 7001", "Cinza prata"], ["#F1F0EA", "RAL 9016", "Branco tráfego"],
+      ["#0E4C92", "RAL 5010", "Azul genciana"], ["#1558d6", "RAL 5005", "Azul sinal"], ["#114232", "RAL 6005", "Verde musgo"], ["#57A639", "RAL 6018", "Verde amarelado"],
+      ["#A72920", "RAL 3000", "Vermelho fogo"], ["#E75B12", "RAL 2004", "Laranja puro"], ["#F2A900", "RAL 1003", "Amarelo sinal"], ["#A5A5A5", "RAL 9006", "Alumínio branco"]];
+    return `<div class="cartela">${cores.map(([hex, cod, nome], i) =>
+      `<div class="cartela-chip" style="--i:${i};background-color:${hex}"><span>${cod}<small>${nome}</small></span></div>`).join("")}</div>`;
   }
 
-  function arteSpray() {
-    return `<svg viewBox="0 0 520 380" aria-hidden="true">
-      <defs><linearGradient id="corpo-pistola" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd84d"/><stop offset="1" stop-color="#e0a800"/></linearGradient>
-        <linearGradient id="placa-spray" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6f96e8"/><stop offset=".5" stop-color="#1558d6"/><stop offset="1" stop-color="#0d3fa6"/></linearGradient></defs>
-      <path d="M430 20 V70" stroke="#7d8792" stroke-width="3"/>
-      <rect x="380" y="74" width="100" height="240" rx="6" fill="url(#placa-spray)"/>
-      <rect x="380" y="74" width="100" height="240" rx="6" fill="#fff" opacity=".08"/>
-      <g transform="translate(20 150) rotate(-4)">
-        <rect x="0" y="40" width="46" height="120" rx="12" fill="#2b2f36" transform="rotate(14 23 40)"/>
-        <rect x="0" y="0" width="150" height="58" rx="18" fill="url(#corpo-pistola)"/>
-        <text x="22" y="36" font-family="Inter,Arial" font-weight="800" font-size="15" fill="#111418" font-style="italic">POLICOATING</text>
-        <rect x="150" y="16" width="44" height="26" rx="6" fill="#2b2f36"/>
-        <rect x="194" y="22" width="18" height="14" rx="3" fill="#8b949e"/>
-        <path d="M40 58 q-6 24 12 30" stroke="#2b2f36" stroke-width="7" fill="none" stroke-linecap="round"/>
-        <path d="M18 150 q-20 60 -40 90" stroke="#1c1f24" stroke-width="10" fill="none"/>
-      </g>
-    </svg><canvas class="particulas" aria-hidden="true"></canvas>`;
+  function arteFicha() {
+    const F = window.Fotos, I = window.Icone || (() => "");
+    const foto = F ? F.fotoCor("#1558d6", "Brilhante", { largura: 520, altura: 620, po: false }) : "";
+    const linhas = [["relogio", "Cura", "10 min a 200 °C"], ["camadas", "Espessura", "60–80 µm"], ["alvo", "Rendimento", "≈ 9,5 m²/kg"],
+      ["folha", "Solventes (VOC)", "0%"], ["escudo", "Proteção", "Corrosão e UV"], ["caixa", "Embalagem", "Caixas 20 e 25 kg"]];
+    return `<div class="ficha-arte">${foto ? `<img src="${foto}" alt="Placa pintada com poliéster azul brilhante">` : ""}
+      <div class="ficha-tabela">${linhas.map(([ic, k, v]) => `<div><span>${I(ic)}${k}</span><strong>${v}</strong></div>`).join("")}</div></div>`;
   }
 
   function arteCaixas() {
     const CW = window.ColorWeg;
     if (!CW) return "";
-    return `<span class="po po-azul"></span><span class="po po-verde"></span><span class="po po-amarelo"></span><span class="po po-laranja"></span>
-      ${CW.caixaSVG("#f7c600", "caixa-hero")}${CW.caixaSVG("#f47b20", "caixa-hero")}${CW.caixaSVG("#1558d6", "caixa-hero")}`;
+    return `${CW.caixaSVG("#f7c600", "caixa-hero")}${CW.caixaSVG("#383E42", "caixa-hero")}${CW.caixaSVG("#1558d6", "caixa-hero")}`;
   }
 
-  const ARTES = { linha: arteLinha, cores: arteCores, spray: arteSpray, caixas: arteCaixas };
+  const ARTES = { linha: arteLinha, cartela: arteCartela, ficha: arteFicha, caixas: arteCaixas, cores: arteCartela, spray: arteFicha };
 
   /* ---------- Partículas de pó (slide da pistola) ---------- */
   function particulasSpray(canvas) {
@@ -225,7 +195,7 @@
 
   function iniciarVideoProcesso(raiz) {
     raiz.innerHTML = `<div class="vp-tela"><canvas width="960" height="540" aria-label="Animação do processo de pintura eletrostática a pó"></canvas>
-      <button type="button" class="vp-play" aria-label="Pausar animação">❚❚</button></div>
+      <button type="button" class="vp-play" aria-label="Pausar animação"></button></div>
       <div class="vp-etapas">${ETAPAS.map((e, i) => `<button type="button" data-etapa="${i}"><b>${i + 1}</b><span>${e.nome}</span></button>`).join("")}</div>
       <p class="vp-legenda" aria-live="polite"></p>`;
     const canvas = $("canvas", raiz), ctx = canvas.getContext("2d");
@@ -386,7 +356,7 @@
     const play = $(".vp-play", raiz);
     function alternar(v) {
       rodando = v;
-      play.textContent = rodando ? "❚❚" : "▶";
+      play.innerHTML = rodando ? '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1" fill="currentColor"/><rect x="14" y="5" width="4" height="14" rx="1" fill="currentColor"/></svg>' : '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l13-7.5z" fill="currentColor"/></svg>';
       play.setAttribute("aria-label", rodando ? "Pausar animação" : "Reproduzir animação");
       raiz.classList.toggle("pausado", !rodando);
       if (rodando) continuar(); else { cena(); atualizarLegenda(); }
@@ -421,7 +391,16 @@
     }).join("");
   }
 
+  /* Imagens institucionais (cena realista da linha de pintura) */
+  function iniciarCenas() {
+    if (!window.Fotos) return;
+    $$("[data-cena]").forEach((el) => {
+      el.style.backgroundImage = `url("${window.Fotos.cenaLinha(el.dataset.cena.split(","), { largura: 900, altura: 700 })}")`;
+    });
+  }
+
   document.addEventListener("DOMContentLoaded", () => {
+    iniciarCenas();
     iniciarCabecalho();
     $$("[data-slider]").forEach(iniciarSlider);
     $$("[data-processo]").forEach(iniciarVideoProcesso);

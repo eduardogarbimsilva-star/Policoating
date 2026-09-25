@@ -15,6 +15,7 @@
   const CHAVE_VOLTAR = "policoating_voltar";
   const Conta = window.Conta || null;
   const Fotos = window.Fotos || null;
+  const ic = (nome) => (window.Icone ? window.Icone(nome) : "");
   const FOTO_CARTAO = { largura: 480, altura: 384 };
   const FOTO_MODAL = { largura: 760, altura: 608 };
   function fotoProduto(p, cor, tam) {
@@ -168,7 +169,7 @@
 <div class="sobreposicao" id="sobreposicao"></div>
 <aside class="carrinho" id="carrinho" aria-label="Carrinho de compras" aria-hidden="true">
   <div class="carrinho-topo">
-    <h3>🛒 Seu carrinho</h3>
+    <h3>Seu carrinho</h3>
     <button class="fechar" data-fechar-carrinho aria-label="Fechar carrinho">×</button>
   </div>
   <div class="carrinho-itens" id="carrinho-itens"></div>
@@ -229,7 +230,7 @@
     renderClienteCarrinho();
 
     if (!carrinho.length) {
-      lista.innerHTML = `<div class="carrinho-vazio"><div class="icone">📦</div>
+      lista.innerHTML = `<div class="carrinho-vazio"><div class="icone">${ic("caixa")}</div>
         <p>Seu carrinho está vazio.</p><p><a href="produtos.html">Explore nossos produtos →</a></p></div>`;
       return;
     }
@@ -395,14 +396,14 @@
     $$(`[data-fav="${CSS.escape(id)}"]`).forEach((b) => {
       b.classList.toggle("ativo", ativo);
       b.setAttribute("aria-pressed", ativo);
-      b.innerHTML = ativo ? "♥" : "♡";
+      b.innerHTML = ic("coracao");
     });
-    mostrarToast(ativo ? "Adicionado aos favoritos ♥" : "Removido dos favoritos");
+    mostrarToast(ativo ? "Adicionado aos favoritos" : "Removido dos favoritos");
     document.dispatchEvent(new CustomEvent("favoritos:alterados"));
   }
   const botaoFav = (id) => {
     const a = ehFavorito(id);
-    return `<button class="btn-fav${a ? " ativo" : ""}" data-fav="${esc(id)}" aria-pressed="${a}" aria-label="Favoritar" title="Favoritar">${a ? "♥" : "♡"}</button>`;
+    return `<button class="btn-fav${a ? " ativo" : ""}" data-fav="${esc(id)}" aria-pressed="${a}" aria-label="Favoritar" title="Favoritar">${ic("coracao")}</button>`;
   };
 
   /* ---------- Modal de produto ---------- */
@@ -444,9 +445,9 @@
       ${p.embalagens.map((e, i) => `<button class="${i === 0 ? "ativo" : ""}" data-emb="${esc(e)}">${esc(e)}</button>`).join("")}
     </div>
     <div class="acoes-extra">
-      <button type="button" data-extra="amostra">🎨 Solicitar amostra</button>
-      <button type="button" data-extra="ficha">📄 Ficha técnica</button>
-      <button type="button" data-extra="link">🔗 Copiar link</button>
+      <button type="button" data-extra="amostra">${ic("paleta")}Solicitar amostra</button>
+      <button type="button" data-extra="ficha">${ic("documento")}Ficha técnica</button>
+      <button type="button" data-extra="link">${ic("link")}Copiar link</button>
     </div>
     <div class="linha-compra">
       <div class="quantidade">
@@ -558,7 +559,7 @@
     if (!container) return;
     container.innerHTML = lista.length
       ? lista.map(cartaoProduto).join("")
-      : `<div class="vazio"><p style="font-size:2.4rem">🔎</p><p>Nenhum produto encontrado. Tente outra busca ou categoria.</p></div>`;
+      : `<div class="vazio"><div class="icone-vazio">${ic("busca")}</div><p>Nenhum produto encontrado. Tente outra busca ou categoria.</p></div>`;
     observarRevelar();
   }
 

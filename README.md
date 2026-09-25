@@ -52,7 +52,7 @@ e os dados ficam só no navegador de quem testa. **Não publique para clientes r
    <p>O código expira em alguns minutos. Se não foi você, ignore este e-mail.</p>
    ```
 5. Em **Authentication → URL Configuration**, coloque o endereço do site em **Site URL**
-   (ex.: `https://eduardogarbimsilva-star.github.io/Color-Weg/`).
+   (ex.: `https://eduardogarbimsilva-star.github.io/Policoating/`).
 6. Em **Project Settings → API**, copie a **Project URL** e a chave pública **anon / publishable** e cole em
    `assets/js/config.js`:
    ```js

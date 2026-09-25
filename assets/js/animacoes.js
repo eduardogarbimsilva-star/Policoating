@@ -484,7 +484,47 @@
     });
   }
 
+  /* Segmentos: rolagem lateral com arrastar (mouse ou dedo) e setas */
+  function iniciarSegmentos() {
+    $$("[data-segmentos]").forEach((raiz) => {
+      const trilho = $(".seg-trilho", raiz);
+      const passo = () => Math.max(trilho.clientWidth * 0.8, 260);
+      $(".seg-seta.ant", raiz).addEventListener("click", () => trilho.scrollBy({ left: -passo(), behavior: "smooth" }));
+      $(".seg-seta.prox", raiz).addEventListener("click", () => trilho.scrollBy({ left: passo(), behavior: "smooth" }));
+      let x0 = 0, s0 = 0, arrastando = false, moveu = false;
+      trilho.addEventListener("pointerdown", (e) => {
+        if (e.pointerType !== "mouse") return;               // no toque, a rolagem nativa já funciona
+        arrastando = true; moveu = false; x0 = e.clientX; s0 = trilho.scrollLeft;
+        trilho.classList.add("arrastando");
+      });
+      addEventListener("pointermove", (e) => {
+        if (!arrastando) return;
+        const d = e.clientX - x0;
+        if (Math.abs(d) > 5) moveu = true;
+        trilho.scrollLeft = s0 - d;
+      });
+      addEventListener("pointerup", () => { arrastando = false; trilho.classList.remove("arrastando"); });
+      trilho.addEventListener("click", (e) => { if (moveu) { e.preventDefault(); moveu = false; } }, true);
+    });
+  }
+
+  /* Botão "voltar ao topo" */
+  function iniciarVoltarTopo() {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "voltar-topo"; b.setAttribute("aria-label", "Voltar ao topo");
+    b.innerHTML = window.Icone ? window.Icone("seta") : "↑";
+    document.body.appendChild(b);
+    b.addEventListener("click", () => scrollTo({ top: 0, behavior: menosMovimento ? "auto" : "smooth" }));
+    let pedido = 0;
+    addEventListener("scroll", () => {
+      if (pedido) return;
+      pedido = requestAnimationFrame(() => { pedido = 0; b.classList.toggle("visivel", scrollY > innerHeight * 1.2); });
+    }, { passive: true });
+  }
+
   document.addEventListener("DOMContentLoaded", () => {
+    iniciarSegmentos();
+    iniciarVoltarTopo();
     iniciarFaixas();
     iniciarParallax();
     iniciarProgresso();

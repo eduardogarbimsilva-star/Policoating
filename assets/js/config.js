@@ -32,10 +32,12 @@ window.SITE_CONFIG = {
     endpoint: ""
   },
 
+  // Endereços das redes sociais. Deixe vazio ("") para esconder o ícone.
+  // Ex.: instagram: "https://www.instagram.com/policoating"
   redes: {
-    instagram: "#",
-    facebook: "#",
-    linkedin: "#",
-    youtube: "#"
+    instagram: "",
+    facebook: "",
+    linkedin: "",
+    youtube: ""
   }
 };

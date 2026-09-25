@@ -27,7 +27,7 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Barlow:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/style.css?v=8199efc5">
+  <link rel="stylesheet" href="assets/css/style.css?v=a72e3d8e">
 </head>
 <body>
   <a class="pular" href="#conteudo">Pular para o conteúdo</a>
@@ -37,6 +37,7 @@
     <div class="container">
       <span class="ocultar-mobile">Tintas eletrostáticas em pó · <span data-cfg="endereco"></span></span>
       <div class="barra-topo-links">
+        <form class="busca-topo ocultar-mobile" action="produtos.html" role="search"><input type="search" name="busca" placeholder="Buscar por produto, linha ou cor" aria-label="Buscar produtos"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg></form>
         <a data-whats><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/></svg><span data-cfg="telefone">(16) 99270-8155</span></a>
         <a data-email class="ocultar-mobile"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg><span data-cfg="email"></span></a>
         <a href="conta.html" class="ocultar-mobile"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>Área do cliente</a>
@@ -136,7 +137,7 @@
             <div class="slide-arte"></div>
           </div>
         </article>
-        <article class="slide" data-arte="caixas" data-foto="assets/img/marca/caixa-policoating.jpg">
+        <article class="slide" data-arte="caixas" data-foto="assets/img/marca/linha-fabrica.jpg">
           <div class="container slide-grade">
             <div class="slide-texto">
               <span class="sobretitulo">Atendimento para todo o Brasil</span>
@@ -166,38 +167,86 @@
       </div>
     </section>
 
-    <!-- ===== Faixa de imagens rolando ===== -->
-    <section class="faixa-imagens" aria-label="Imagens da Policoating">
-      <div class="faixa-linha"><div class="faixa-trilho" data-faixa>
-            <a class="faixa-item" href="galeria.html"><img src="assets/img/marca/aplicacao-pistola.jpg" alt="Aplicação eletrostática" loading="lazy" width="480" height="270"><span>Aplicação eletrostática</span></a>
-            <a class="faixa-item" href="galeria.html"><img src="assets/img/marca/placas-acabamentos.jpg" alt="Acabamentos" loading="lazy" width="480" height="270"><span>Acabamentos</span></a>
-            <a class="faixa-item" href="galeria.html"><img src="assets/img/marca/estufa-cura.jpg" alt="Cura na estufa" loading="lazy" width="480" height="270"><span>Cura na estufa</span></a>
-            <a class="faixa-item" href="galeria.html"><img src="assets/img/marca/pecas-pintadas.jpg" alt="Rodas e quadros" loading="lazy" width="480" height="270"><span>Rodas e quadros</span></a>
-            <a class="faixa-item" href="galeria.html"><img src="assets/img/marca/potes-cores.jpg" alt="Cores RAL" loading="lazy" width="480" height="270"><span>Cores RAL</span></a>
-      </div></div>
-      <div class="faixa-linha reversa"><div class="faixa-trilho" data-faixa>
-            <a class="faixa-item" href="galeria.html"><img src="assets/img/marca/aplicacao-roda.jpg" alt="Rodas automotivas" loading="lazy" width="480" height="270"><span>Rodas automotivas</span></a>
-            <a class="faixa-item" href="galeria.html"><img src="assets/img/marca/inspecao-qualidade.jpg" alt="Controle de espessura" loading="lazy" width="480" height="270"><span>Controle de espessura</span></a>
-            <a class="faixa-item" href="galeria.html"><img src="assets/img/marca/controle-espessura.jpg" alt="Medição de camada" loading="lazy" width="480" height="270"><span>Medição de camada</span></a>
-            <a class="faixa-item" href="galeria.html"><img src="assets/img/marca/caixa-policoating.jpg" alt="Embalagem" loading="lazy" width="480" height="270"><span>Embalagem</span></a>
-      </div></div>
-    </section>
-
-    <!-- ===== Tipos de tinta (carrossel) ===== -->
+    <!-- ===== Linhas de produto ===== -->
     <section class="secao">
       <div class="container">
         <div class="secao-titulo revelar">
-          <span class="rotulo">Nossas linhas</span>
-          <h2>Conheça os tipos de tinta em pó</h2>
-          <p>Cada linha foi feita para um ambiente e um tipo de peça. Compare uso, resistência e acabamentos.</p>
+          <span class="rotulo">Produtos</span>
+          <h2>Linhas de tinta em pó</h2>
+          <p>Uma linha para cada ambiente e tipo de peça. Toque em uma linha para ver cores, acabamentos e fichas técnicas.</p>
+        </div>
+        <div class="linhas-grade">
+          <a class="linha-card revelar" href="produtos.html?categoria=poliester">
+            <img src="assets/img/marca/peca-grade.jpg" alt="Poliéster" loading="lazy">
+            <div class="linha-info"><h3>Poliéster</h3><p>Portões, grades, esquadrias e fachadas. Resiste ao sol e à chuva.</p><span class="linha-seta"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></div>
+          </a>
+          <a class="linha-card revelar" href="produtos.html?categoria=epoxi">
+            <img src="assets/img/marca/peca-armario.jpg" alt="Epóxi" loading="lazy">
+            <div class="linha-info"><h3>Epóxi</h3><p>Painéis elétricos, máquinas e prateleiras. Alta resistência química.</p><span class="linha-seta"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></div>
+          </a>
+          <a class="linha-card revelar" href="produtos.html?categoria=hibrida">
+            <img src="https://images.pexels.com/photos/11513526/pexels-photo-11513526.jpeg?auto=compress&amp;cs=tinysrgb&amp;w=700" alt="Híbrida" loading="lazy" data-foto-real data-reserva="assets/img/marca/pecas-linha.jpg">
+            <div class="linha-info"><h3>Híbrida</h3><p>Móveis de aço, armários e eletrodomésticos de uso interno.</p><span class="linha-seta"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></div>
+          </a>
+          <a class="linha-card revelar" href="produtos.html?categoria=texturizada">
+            <img src="assets/img/marca/placas-acabamentos.jpg" alt="Texturizadas" loading="lazy">
+            <div class="linha-info"><h3>Texturizadas</h3><p>Rugosas e marteladas: disfarçam imperfeições e resistem a riscos.</p><span class="linha-seta"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></div>
+          </a>
+          <a class="linha-card revelar" href="produtos.html?categoria=metalica">
+            <img src="assets/img/marca/peca-banco.jpg" alt="Metálicas" loading="lazy">
+            <div class="linha-info"><h3>Metálicas</h3><p>Cobre, bronze, prata e ouro velho para peças decorativas.</p><span class="linha-seta"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></div>
+          </a>
+          <a class="linha-card revelar" href="produtos.html?categoria=especiais">
+            <img src="assets/img/marca/estufa-cura.jpg" alt="Especiais" loading="lazy">
+            <div class="linha-info"><h3>Especiais</h3><p>Primer rico em zinco, verniz, alta temperatura e cores sob medida.</p><span class="linha-seta"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></div>
+          </a>
         </div>
       </div>
-      <div class="carrossel revelar" data-carrossel-tipos aria-label="Tipos de tinta em pó">
-        <button type="button" class="carrossel-seta ant" aria-label="Anterior">‹</button>
-        <div class="carrossel-trilho" tabindex="0"></div>
-        <button type="button" class="carrossel-seta prox" aria-label="Próximo">›</button>
+    </section>
+
+    <!-- ===== Segmentos ===== -->
+    <section class="secao secao-alt">
+      <div class="container">
+        <div class="secao-titulo revelar">
+          <span class="rotulo">Segmentos</span>
+          <h2>Para quem pinta metal</h2>
+          <p>Arraste para o lado e conheça as soluções para o seu segmento.</p>
+        </div>
       </div>
-      <div class="container centro" style="margin-top:28px"><a href="recursos.html#guia" class="btn btn-contorno-azul">Não sabe qual escolher? Faça o guia →</a></div>
+      <div class="segmentos revelar" data-segmentos>
+        <button type="button" class="seg-seta ant" aria-label="Anterior">‹</button>
+        <div class="seg-trilho" tabindex="0">
+          <a class="segmento" href="produtos.html?categoria=poliester" draggable="false">
+            <img src="assets/img/marca/peca-grade.jpg" alt="Serralherias" loading="lazy" draggable="false">
+            <div><h3>Serralherias</h3><p>Portões, grades e gradis com acabamento duradouro.</p></div>
+          </a>
+          <a class="segmento" href="produtos.html?categoria=poliester" draggable="false">
+            <img src="assets/img/marca/peca-esquadria.jpg" alt="Esquadrias e fachadas" loading="lazy" draggable="false">
+            <div><h3>Esquadrias e fachadas</h3><p>Perfis de alumínio com alta resistência ao sol.</p></div>
+          </a>
+          <a class="segmento" href="produtos.html?categoria=epoxi" draggable="false">
+            <img src="assets/img/marca/peca-armario.jpg" alt="Painéis elétricos" loading="lazy" draggable="false">
+            <div><h3>Painéis elétricos</h3><p>Quadros e gabinetes com epóxi de alta dureza.</p></div>
+          </a>
+          <a class="segmento" href="produtos.html?categoria=metalica" draggable="false">
+            <img src="assets/img/marca/peca-banco.jpg" alt="Móveis e decoração" loading="lazy" draggable="false">
+            <div><h3>Móveis e decoração</h3><p>Efeitos metálicos e texturas para design.</p></div>
+          </a>
+          <a class="segmento" href="produtos.html?categoria=poliester" draggable="false">
+            <img src="assets/img/marca/pecas-pintadas.jpg" alt="Automotivo e duas rodas" loading="lazy" draggable="false">
+            <div><h3>Automotivo e duas rodas</h3><p>Rodas, quadros e peças com brilho e proteção.</p></div>
+          </a>
+          <a class="segmento" href="produtos.html?categoria=especiais" draggable="false">
+            <img src="https://images.pexels.com/photos/11667731/pexels-photo-11667731.jpeg?auto=compress&amp;cs=tinysrgb&amp;w=700" alt="Estruturas metálicas" loading="lazy" draggable="false" data-foto-real data-reserva="assets/img/marca/estufa-cura.jpg">
+            <div><h3>Estruturas metálicas</h3><p>Sistemas anticorrosivos com primer rico em zinco.</p></div>
+          </a>
+          <a class="segmento" href="produtos.html?categoria=todas" draggable="false">
+            <img src="assets/img/marca/linha-fabrica.jpg" alt="Aplicadores e indústrias" loading="lazy" draggable="false">
+            <div><h3>Aplicadores e indústrias</h3><p>Pó com rendimento estável para linhas de pintura.</p></div>
+          </a>
+        </div>
+        <button type="button" class="seg-seta prox" aria-label="Próximo">›</button>
+      </div>
     </section>
 
     <!-- ===== Destaques ===== -->
@@ -223,6 +272,27 @@
         </div>
         <div class="inspiracao revelar" data-inspiracao></div>
       </div>
+    </section>
+
+    <!-- ===== Faixa de imagens rolando ===== -->
+    <section class="faixa-imagens" aria-label="Imagens da Policoating">
+      <div class="faixa-linha"><div class="faixa-trilho" data-faixa>
+            <a class="faixa-item" href="galeria.html"><img src="assets/img/marca/aplicacao-pistola.jpg" alt="Aplicação eletrostática" loading="lazy" width="480" height="270"><span>Aplicação eletrostática</span></a>
+            <a class="faixa-item" href="galeria.html"><img src="assets/img/marca/placas-acabamentos.jpg" alt="Acabamentos" loading="lazy" width="480" height="270"><span>Acabamentos</span></a>
+            <a class="faixa-item" href="galeria.html"><img src="assets/img/marca/estufa-cura.jpg" alt="Cura na estufa" loading="lazy" width="480" height="270"><span>Cura na estufa</span></a>
+            <a class="faixa-item" href="galeria.html"><img src="assets/img/marca/pecas-pintadas.jpg" alt="Rodas e quadros" loading="lazy" width="480" height="270"><span>Rodas e quadros</span></a>
+            <a class="faixa-item" href="galeria.html"><img src="assets/img/marca/potes-cores.jpg" alt="Cores RAL" loading="lazy" width="480" height="270"><span>Cores RAL</span></a>
+            <a class="faixa-item" href="galeria.html"><img src="assets/img/marca/linha-fabrica.jpg" alt="Linha de pintura" loading="lazy" width="480" height="270"><span>Linha de pintura</span></a>
+            <a class="faixa-item" href="galeria.html"><img src="assets/img/marca/alimentador-po.jpg" alt="Alimentação do pó" loading="lazy" width="480" height="270"><span>Alimentação do pó</span></a>
+            <a class="faixa-item" href="galeria.html"><img src="assets/img/marca/pistola-aplicacao.jpg" alt="Aplicação" loading="lazy" width="480" height="270"><span>Aplicação</span></a>
+            <a class="faixa-item" href="galeria.html"><img src="assets/img/marca/pecas-linha.jpg" alt="Grades, esquadrias e painéis" loading="lazy" width="480" height="270"><span>Grades, esquadrias e painéis</span></a>
+      </div></div>
+      <div class="faixa-linha reversa"><div class="faixa-trilho" data-faixa>
+            <a class="faixa-item" href="galeria.html"><img src="assets/img/marca/aplicacao-roda.jpg" alt="Rodas automotivas" loading="lazy" width="480" height="270"><span>Rodas automotivas</span></a>
+            <a class="faixa-item" href="galeria.html"><img src="assets/img/marca/inspecao-qualidade.jpg" alt="Controle de espessura" loading="lazy" width="480" height="270"><span>Controle de espessura</span></a>
+            <a class="faixa-item" href="galeria.html"><img src="assets/img/marca/controle-espessura.jpg" alt="Medição de camada" loading="lazy" width="480" height="270"><span>Medição de camada</span></a>
+            <a class="faixa-item" href="galeria.html"><img src="assets/img/marca/caixa-policoating.jpg" alt="Embalagem" loading="lazy" width="480" height="270"><span>Embalagem</span></a>
+      </div></div>
     </section>
 
     <!-- ===== Como funciona (vídeo) ===== -->
@@ -265,27 +335,13 @@
       </div>
     </section>
 
-    <!-- ===== Faixa com efeito de profundidade ===== -->
-    <section class="faixa-parallax" data-parallax>
-      <div class="fp-fundo" style="background-image:url('assets/img/marca/estufa-cura.jpg')"></div>
-      <div class="container fp-conteudo">
-        <div class="fp-dado revelar"><strong>1</strong><span>demão com camada uniforme</span></div>
-        <div class="fp-dado revelar"><strong>0</strong><span>solventes na aplicação</span></div>
-        <div class="fp-dado revelar"><strong>160–200 °C</strong><span>cura rápida na estufa</span></div>
-        <div class="fp-dado revelar"><strong>RAL</strong><span>e cores sob medida</span></div>
-      </div>
-    </section>
-
-    <!-- ===== Galeria (prévia) ===== -->
-    <section class="secao">
-      <div class="container">
-        <div class="secao-titulo revelar">
-          <span class="rotulo">Galeria</span>
-          <h2>Nossas cores aplicadas</h2>
-          <p>Fotos da linha Policoating e de peças metálicas pintadas com tinta em pó.</p>
-        </div>
-        <div class="galeria-previa" id="galeria-previa"></div>
-        <div class="centro"><a href="galeria.html" class="btn btn-contorno-azul">Abrir galeria completa →</a></div>
+    <!-- ===== Números ===== -->
+    <section class="secao faixa-numeros">
+      <div class="container numeros">
+        <div class="numero revelar"><strong data-contar="0" data-sufixo="%">0%</strong><span>solventes (VOC)</span></div>
+        <div class="numero revelar"><strong data-contar="98" data-prefixo="até " data-sufixo="%">até 98%</strong><span>de aproveitamento do pó com recuperação</span></div>
+        <div class="numero revelar"><strong data-contar="80" data-prefixo="60–" data-sufixo=" µm">60–80 µm</strong><span>de camada em uma só demão</span></div>
+        <div class="numero revelar"><strong>RAL</strong><span>cores padrão e especiais sob medida</span></div>
       </div>
     </section>
 
@@ -299,52 +355,21 @@
           <p>Trabalhamos com cores do padrão RAL e desenvolvemos cores e efeitos sob medida, com suporte técnico para escolher o produto certo para cada peça e ambiente.</p>
           <a href="sobre.html" class="btn btn-primario" style="margin-top:8px">Conheça a empresa</a>
         </div>
-        <figure class="foto-real revelar"><img src="assets/img/marca/potes-cores.jpg" alt="Amostras de tinta em pó Policoating em várias cores" width="1264" height="843" loading="lazy"></figure>
-        </div>
+        <figure class="foto-real revelar revelar-lado"><img src="assets/img/marca/linha-fabrica.jpg" alt="Linha de pintura a pó com cabine robotizada e estufa Policoating" width="1600" height="720" loading="lazy"></figure>
       </div>
     </section>
 
-    <!-- ===== Números ===== -->
-    <section class="secao faixa-numeros">
-      <div class="container numeros">
-        <div class="numero revelar"><strong data-contar="0" data-sufixo="%">0%</strong><span>solventes (VOC)</span></div>
-        <div class="numero revelar"><strong data-contar="98" data-prefixo="até " data-sufixo="%">até 98%</strong><span>de aproveitamento do pó com recuperação</span></div>
-        <div class="numero revelar"><strong data-contar="80" data-prefixo="60–" data-sufixo=" µm">60–80 µm</strong><span>de camada em uma só demão</span></div>
-        <div class="numero revelar"><strong>RAL</strong><span>cores padrão e especiais sob medida</span></div>
+    <!-- ===== Faixa com efeito de profundidade ===== -->
+    <section class="faixa-parallax" data-parallax>
+      <div class="fp-fundo" style="background-image:url('assets/img/marca/estufa-cura.jpg')"></div>
+      <div class="container fp-conteudo">
+        <div class="fp-dado revelar"><strong>1</strong><span>demão com camada uniforme</span></div>
+        <div class="fp-dado revelar"><strong>0</strong><span>solventes na aplicação</span></div>
+        <div class="fp-dado revelar"><strong>160–200 °C</strong><span>cura rápida na estufa</span></div>
+        <div class="fp-dado revelar"><strong>RAL</strong><span>e cores sob medida</span></div>
       </div>
     </section>
 
-    <!-- ===== Recursos ===== -->
-    <section class="secao">
-      <div class="container">
-        <div class="secao-titulo revelar">
-          <span class="rotulo">Recursos</span>
-          <h2>Ferramentas para acertar na escolha</h2>
-          <p>Calcule o consumo de pó, simule cores nas peças e acesse documentos técnicos.</p>
-        </div>
-        <div class="grade-recursos">
-          <a href="recursos.html#calculadora" class="cartao-recurso revelar"><div class="icone"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 11h2M12 11h2M16 11v6M8 15h2M12 15h2M8 18h2M12 18h2"/></svg></div><h3>Calculadora de consumo</h3><p>Descubra quantos quilos de pó você precisa para o seu lote de peças.</p><span class="link">Calcular agora →</span></a>
-          <a href="recursos.html#simulador" class="cartao-recurso revelar"><div class="icone"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18c1.1 0 2-.9 2-2 0-.5-.2-1-.5-1.3-.3-.4-.5-.8-.5-1.2 0-1.1.9-2 2-2h2.4A4.6 4.6 0 0 0 22 10c0-3.9-4.5-7-10-7"/><circle cx="7.5" cy="11.5" r="1"/><circle cx="10.5" cy="7.5" r="1"/><circle cx="15.5" cy="7.5" r="1"/></svg></div><h3>Simulador de cores</h3><p>Veja as cores e acabamentos aplicados em peças metálicas.</p><span class="link">Simular →</span></a>
-          <a href="recursos.html#documentos" class="cartao-recurso revelar"><div class="icone"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h6"/></svg></div><h3>Fichas técnicas</h3><p>Boletins técnicos, FISPQ e cartela RAL.</p><span class="link">Acessar →</span></a>
-          <a href="recursos.html#guia" class="cartao-recurso revelar"><div class="icone"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5z"/></svg></div><h3>Qual pó usar?</h3><p>Responda 3 perguntas e receba a indicação do produto ideal.</p><span class="link">Fazer o guia →</span></a>
-        </div>
-      </div>
-    </section>
-
-    <!-- ===== CTA ===== -->
-    <section class="secao" style="padding-top:0">
-      <div class="container">
-        <div class="cta revelar">
-          <div>
-            <h2>Precisa de ajuda para escolher o pó certo?</h2>
-            <p>Nossos consultores respondem pelo WhatsApp e montam o orçamento ideal para a sua linha de pintura.</p>
-          </div>
-          <a class="btn btn-whats" data-whats>Chamar no WhatsApp</a>
-        </div>
-      </div>
-    </section>
-
-    <!-- ===== Contato ===== -->
     <!-- ===== Destaques institucionais (estilo WEG) ===== -->
     <section class="secao secao-weg">
       <div class="container">
@@ -381,6 +406,34 @@
       </div>
     </section>
 
+    <!-- ===== Parceiros ===== -->
+    <section class="banner-parceiro" data-parallax>
+      <div class="fp-fundo" style="background-image:url('assets/img/marca/linha-fabrica.jpg')"></div>
+      <div class="container bp-conteudo revelar">
+        <span class="rotulo-texto" style="color:#5ec8f2">Seja parceiro</span>
+        <h2>Revenda ou aplique tintas Policoating</h2>
+        <p>Condições para serralherias, aplicadores e revendas, com suporte técnico, amostras e entrega para todo o Brasil.</p>
+        <a class="btn btn-primario" data-whats="Olá! Tenho interesse em ser parceiro (revenda/aplicador) da Policoating.">Quero ser parceiro</a>
+      </div>
+    </section>
+
+    <!-- ===== Recursos ===== -->
+    <section class="secao">
+      <div class="container">
+        <div class="secao-titulo revelar">
+          <span class="rotulo">Recursos</span>
+          <h2>Ferramentas para acertar na escolha</h2>
+          <p>Calcule o consumo de pó, simule cores nas peças e acesse documentos técnicos.</p>
+        </div>
+        <div class="grade-recursos">
+          <a href="recursos.html#calculadora" class="cartao-recurso revelar"><div class="icone"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 11h2M12 11h2M16 11v6M8 15h2M12 15h2M8 18h2M12 18h2"/></svg></div><h3>Calculadora de consumo</h3><p>Descubra quantos quilos de pó você precisa para o seu lote de peças.</p><span class="link">Calcular agora →</span></a>
+          <a href="recursos.html#simulador" class="cartao-recurso revelar"><div class="icone"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18c1.1 0 2-.9 2-2 0-.5-.2-1-.5-1.3-.3-.4-.5-.8-.5-1.2 0-1.1.9-2 2-2h2.4A4.6 4.6 0 0 0 22 10c0-3.9-4.5-7-10-7"/><circle cx="7.5" cy="11.5" r="1"/><circle cx="10.5" cy="7.5" r="1"/><circle cx="15.5" cy="7.5" r="1"/></svg></div><h3>Simulador de cores</h3><p>Veja as cores e acabamentos aplicados em peças metálicas.</p><span class="link">Simular →</span></a>
+          <a href="recursos.html#documentos" class="cartao-recurso revelar"><div class="icone"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h6"/></svg></div><h3>Fichas técnicas</h3><p>Boletins técnicos, FISPQ e cartela RAL.</p><span class="link">Acessar →</span></a>
+          <a href="recursos.html#guia" class="cartao-recurso revelar"><div class="icone"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5z"/></svg></div><h3>Qual pó usar?</h3><p>Responda 3 perguntas e receba a indicação do produto ideal.</p><span class="link">Fazer o guia →</span></a>
+        </div>
+      </div>
+    </section>
+
     <!-- ===== Newsletter ===== -->
     <section class="secao-weg faixa-news">
       <div class="container">
@@ -395,6 +448,7 @@
       </div>
     </section>
 
+    <!-- ===== Contato ===== -->
     <section class="secao secao-alt" id="contato">
       <div class="container">
         <div class="secao-titulo revelar">
@@ -417,11 +471,11 @@
       <div>
         <a href="index.html" class="logo logo-rodape"><span class="logo-marca"><svg viewBox="0 0 64 64" aria-hidden="true"><path fill="#ffffff" fill-rule="evenodd" d="M22 6h24c11 0 17 7 15 17-2 11-11 18-23 18h-8l-4 17H12L22 6zm10 11-3.5 13H37c5 0 8-2.6 9-6.5 1-4-1-6.5-5.5-6.5H32z"/><path fill="#4d8bff" d="M4 58 14 20h11l-4 14c8 0 14-2 18-7-3 9-10 14-21 14h-2l-4 17z"/></svg></span><span class="logo-texto"><strong>Poli<span>coating</span></strong><small>Tinta eletrostática em pó</small></span></a>
         <p data-cfg="slogan"></p>
-        <div class="redes">
-          <a data-rede="instagram" aria-label="Instagram">IG</a>
-          <a data-rede="facebook" aria-label="Facebook">FB</a>
-          <a data-rede="linkedin" aria-label="LinkedIn">IN</a>
-          <a data-rede="youtube" aria-label="YouTube">YT</a>
+        <div class="redes" hidden>
+          <a data-rede="instagram" aria-label="Instagram" target="_blank" rel="noopener" hidden><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg></a>
+          <a data-rede="facebook" aria-label="Facebook" target="_blank" rel="noopener" hidden><svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M13.5 21v-7.5h2.6l.4-3h-3V8.6c0-.9.3-1.5 1.5-1.5h1.6V4.4c-.3 0-1.2-.1-2.3-.1-2.3 0-3.8 1.4-3.8 3.9v2.3H8v3h2.5V21z"/></svg></a>
+          <a data-rede="linkedin" aria-label="LinkedIn" target="_blank" rel="noopener" hidden><svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M4.98 3.5a2 2 0 1 1 0 4 2 2 0 0 1 0-4M3.2 9h3.6v11.5H3.2zM9.2 9h3.4v1.6h.1c.5-.9 1.7-1.9 3.4-1.9 3.6 0 4.3 2.4 4.3 5.5v6.3h-3.6v-5.6c0-1.3 0-3-1.8-3s-2.1 1.4-2.1 2.9v5.7H9.2z"/></svg></a>
+          <a data-rede="youtube" aria-label="YouTube" target="_blank" rel="noopener" hidden><svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M21.6 7.2a2.5 2.5 0 0 0-1.8-1.8C18.2 5 12 5 12 5s-6.2 0-7.8.4A2.5 2.5 0 0 0 2.4 7.2 26 26 0 0 0 2 12a26 26 0 0 0 .4 4.8 2.5 2.5 0 0 0 1.8 1.8C5.8 19 12 19 12 19s6.2 0 7.8-.4a2.5 2.5 0 0 0 1.8-1.8A26 26 0 0 0 22 12a26 26 0 0 0-.4-4.8M10 15V9l5.2 3z"/></svg></a>
         </div>
       </div>
       <div>
@@ -464,15 +518,15 @@
     </div>
   </footer>
 
-  <script src="assets/js/config.js?v=4d17b3e1"></script>
+  <script src="assets/js/config.js?v=2d363928"></script>
   <script src="assets/js/produtos.js?v=02717c64"></script>
   <script src="assets/js/icones.js?v=fbc0a612"></script>
-  <script src="assets/js/midia.js?v=d2c7fda0"></script>
+  <script src="assets/js/midia.js?v=e3890788"></script>
   <script src="assets/js/fotos-reais.js?v=cd443528"></script>
   <script src="assets/js/fotos.js?v=b90ec185"></script>
   <script src="assets/js/auth.js?v=60eb010b"></script>
-  <script src="assets/js/main.js?v=13d5a90c"></script>
-  <script src="assets/js/animacoes.js?v=5343ea01"></script>
+  <script src="assets/js/main.js?v=dd81bdf6"></script>
+  <script src="assets/js/animacoes.js?v=08ce97a6"></script>
   <script src="assets/js/secoes.js?v=0885b063"></script>
   <script src="assets/js/assistente.js?v=53cb04a4"></script>
   <script>

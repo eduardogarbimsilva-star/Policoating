@@ -108,8 +108,8 @@
     $$("[data-tel]").forEach((el) => (el.href = "tel:+" + String(CFG.whatsapp).replace(/\D/g, "")));
     $$("[data-email]").forEach((el) => (el.href = "mailto:" + CFG.email));
     $$("[data-rede]").forEach((el) => {
-      const r = el.getAttribute("data-rede");
-      if (CFG.redes && CFG.redes[r]) el.href = CFG.redes[r];
+      const url = (CFG.redes || {})[el.getAttribute("data-rede")];
+      if (url && /^https?:\/\//.test(url)) { el.href = url; el.hidden = false; el.parentElement.hidden = false; }
     });
     $$("[data-ano]").forEach((el) => (el.textContent = new Date().getFullYear()));
   }

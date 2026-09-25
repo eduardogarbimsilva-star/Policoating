@@ -120,6 +120,11 @@ email: "contato@policoating.com.br",
 
 Todos os botões de WhatsApp, telefone, e-mail, endereço e redes sociais do site usam esses valores.
 
+### Redes sociais
+
+Os ícones do rodapé (Instagram, Facebook, LinkedIn, YouTube) só aparecem quando o endereço é preenchido em
+`redes` no [`assets/js/config.js`](assets/js/config.js), por exemplo `instagram: "https://www.instagram.com/policoating"`.
+
 ### Produtos
 Edite **`assets/js/produtos.js`**. Cada produto tem nome, categoria, acabamento, descrição, rendimento,
 cura, densidade (usada na calculadora), embalagens (caixas) e cores (nome/RAL + código hex). Use `destaque: true` para exibir na página inicial e,

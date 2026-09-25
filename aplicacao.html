@@ -22,7 +22,7 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Barlow:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/style.css?v=8199efc5">
+  <link rel="stylesheet" href="assets/css/style.css?v=a72e3d8e">
 </head>
 <body>
   <a class="pular" href="#conteudo">Pular para o conteúdo</a>
@@ -32,6 +32,7 @@
     <div class="container">
       <span class="ocultar-mobile">Tintas eletrostáticas em pó · <span data-cfg="endereco"></span></span>
       <div class="barra-topo-links">
+        <form class="busca-topo ocultar-mobile" action="produtos.html" role="search"><input type="search" name="busca" placeholder="Buscar por produto, linha ou cor" aria-label="Buscar produtos"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg></form>
         <a data-whats><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/></svg><span data-cfg="telefone">(16) 99270-8155</span></a>
         <a data-email class="ocultar-mobile"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg><span data-cfg="email"></span></a>
         <a href="conta.html" class="ocultar-mobile"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>Área do cliente</a>
@@ -292,11 +293,11 @@
       <div>
         <a href="index.html" class="logo logo-rodape"><span class="logo-marca"><svg viewBox="0 0 64 64" aria-hidden="true"><path fill="#ffffff" fill-rule="evenodd" d="M22 6h24c11 0 17 7 15 17-2 11-11 18-23 18h-8l-4 17H12L22 6zm10 11-3.5 13H37c5 0 8-2.6 9-6.5 1-4-1-6.5-5.5-6.5H32z"/><path fill="#4d8bff" d="M4 58 14 20h11l-4 14c8 0 14-2 18-7-3 9-10 14-21 14h-2l-4 17z"/></svg></span><span class="logo-texto"><strong>Poli<span>coating</span></strong><small>Tinta eletrostática em pó</small></span></a>
         <p data-cfg="slogan"></p>
-        <div class="redes">
-          <a data-rede="instagram" aria-label="Instagram">IG</a>
-          <a data-rede="facebook" aria-label="Facebook">FB</a>
-          <a data-rede="linkedin" aria-label="LinkedIn">IN</a>
-          <a data-rede="youtube" aria-label="YouTube">YT</a>
+        <div class="redes" hidden>
+          <a data-rede="instagram" aria-label="Instagram" target="_blank" rel="noopener" hidden><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg></a>
+          <a data-rede="facebook" aria-label="Facebook" target="_blank" rel="noopener" hidden><svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M13.5 21v-7.5h2.6l.4-3h-3V8.6c0-.9.3-1.5 1.5-1.5h1.6V4.4c-.3 0-1.2-.1-2.3-.1-2.3 0-3.8 1.4-3.8 3.9v2.3H8v3h2.5V21z"/></svg></a>
+          <a data-rede="linkedin" aria-label="LinkedIn" target="_blank" rel="noopener" hidden><svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M4.98 3.5a2 2 0 1 1 0 4 2 2 0 0 1 0-4M3.2 9h3.6v11.5H3.2zM9.2 9h3.4v1.6h.1c.5-.9 1.7-1.9 3.4-1.9 3.6 0 4.3 2.4 4.3 5.5v6.3h-3.6v-5.6c0-1.3 0-3-1.8-3s-2.1 1.4-2.1 2.9v5.7H9.2z"/></svg></a>
+          <a data-rede="youtube" aria-label="YouTube" target="_blank" rel="noopener" hidden><svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M21.6 7.2a2.5 2.5 0 0 0-1.8-1.8C18.2 5 12 5 12 5s-6.2 0-7.8.4A2.5 2.5 0 0 0 2.4 7.2 26 26 0 0 0 2 12a26 26 0 0 0 .4 4.8 2.5 2.5 0 0 0 1.8 1.8C5.8 19 12 19 12 19s6.2 0 7.8-.4a2.5 2.5 0 0 0 1.8-1.8A26 26 0 0 0 22 12a26 26 0 0 0-.4-4.8M10 15V9l5.2 3z"/></svg></a>
         </div>
       </div>
       <div>
@@ -339,15 +340,15 @@
     </div>
   </footer>
 
-  <script src="assets/js/config.js?v=4d17b3e1"></script>
+  <script src="assets/js/config.js?v=2d363928"></script>
   <script src="assets/js/produtos.js?v=02717c64"></script>
   <script src="assets/js/icones.js?v=fbc0a612"></script>
-  <script src="assets/js/midia.js?v=d2c7fda0"></script>
+  <script src="assets/js/midia.js?v=e3890788"></script>
   <script src="assets/js/fotos-reais.js?v=cd443528"></script>
   <script src="assets/js/fotos.js?v=b90ec185"></script>
   <script src="assets/js/auth.js?v=60eb010b"></script>
-  <script src="assets/js/main.js?v=13d5a90c"></script>
-  <script src="assets/js/animacoes.js?v=5343ea01"></script>
+  <script src="assets/js/main.js?v=dd81bdf6"></script>
+  <script src="assets/js/animacoes.js?v=08ce97a6"></script>
   <script src="assets/js/secoes.js?v=0885b063"></script>
   <script src="assets/js/assistente.js?v=53cb04a4"></script>
 </body>

@@ -19,6 +19,9 @@ window.MIDIA = {
   // categoria: "ambientes" (Fotos reais), "cores", "acabamentos" ou "aplicacoes"
   // Ex.: { src: "assets/img/galeria/portao-preto.jpg", titulo: "Portão em RAL 9005 fosco", categoria: "ambientes" }
   galeria: [
+    { src: "assets/img/marca/linha-fabrica.jpg", titulo: "Linha de pintura", descricao: "Cabine robotizada, transportador e estufa", categoria: "ambientes" },
+    { src: "assets/img/marca/pecas-linha.jpg", titulo: "Peças acabadas", descricao: "Gradil, esquadria, banco metálico e painel", categoria: "ambientes" },
+    { src: "assets/img/marca/alimentador-po.jpg", titulo: "Alimentação do pó", descricao: "Reservatório que envia o pó para a pistola", categoria: "ambientes" },
     { src: "assets/img/marca/estufa-cura.jpg", titulo: "Cura na estufa", descricao: "Peças no transportador dentro da estufa", categoria: "ambientes" },
     { src: "assets/img/marca/aplicacao-roda.jpg", titulo: "Aplicação em roda", descricao: "Cobertura uniforme em cabine de pintura", categoria: "ambientes" },
     { src: "assets/img/marca/inspecao-qualidade.jpg", titulo: "Controle de qualidade", descricao: "Medição da espessura da camada", categoria: "ambientes" },

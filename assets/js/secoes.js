@@ -2,6 +2,7 @@
    Policoating — seções interativas
    - Carrossel rolante "Tipos de tinta"
    - Vitrine de ambientes (casa, sobrado, loja, galpão, escritório)
+   - Inspiração: fotos reais de casas por cor
    - Guia "Qual pó usar?"
    ========================================================= */
 (function () {
@@ -211,7 +212,75 @@
     }
   }
 
+  /* ---------- Inspiração: fotos reais de casas por cor ---------- */
+  function iniciarInspiracao(raiz) {
+    const CW = window.ColorWeg, FR = window.FotosReais;
+    if (!FR || !CW) return;
+    const esc = CW.esc;
+    const grupos = FR.GRUPOS.filter((g) => FR.FOTOS.some((f) => f.cor === g.id));
+    raiz.innerHTML = `
+      <div class="insp-filtros" role="tablist" aria-label="Filtrar por cor">
+        <button type="button" class="insp-chip ativo" data-cor="">Todas</button>
+        ${grupos.map((g) => `<button type="button" class="insp-chip" data-cor="${g.id}"><i style="background:${g.hex}"></i>${esc(g.nome)}</button>`).join("")}
+      </div>
+      <div class="insp-area">
+        <button type="button" class="insp-seta anterior" aria-label="Anteriores">‹</button>
+        <div class="insp-trilho" tabindex="0" aria-live="polite"></div>
+        <button type="button" class="insp-seta proxima" aria-label="Próximas">›</button>
+      </div>
+      <p class="insp-credito">${esc(FR.credito)}. As cores das tintas indicadas são aproximadas; peça uma amostra.</p>`;
+    const trilho = $(".insp-trilho", raiz);
+
+    function mostrar(cor) {
+      const lista = FR.FOTOS.filter((f) => !cor || f.cor === cor);
+      trilho.innerHTML = lista.map((f) => {
+        const p = PRODUTOS.find((x) => x.id === f.produto);
+        const c = p && (p.cores.find((x) => x.nome === f.corProduto) || p.cores[0]);
+        return `<article class="insp-card" data-card-real>
+          <img data-foto-real src="${esc(FR.url(f, 700))}" alt="${esc(f.titulo)}" loading="lazy" width="700" height="933">
+          <div class="insp-legenda">
+            <span class="insp-rotulo">${esc(f.texto)}</span>
+            <strong>${esc(f.titulo)}</strong>
+            ${p ? `<button type="button" class="insp-tinta" data-produto="${esc(p.id)}" data-cor="${esc(c.nome)}">
+              <i style="background:${esc(c.hex)}"></i><span>${esc(p.nome)}<small>${esc(c.nome)}</small></span></button>` : ""}
+          </div>
+        </article>`;
+      }).join("");
+      trilho.scrollLeft = 0;
+      requestAnimationFrame(() => {
+        const sobra = trilho.scrollWidth > trilho.clientWidth + 4;
+        $$(".insp-seta", raiz).forEach((b) => (b.hidden = !sobra));
+      });
+    }
+    mostrar("");
+
+    // sem nenhuma foto carregada (ex.: sem internet para o banco de fotos), a seção some
+    const secao = raiz.closest("section");
+    document.addEventListener("foto-real-falhou", (e) => {
+      if (e.detail.pai === trilho && !trilho.children.length && !$(".insp-chip.ativo", raiz).dataset.cor && secao) secao.hidden = true;
+    });
+
+    raiz.addEventListener("click", (e) => {
+      const chip = e.target.closest(".insp-chip");
+      if (chip) {
+        $$(".insp-chip", raiz).forEach((b) => b.classList.toggle("ativo", b === chip));
+        mostrar(chip.dataset.cor);
+        return;
+      }
+      const seta = e.target.closest(".insp-seta");
+      if (seta) {
+        const passo = trilho.clientWidth * 0.8 * (seta.classList.contains("anterior") ? -1 : 1);
+        trilho.scrollBy({ left: passo, behavior: menosMovimento ? "auto" : "smooth" });
+        return;
+      }
+      const card = e.target.closest(".insp-card");
+      const btn = card && $(".insp-tinta", card);
+      if (btn) CW.abrirProduto(btn.dataset.produto, btn.dataset.cor);
+    });
+  }
+
   document.addEventListener("DOMContentLoaded", () => {
+    $$("[data-inspiracao]").forEach(iniciarInspiracao);
     $$("[data-carrossel-tipos]").forEach(iniciarCarrosselTipos);
     $$("[data-ambientes]").forEach(iniciarAmbientes);
     $$("[data-guia]").forEach(iniciarGuia);

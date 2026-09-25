@@ -413,12 +413,12 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
     gravarStorage(CHAVE_VISTOS, [id].concat(lerVistos().filter((x) => x !== id)).slice(0, 8));
   }
 
-  function abrirProduto(id) {
+  function abrirProduto(id, corNome) {
     const p = buscarProduto(id);
     if (!p) return;
     registrarVisto(id);
     const modal = $("#modal-produto");
-    let corSel = p.cores[0], embSel = p.embalagens[0];
+    let corSel = p.cores.find((c) => c.nome === corNome) || p.cores[0], embSel = p.embalagens[0];
     const cat = CATEGORIAS[p.categoria] || {};
 
     modal.innerHTML = `
@@ -445,7 +445,7 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
     </ul>
     <div class="campo-titulo">Cor: <span id="nome-cor">${esc(corSel.nome)}</span></div>
     <div class="seletor-cores">
-      ${p.cores.map((c, i) => `<button class="${i === 0 ? "ativo" : ""}" data-cor="${i}" style="background:${c.hex}" title="${esc(c.nome)}" aria-label="${esc(c.nome)}"></button>`).join("")}
+      ${p.cores.map((c, i) => `<button class="${c === corSel ? "ativo" : ""}" data-cor="${i}" style="background:${c.hex}" title="${esc(c.nome)}" aria-label="${esc(c.nome)}"></button>`).join("")}
     </div>
     <div class="campo-titulo">Embalagem (caixa)</div>
     <div class="seletor-embalagem">
@@ -620,6 +620,7 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
     observador = observador || new IntersectionObserver(
       (entradas) => entradas.forEach((en) => {
         if (en.isIntersecting) {
+          if (!en.target.parentElement) { observador.unobserve(en.target); return; }
           const irmaos = Array.from(en.target.parentElement.children).filter((c) => c.classList.contains("revelar"));
           const i = Math.max(0, irmaos.indexOf(en.target));
           en.target.style.transitionDelay = Math.min(i, 6) * 70 + "ms";

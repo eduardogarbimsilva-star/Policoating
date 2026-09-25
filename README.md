@@ -136,6 +136,19 @@ O site já vem com imagens geradas automaticamente, então funciona sem nenhuma 
 
 Para usar **fotos e vídeos reais** da empresa, coloque os arquivos em `assets/img/` e `assets/video/` e liste-os em
 [`assets/js/midia.js`](assets/js/midia.js) (slides, galeria e vídeos do YouTube ou `.mp4`).
+### Fotos reais de casas e fachadas (seção "Cores que transformam ambientes")
+
+A página inicial e a galeria mostram fotos reais de casas, fachadas e estruturas em cada cor, com a tinta indicada.
+As fotos vêm do banco gratuito **Pexels** (uso comercial liberado) e ficam listadas em
+[`assets/js/fotos-reais.js`](assets/js/fotos-reais.js). Para trocar por fotos das suas obras, suba o arquivo em
+`assets/img/galeria/` e use `src` no lugar de `pexels`:
+
+```js
+{ src: "assets/img/galeria/obra-portao-preto.jpg", cor: "preto", titulo: "Portão residencial", texto: "Obra de cliente", produto: "poliester-fosco", corProduto: "Preto RAL 9005" }
+```
+
+Se alguma foto não carregar, ela some sozinha da tela (sem imagem quebrada).
+
 ### Fotos reais dos produtos (uma por cor)
 
 O guia [`FOTOS.md`](FOTOS.md) lista **o nome exato do arquivo de cada cor** e um **prompt pronto** para gerar a foto

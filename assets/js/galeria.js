@@ -17,6 +17,12 @@
       categoria: f.categoria || "aplicacoes", titulo: f.titulo || "", sub: f.descricao || "", img: f.src, real: true
     }));
 
+    // 1b) Fotos reais de casas e fachadas (fotos-reais.js)
+    const FR = window.FotosReais, ambientesDesenho = [];
+    if (FR) FR.FOTOS.forEach((f) => itens.push({
+      categoria: "ambientes", titulo: f.titulo, sub: `${f.texto} · ${f.corProduto}`, img: FR.url(f, 900), real: true, produto: f.produto
+    }));
+
     // 2) Cores: uma de cada produto, variando
     const vistas = new Set();
     PRODUTOS.forEach((p) => p.cores.forEach((c, i) => {
@@ -41,7 +47,7 @@
      ["sobrado", "#F1F0EA", "Brilhante", "Sobrado claro", "Esquadrias brancas · RAL 9016", "poliester-brilhante"],
      ["loja", "#A72920", "Brilhante", "Loja", "Fachada · vermelho RAL 3000", "poliester-brilhante"]
     ].forEach(([tipo, hex, acab, titulo, sub, id]) =>
-      itens.push({ categoria: "ambientes", titulo, sub, svg: F.ambienteSVG(tipo, hex, acab), produto: id }));
+      (FR ? ambientesDesenho : itens).push({ categoria: "ambientes", titulo, sub, svg: F.ambienteSVG(tipo, hex, acab), produto: id }));
 
     // 5) Peças
     [["portao", "#0E0E10", "Fosco", "Portão", "Poliéster fosco · RAL 9005", "poliester-fosco"],
@@ -61,8 +67,8 @@
     function render() {
       visiveis = itens.filter((it) => filtro === "todas" || it.categoria === filtro);
       grade.innerHTML = visiveis.map((it, i) => `
-        <button type="button" class="galeria-item revelar${i % 7 === 0 ? " destaque" : ""}" data-i="${i}" aria-label="Ampliar: ${esc(it.titulo)}">
-          ${it.svg ? it.svg : `<img src="${esc(it.img)}" alt="${esc(it.titulo)}" loading="lazy" width="600" height="480"${it.cor ? ` data-produto="${esc(it.produto)}" data-cor="${esc(it.cor)}"` : ""}>`}
+        <button type="button" class="galeria-item revelar${i % 7 === 0 ? " destaque" : ""}" data-i="${i}"${it.real ? " data-card-real" : ""} aria-label="Ampliar: ${esc(it.titulo)}">
+          ${it.svg ? it.svg : `<img src="${esc(it.img)}" alt="${esc(it.titulo)}" loading="lazy"${it.real ? " data-foto-real" : ""} width="600" height="480"${it.cor ? ` data-produto="${esc(it.produto)}" data-cor="${esc(it.cor)}"` : ""}>`}
           <span><strong>${esc(it.titulo)}</strong>${esc(it.sub)}</span>
         </button>`).join("");
       CW.observarRevelar();
@@ -108,6 +114,19 @@
     let x0 = null;
     lb.addEventListener("touchstart", (e) => { x0 = e.touches[0].clientX; }, { passive: true });
     lb.addEventListener("touchend", (e) => { if (x0 == null) return; const d = e.changedTouches[0].clientX - x0; if (Math.abs(d) > 50) mostrar(atual + (d < 0 ? 1 : -1)); x0 = null; });
+
+    // Se nenhuma foto real carregar, volta para os desenhos de ambientes
+    const falhas = new Set();
+    document.addEventListener("foto-real-falhou", (e) => {
+      if (!FR) return;
+      falhas.add(e.detail.src);
+      const reais = itens.filter((it) => it.real && it.categoria === "ambientes");
+      if (reais.length && reais.every((it) => falhas.has(it.img))) {
+        reais.forEach((it) => itens.splice(itens.indexOf(it), 1));
+        itens.push(...ambientesDesenho.splice(0));
+        render();
+      }
+    });
 
     render();
   });

@@ -100,15 +100,21 @@
 
     slides.forEach((s, i) => {
       const arte = $(".slide-arte", s);
-      const foto = (MIDIA.slides || [])[i];
-      if (foto) {
-        s.classList.add("com-foto");
-        s.style.backgroundImage = `url("${foto}")`;
-        if (arte) arte.remove();
-      } else if (arte && ARTES[s.dataset.arte]) {
+      const foto = (MIDIA.slides || [])[i] || s.dataset.foto;
+      if (arte && ARTES[s.dataset.arte]) {
         arte.innerHTML = ARTES[s.dataset.arte]();
         const c = $("canvas.particulas", arte);
         if (c) spray = { slide: i, ctrl: particulasSpray(c) };
+      }
+      if (foto) {
+        // a foto só entra depois de carregar; se falhar, o slide mantém a arte
+        const img = new Image();
+        img.onload = () => {
+          s.classList.add("com-foto");
+          s.style.backgroundImage = `url("${foto}")`;
+          if (arte) arte.remove();
+        };
+        img.src = foto;
       }
       s.setAttribute("aria-roledescription", "slide");
       s.setAttribute("aria-label", `${i + 1} de ${slides.length}`);

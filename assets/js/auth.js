@@ -91,7 +91,10 @@
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error("Informe um e-mail válido.");
       if (USAR_SUPABASE) {
         const sb = await supabase();
-        const { error } = await sb.auth.signInWithOtp({ email, options: { shouldCreateUser: !!criar } });
+        // Se o modelo de e-mail do Supabase enviar um link em vez do código, o link também funciona:
+        // ele volta para a página "Minha conta" deste site, já com o cliente conectado.
+        const voltarPara = location.origin + location.pathname.replace(/[^/]*$/, "") + "conta.html";
+        const { error } = await sb.auth.signInWithOtp({ email, options: { shouldCreateUser: !!criar, emailRedirectTo: voltarPara } });
         if (error) throw traduzirErro(error);
         return {};
       }

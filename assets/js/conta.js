@@ -485,6 +485,12 @@
     if (Conta.usuario) return aposEntrar();
     mostrar("acesso");
     trocarAba(params.get("criar") ? "criar" : "entrar");
+    // Link do e-mail expirado ou já usado (o Supabase devolve o erro no endereço)
+    const erroLink = new URLSearchParams(location.hash.slice(1)).get("error_description");
+    if (erroLink) {
+      erro("#erro-acesso", "O link de acesso expirou ou já foi usado. Peça um novo código abaixo.");
+      history.replaceState(null, "", location.pathname + location.search);
+    }
     if (params.get("voltar") === "carrinho") erro("#erro-acesso", "Entre ou crie sua conta para finalizar o pedido.");
   });
 })();

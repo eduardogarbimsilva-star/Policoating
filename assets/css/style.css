@@ -1432,3 +1432,65 @@ h1, h2 { letter-spacing: -.01em; }
 .slide-arte .slide-foto { display: block; width: 100%; max-height: 440px; object-fit: cover; border-radius: 6px; box-shadow: 0 24px 60px rgba(0,0,0,.35); animation: insp-entrar .8s var(--suave, ease) both; }
 .slide[data-arte="caixas"] .slide-foto { object-fit: contain; background: #dcd8d3; }
 @media (max-width: 900px) { .slide-arte .slide-foto { max-height: 260px; } }
+
+/* =========================================================
+   Página "Pintura a pó"
+   ========================================================= */
+.indice-pagina { position: relative; background: #fff; border-bottom: 1px solid var(--borda); }
+.indice-pagina .container { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; }
+.indice-pagina .container::-webkit-scrollbar { display: none; }
+.indice-pagina a { flex: none; padding: 14px 14px; font-size: .88rem; font-weight: 600; color: var(--texto-suave); text-decoration: none; border-bottom: 2px solid transparent; }
+.indice-pagina a:hover { color: var(--azul); border-bottom-color: var(--azul); }
+.rotulo-texto { display: inline-block; margin-bottom: 8px; font-size: .74rem; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--azul); }
+.foto-real { margin: 0; }
+.foto-real img { width: 100%; height: auto; display: block; border-radius: 6px; box-shadow: var(--sombra-forte); }
+.foto-real figcaption { margin-top: 10px; font-size: .82rem; color: var(--texto-suave); }
+.etapas { display: grid; gap: 20px; }
+.etapa { display: grid; grid-template-columns: 72px 1fr; gap: 24px; align-items: start; padding: 28px; background: #fff; border: 1px solid var(--borda); border-radius: 6px; }
+.etapa:has(.etapa-foto) { grid-template-columns: 72px 1fr 38%; }
+.etapa-num { font: 700 2.4rem/1 var(--fonte-titulo, inherit); color: var(--azul); }
+.etapa-corpo h3 { margin: 0 0 6px; font-size: 1.3rem; }
+.etapa-corpo > p { margin: 0 0 14px; color: var(--texto-suave); }
+.etapa-foto { margin: 0; }
+.etapa-foto img { width: 100%; height: 100%; min-height: 220px; object-fit: cover; border-radius: 4px; display: block; }
+.equip-lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.equip-lista li { display: grid; gap: 2px; padding-left: 16px; border-left: 3px solid var(--azul-claro); }
+.equip-lista strong { color: var(--texto); }
+.equip-lista span { color: var(--texto-suave); font-size: .93rem; }
+.grade-vantagens { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+.tabela-rolagem { overflow-x: auto; background: #fff; border: 1px solid var(--borda); border-radius: 6px; }
+.tabela-uso { width: 100%; border-collapse: collapse; min-width: 620px; }
+.tabela-uso th, .tabela-uso td { padding: 14px 18px; text-align: left; border-bottom: 1px solid var(--borda); font-size: .94rem; }
+.tabela-uso th { background: var(--fundo-alt); font-size: .76rem; letter-spacing: .08em; text-transform: uppercase; color: var(--texto-suave); }
+.tabela-uso tr:last-child td { border-bottom: 0; }
+.tabela-uso a { color: var(--azul); font-weight: 600; }
+.lista-limites { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.lista-limites li { display: grid; grid-template-columns: 24px 1fr; gap: 12px; padding: 16px 18px; background: var(--fundo-alt); border-radius: 6px; }
+.lista-limites .icone-svg { width: 22px; height: 22px; color: #c77700; }
+.lista-limites span { display: grid; gap: 2px; color: var(--texto-suave); font-size: .93rem; }
+.lista-limites strong { color: var(--texto); font-size: 1rem; }
+@media (max-width: 900px) {
+  .etapa, .etapa:has(.etapa-foto) { grid-template-columns: 1fr; gap: 12px; padding: 22px; }
+  .etapa-foto { order: -1; }
+  .grade-vantagens { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 560px) { .grade-vantagens { grid-template-columns: 1fr; } }
+.chip .chip-cor { display: inline-block; width: 12px; height: 12px; margin-right: 6px; border-radius: 50%; vertical-align: -1px; box-shadow: 0 0 0 1px rgba(0,0,0,.15); }
+.processo-real { display: grid; grid-template-columns: 1.15fr 1fr; gap: 36px; align-items: center; }
+.passos-real { list-style: none; counter-reset: passo; margin: 0; padding: 0; display: grid; gap: 18px; }
+.passos-real li { counter-increment: passo; display: grid; grid-template-columns: 44px 1fr; column-gap: 14px; }
+.passos-real li::before { content: counter(passo, decimal-leading-zero); grid-row: span 2; font: 700 1.5rem/1 var(--fonte-titulo, inherit); color: #6fa0ff; }
+.passos-real strong { color: #fff; font-size: 1.05rem; }
+.passos-real span { color: #a9bcd6; font-size: .93rem; }
+.secao-escura .foto-real img { box-shadow: 0 24px 60px rgba(0,0,0,.4); }
+@media (max-width: 900px) { .processo-real { grid-template-columns: 1fr; } }
+@media (min-width: 981px) {
+  .menu > li > a { white-space: nowrap; padding: 0 12px; }
+  .menu > li > a::after { left: 12px; right: 12px; }
+}
+@media (min-width: 981px) and (max-width: 1180px) {
+  .acoes-topo .texto { display: none; }
+  .menu > li > a { padding: 0 8px; font-size: .9rem; }
+  .menu > li > a::after { left: 8px; right: 8px; }
+}
+.processo-real + .centro { text-align: center; }

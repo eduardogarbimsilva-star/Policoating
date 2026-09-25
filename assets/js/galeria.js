@@ -1,5 +1,5 @@
 /* =========================================================
-   Policoating — Galeria (fotos reais de midia.js + ilustrações)
+   Policoating — Galeria (fotos da marca + peças reais pintadas a pó)
    ========================================================= */
 (function () {
   "use strict";
@@ -7,47 +7,27 @@
   const $$ = (s, c = document) => Array.from(c.querySelectorAll(s));
 
   document.addEventListener("DOMContentLoaded", () => {
-    const CW = window.ColorWeg, F = window.Fotos, esc = CW.esc;
-    const TAM = { largura: 600, altura: 480 };
+    const CW = window.ColorWeg, esc = CW.esc;
     const produto = (id) => PRODUTOS.find((p) => p.id === id);
     const itens = [];
 
-    // 1) Fotos reais (midia.js)
+    // 1) Fotos da Policoating (midia.js)
     ((window.MIDIA || {}).galeria || []).forEach((f) => itens.push({
-      categoria: f.categoria || "aplicacoes", titulo: f.titulo || "", sub: f.descricao || "", img: f.src, real: true
+      categoria: "policoating", titulo: f.titulo || "", sub: f.descricao || "", img: f.src, real: true
     }));
 
-    // 1b) Fotos reais de peças metálicas pintadas a pó (fotos-reais.js)
+    // 2) Fotos reais de peças metálicas pintadas a pó (fotos-reais.js), por cor
     const FR = window.FotosReais;
     if (FR) FR.FOTOS.forEach((f) => itens.push({
-      categoria: "ambientes", titulo: f.titulo, sub: `${f.texto} · ${f.corProduto}`, img: FR.url(f, 900), real: true, produto: f.produto
+      categoria: f.cor, titulo: f.titulo, sub: `${f.texto} · ${f.corProduto}`, img: FR.url(f, 900), real: true, produto: f.produto
     }));
 
-    // 2) Cores: uma de cada produto, variando
-    const vistas = new Set();
-    PRODUTOS.forEach((p) => p.cores.forEach((c, i) => {
-      if (p.id === "cor-especial" || vistas.has(c.hex.toLowerCase()) || i > 2) return;
-      vistas.add(c.hex.toLowerCase());
-      itens.push({ categoria: "cores", titulo: c.nome, sub: p.nome, img: F.fotoProduto(p, c, TAM), produto: p.id, cor: c.nome });
-    }));
-
-    // 3) Acabamentos
-    [["#1558d6", "Brilhante", "Azul"], ["#1558d6", "Fosco", "Azul"], ["#1558d6", "Texturizado", "Azul"],
-     ["#3B5B8A", "Martelado", "Azul martelado"], ["#A5A5A5", "Metálico", "Prata RAL 9006"], ["#B06A3B", "Metálico", "Cobre"],
-     ["#0E0E10", "Texturizado", "Preto RAL 9005"], ["#0E0E10", "Brilhante", "Preto RAL 9005"]].forEach(([hex, acab, nome]) =>
-      itens.push({ categoria: "acabamentos", titulo: "Acabamento " + acab.toLowerCase(), sub: nome, img: F.fotoCor(hex, acab, TAM) }));
-
-    // 5) Peças
-    [["portao", "#0E0E10", "Fosco", "Portão", "Poliéster fosco · RAL 9005", "poliester-fosco"],
-     ["painel", "#CBD0CC", "Texturizado fino", "Painel elétrico", "Epóxi · RAL 7035", "epoxi-painel-eletrico"],
-     ["cadeira", "#A72920", "Acetinado", "Cadeira de aço", "Híbrida acetinada · vermelho", "hibrida-acetinada"],
-     ["estante", "#1558d6", "Brilhante", "Estante industrial", "Epóxi · azul segurança", "epoxi-anticorrosivo"],
-     ["janela", "#383E42", "Fosco", "Esquadria de alumínio", "Poliéster fosco · RAL 7016", "poliester-fosco"],
-     ["roda", "#A5A5A5", "Metálico", "Roda automotiva", "Metálica · prata RAL 9006", "metalica-prata"],
-     ["portao", "#114232", "Brilhante", "Grade residencial", "Poliéster · RAL 6005", "poliester-brilhante"],
-     ["painel", "#E75B12", "Semibrilho", "Gabinete de máquina", "Epóxi · laranja segurança", "epoxi-anticorrosivo"]
-    ].forEach(([tipo, hex, acab, titulo, sub, id]) =>
-      itens.push({ categoria: "aplicacoes", titulo, sub, svg: F.aplicacaoSVG(tipo, hex, acab), produto: id }));
+    // Filtros: Todas, Policoating e as cores que têm foto
+    const filtros = $("#filtros-galeria");
+    filtros.innerHTML = `<button class="chip ativo" data-filtro="todas">Todas</button>` +
+      (itens.some((it) => it.categoria === "policoating") ? `<button class="chip" data-filtro="policoating">Policoating</button>` : "") +
+      (FR ? FR.GRUPOS.filter((g) => itens.some((it) => it.categoria === g.id))
+        .map((g) => `<button class="chip" data-filtro="${g.id}"><i class="chip-cor" style="background:${g.hex}"></i>${esc(g.nome)}</button>`).join("") : "");
 
     const grade = $("#grade-galeria");
     let filtro = "todas", visiveis = [];
@@ -103,19 +83,14 @@
     lb.addEventListener("touchstart", (e) => { x0 = e.touches[0].clientX; }, { passive: true });
     lb.addEventListener("touchend", (e) => { if (x0 == null) return; const d = e.changedTouches[0].clientX - x0; if (Math.abs(d) > 50) mostrar(atual + (d < 0 ? 1 : -1)); x0 = null; });
 
-    // Se nenhuma foto de peça real carregar, mostra só as fotos da marca
-    const falhas = new Set();
+    // Foto que não carregar sai da lista; filtro que ficar vazio some
     document.addEventListener("foto-real-falhou", (e) => {
-      if (!FR) return;
-      falhas.add(e.detail.src);
-      const reais = itens.filter((it) => it.real && it.categoria === "ambientes");
-      if (reais.length && reais.every((it) => falhas.has(it.img))) {  // nenhuma foto carregou
-        reais.forEach((it) => itens.splice(itens.indexOf(it), 1));
-        const chip = $('#filtros-galeria [data-filtro="ambientes"]');
-        if (chip) chip.hidden = true;
-        if (filtro === "ambientes") { filtro = "todas"; $$("#filtros-galeria .chip").forEach((c) => c.classList.toggle("ativo", c.dataset.filtro === "todas")); }
-        render();
-      }
+      const i = itens.findIndex((it) => it.img === e.detail.src);
+      if (i < 0) return;
+      itens.splice(i, 1);
+      $$("#filtros-galeria [data-filtro]").forEach((c) => {
+        if (c.dataset.filtro !== "todas") c.hidden = !itens.some((it) => it.categoria === c.dataset.filtro);
+      });
     });
 
     render();

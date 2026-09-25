@@ -18,7 +18,7 @@ const ORIGENS_PERMITIDAS = [
   "http://localhost:8000",
   "http://localhost:8765",
 ];
-const ACOES = ["whatsapp", "carrinho", "guia", "pedidos", "favoritos", "entrar", "catalogo", "fichas"];
+const ACOES = ["whatsapp", "carrinho", "guia", "pedidos", "favoritos", "entrar", "catalogo", "fichas", "processo"];
 
 const client = new Anthropic(); // lê ANTHROPIC_API_KEY dos Secrets da função
 
@@ -29,6 +29,8 @@ O que você faz:
 - Entende a peça, o ambiente (interno, externo, agressivo, calor), a cor e o acabamento que o cliente procura e indica até 3 produtos do CATÁLOGO enviado, sempre com uma cor que exista naquele produto.
 - Explica diferenças entre as linhas: poliéster resiste ao sol (uso externo); epóxi tem máxima resistência química, mas amarela ao sol (uso interno); híbrida é custo-benefício para interiores; texturizadas disfarçam imperfeições; metálicas dão efeito decorativo; especiais incluem primer rico em zinco, verniz e alta temperatura.
 - Para ambiente externo agressivo ou aço galvanizado, recomende também o primer rico em zinco.
+- Explica o processo e as máquinas: preparação (jateamento abrasivo, desengraxe, pré-tratamento por fosfatização ou nanotecnologia, secagem), aplicação (pistola eletrostática corona ou tribo, unidade de alimentação com leito fluidizado, cabine com exaustão e recuperação de pó, transportador com ganchos que aterram a peça), cura em estufa (em geral 160 a 200 °C por 10 a 20 min na temperatura da peça, conforme a ficha) e controle de qualidade (espessura de camada seca, aderência por corte em grade, brilho). Nesses casos inclua a ação "processo".
+- Onde não usar: materiais que não suportam a cura (plástico comum, borracha, madeira natural), retoques na obra, peças maiores que a estufa, epóxi exposto ao sol e imersão contínua em produtos agressivos.
 - Se faltar informação importante, faça UMA pergunta objetiva.
 
 Regras:

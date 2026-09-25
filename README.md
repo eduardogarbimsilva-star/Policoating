@@ -9,16 +9,17 @@ cliente montar um carrinho e **enviar o pedido direto para o WhatsApp do vendedo
 
 | Página | Conteúdo |
 |---|---|
-| `index.html` | Slides, selos, carrossel dos tipos de tinta, destaques, ambientes (casa, loja, galpão…), vídeo animado do processo, galeria, contato |
+| `index.html` | Slides com as imagens da marca, selos, carrossel dos tipos de tinta, destaques, peças reais por cor, como funciona (foto real), galeria, contato |
 | `produtos.html` | Catálogo completo com filtro por categoria e busca |
+| `aplicacao.html` | Pintura a pó: máquinas e equipamentos de cada etapa (preparação, aplicação, cura, qualidade), vantagens, onde usar, onde não usar, exemplos |
 | `sobre.html` | Quem somos, processo de pintura a pó, história, missão/visão/valores, sustentabilidade |
-| `galeria.html` | Galeria de cores, acabamentos e peças pintadas, com filtros e ampliação |
+| `galeria.html` | Fotos da marca e de peças reais pintadas a pó, com filtro por cor e ampliação |
 | `conta.html` | Área do cliente: entrar/criar conta com código por e-mail, cadastro PF/PJ, pedidos, favoritos |
 | `privacidade.html` | Política de Privacidade (LGPD) |
 | `404.html` | Página de "não encontrado" (usada automaticamente pelo GitHub Pages) |
 | `recursos.html` | Guia "Qual pó usar?", calculadora de consumo (kg e caixas), simulador de cores, documentos, FAQ |
 
-Em todas as páginas: carrinho lateral, botão flutuante do WhatsApp e modal de produto (cor RAL, caixa, quantidade).
+Em todas as páginas: carrinho lateral, assistente de compras e modal de produto (cor RAL, caixa, quantidade).
 O layout é responsivo (celular, tablet e computador).
 
 ## Área do cliente (login com código por e-mail)

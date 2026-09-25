@@ -74,6 +74,8 @@
     if (/preco|valor|quanto custa|orcamento|desconto/.test(t)) intencao = "preco";
     if (/prazo|entrega|frete|envio|chega/.test(t)) intencao = "entrega";
     if (/ficha tecnica|fispq|boletim|laudo/.test(t)) intencao = "ficha";
+    if (/maquina|equipamento|estufa|cabine|pistola|jateamento|pre.?tratamento|fosfat|como (se )?aplica|como funciona|processo|etapa/.test(t)) intencao = "processo";
+    if (/nao (posso|pode|devo|deve) usar|nao serve|limitac|onde nao|quando nao|madeira|plastico|retoque/.test(t)) intencao = "limites";
     if (/qual (po|tinta) usar|nao sei qual|me ajuda a escolher|indica/.test(t)) intencao = cats.length || cores.length ? "buscar" : "guia";
     const alvos = PISTAS_PRODUTO.filter(([re]) => re.test(t)).map(([, id]) => id);
     return { t, cores, ral, acab, cats, alvos, intencao };
@@ -243,7 +245,7 @@
   const ACOES = {
     whatsapp: ["conversa", "Falar com vendedor"], carrinho: ["carrinho", "Abrir carrinho"], guia: ["bussola", "Fazer o guia"],
     pedidos: ["caixa", "Meus pedidos"], favoritos: ["coracao", "Meus favoritos"], entrar: ["usuario", "Entrar na conta"],
-    catalogo: ["grade", "Ver catálogo"], fichas: ["documento", "Fichas técnicas"]
+    catalogo: ["grade", "Ver catálogo"], fichas: ["documento", "Fichas técnicas"], processo: ["industria", "Máquinas e etapas"]
   };
   function botaoAcao(a) {
     const [icone, texto] = ACOES[a] || ACOES.whatsapp;
@@ -275,7 +277,7 @@
 
   function executarAcao(a) {
     const destinos = { guia: "recursos.html#guia", pedidos: "conta.html#pedidos", favoritos: "conta.html#favoritos", entrar: "conta.html",
-      catalogo: "produtos.html", fichas: "recursos.html#documentos" };
+      catalogo: "produtos.html", fichas: "recursos.html#documentos", processo: "aplicacao.html#equipamentos" };
     if (a === "carrinho") { alternar(false); CW().abrirCarrinho(); return; }
     if (a === "whatsapp") { window.open(CW().linkWhatsApp(mensagemVendedor()), "_blank", "noopener"); return; }
     if (destinos[a]) location.href = destinos[a];
@@ -322,6 +324,8 @@
     if (intencao === "vendedor") return { texto: "Vou te conectar com um vendedor pelo WhatsApp. Ele recebe o resumo do que você procurou por aqui.", acoes: ["whatsapp"] };
     if (intencao === "preco") return { texto: "Os preços dependem da cor, da quantidade e da região de entrega, por isso o orçamento é feito pelo vendedor. Adicione os produtos ao carrinho e envie; a resposta costuma ser rápida.", acoes: ["carrinho", "whatsapp"] };
     if (intencao === "entrega") return { texto: "Atendemos todo o Brasil. O prazo e o frete são confirmados pelo vendedor junto com o orçamento, conforme o CEP de entrega do seu cadastro.", acoes: ["whatsapp"] };
+    if (intencao === "processo") return { texto: "A pintura a pó tem 4 etapas: 1) preparação (jateamento, desengraxe e pré-tratamento químico); 2) aplicação com pistola eletrostática, unidade de alimentação e cabine com recuperação de pó; 3) cura na estufa, em geral de 160 a 200 °C; 4) controle de qualidade (espessura, aderência e brilho). Veja cada máquina em detalhe:", acoes: ["processo", "whatsapp"] };
+    if (intencao === "limites") return { texto: "A tinta em pó não é indicada para materiais que não aguentam o calor da estufa (plástico comum, borracha, madeira natural), para retoques na obra (precisa de cabine e estufa), para peças maiores que a estufa e, no caso do epóxi, para peças expostas ao sol. Nesses casos um técnico indica outra solução.", acoes: ["processo", "whatsapp"] };
     if (intencao === "ficha") return { texto: "Enviamos o boletim técnico e a FISPQ de qualquer produto. Abra o produto e toque em \"Ficha técnica\", ou peça na página de documentos.", acoes: ["fichas"] };
 
     if (intencao === "carrinho") {

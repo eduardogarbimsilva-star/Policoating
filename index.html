@@ -27,7 +27,7 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Barlow:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/style.css?v=efb97c37">
+  <link rel="stylesheet" href="assets/css/style.css?v=02d6d892">
 </head>
 <body>
   <a class="pular" href="#conteudo">Pular para o conteúdo</a>
@@ -92,7 +92,7 @@
     <!-- ===== Slides ===== -->
     <section class="slider" data-slider aria-roledescription="carrossel" aria-label="Destaques Policoating" tabindex="0">
       <div class="slides">
-        <article class="slide" data-arte="linha">
+        <article class="slide" data-arte="linha" data-imagem="assets/img/marca/banner-policoating.jpg" data-imagem-alt="Policoating: pistola de pintura eletrostática, pó colorido e peças metálicas pintadas">
           <div class="container slide-grade">
             <div class="slide-texto">
               <span class="sobretitulo">Tinta eletrostática em pó</span>
@@ -106,7 +106,7 @@
             <div class="slide-arte"></div>
           </div>
         </article>
-        <article class="slide" data-arte="cartela" data-foto="https://images.pexels.com/photos/6370162/pexels-photo-6370162.jpeg?auto=compress&amp;cs=tinysrgb&amp;w=1920">
+        <article class="slide" data-arte="cartela" data-imagem="assets/img/marca/potes-cores.jpg" data-imagem-alt="Amostras de tinta em pó Policoating em várias cores">
           <div class="container slide-grade">
             <div class="slide-texto">
               <span class="sobretitulo">Cores RAL e sob medida</span>
@@ -134,7 +134,7 @@
             <div class="slide-arte"></div>
           </div>
         </article>
-        <article class="slide" data-arte="caixas">
+        <article class="slide" data-arte="caixas" data-imagem="assets/img/marca/caixa-policoating.jpg" data-imagem-alt="Caixa de tinta em pó Policoating">
           <div class="container slide-grade">
             <div class="slide-texto">
               <span class="sobretitulo">Atendimento para todo o Brasil</span>
@@ -194,13 +194,13 @@
       </div>
     </section>
 
-    <!-- ===== Inspiração: casas reais por cor ===== -->
+    <!-- ===== Aplicações: peças metálicas reais por cor ===== -->
     <section class="secao secao-inspiracao" id="inspiracao">
       <div class="container">
         <div class="secao-titulo revelar">
-          <span class="rotulo">Inspiração</span>
-          <h2>Cores que transformam ambientes</h2>
-          <p>Casas, fachadas e estruturas reais em cada cor. Escolha uma cor e veja a tinta indicada para portões, grades e esquadrias.</p>
+          <span class="rotulo">Aplicações</span>
+          <h2>Peças que ganham cor com tinta em pó</h2>
+          <p>Portões, grades, esquadrias, móveis de aço, rodas, bicicletas, painéis e estruturas. Escolha uma cor e veja a tinta indicada para cada peça.</p>
         </div>
         <div class="inspiracao revelar" data-inspiracao></div>
       </div>
@@ -227,8 +227,8 @@
       <div class="container">
         <div class="secao-titulo revelar">
           <span class="rotulo">Galeria</span>
-          <h2>Cores e acabamentos em destaque</h2>
-          <p>Veja como cada cor e acabamento fica aplicado nas peças.</p>
+          <h2>Nossas cores aplicadas</h2>
+          <p>Fotos da linha Policoating e de peças metálicas pintadas com tinta em pó.</p>
         </div>
         <div class="galeria-previa" id="galeria-previa"></div>
         <div class="centro"><a href="galeria.html" class="btn btn-contorno-azul">Abrir galeria completa →</a></div>
@@ -362,27 +362,31 @@
   <script src="assets/js/config.js?v=4d17b3e1"></script>
   <script src="assets/js/produtos.js?v=02717c64"></script>
   <script src="assets/js/icones.js?v=fbc0a612"></script>
-  <script src="assets/js/midia.js?v=27289d00"></script>
-  <script src="assets/js/fotos-reais.js?v=09cb2018"></script>
+  <script src="assets/js/midia.js?v=5a3057bb"></script>
+  <script src="assets/js/fotos-reais.js?v=ad824240"></script>
   <script src="assets/js/fotos.js?v=b90ec185"></script>
   <script src="assets/js/auth.js?v=e8f238fd"></script>
-  <script src="assets/js/main.js?v=f07500b1"></script>
-  <script src="assets/js/animacoes.js?v=c30cc142"></script>
-  <script src="assets/js/secoes.js?v=a7037bf8"></script>
+  <script src="assets/js/main.js?v=13d5a90c"></script>
+  <script src="assets/js/animacoes.js?v=88b9f595"></script>
+  <script src="assets/js/secoes.js?v=0d0446cb"></script>
   <script src="assets/js/assistente.js?v=aae5bcb4"></script>
   <script>
     document.addEventListener("DOMContentLoaded", function () {
       var CW = window.ColorWeg;
-      // Prévia da galeria: fotos das cores mais procuradas
+      // Prévia da galeria: fotos da marca + peças reais pintadas a pó
       var prev = document.getElementById("galeria-previa");
-      if (prev && window.Fotos) {
-        var escolhidos = [["poliester-brilhante", 2], ["texturizada-rugosa", 0], ["metalica-cobre", 0], ["epoxi-anticorrosivo", 2], ["hibrida-brilhante", 3], ["poliester-fosco", 2]];
-        prev.innerHTML = escolhidos.map(function (e) {
-          var p = PRODUTOS.find(function (x) { return x.id === e[0]; });
-          if (!p) return "";
-          var cor = p.cores[e[1]] || p.cores[0];
-          return '<a class="galeria-item revelar" href="produtos.html#produto=' + p.id + '"><img src="' + CW.fotoProduto(p, cor, { largura: 480, altura: 384 }) +
-            '" alt="' + CW.esc(p.nome + " — " + cor.nome) + '" loading="lazy"><span><strong>' + CW.esc(cor.nome) + '</strong>' + CW.esc(p.acabamento) + '</span></a>';
+      if (prev) {
+        var marca = ((window.MIDIA || {}).galeria || []).slice(0, 2).map(function (f) {
+          return { src: f.src, titulo: f.titulo, sub: f.descricao || "", real: false };
+        });
+        var FR = window.FotosReais;
+        var pecas = FR ? [698772, 33706880, 32726107, 16091345].map(function (id) {
+          var f = FR.FOTOS.find(function (x) { return x.pexels === id; });
+          return f && { src: FR.url(f, 700), titulo: f.titulo, sub: f.corProduto, real: true };
+        }).filter(Boolean) : [];
+        prev.innerHTML = marca.concat(pecas).map(function (it) {
+          return '<a class="galeria-item revelar" href="galeria.html"' + (it.real ? ' data-card-real' : '') + '><img src="' + CW.esc(it.src) + '" alt="' + CW.esc(it.titulo) +
+            '" loading="lazy"' + (it.real ? ' data-foto-real' : '') + '><span><strong>' + CW.esc(it.titulo) + '</strong>' + CW.esc(it.sub) + '</span></a>';
         }).join("");
       }
 

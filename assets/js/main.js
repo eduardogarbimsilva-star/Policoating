@@ -413,6 +413,9 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
     gravarStorage(CHAVE_VISTOS, [id].concat(lerVistos().filter((x) => x !== id)).slice(0, 8));
   }
 
+  const FOTO_CAIXA = "assets/img/marca/caixa-policoating.jpg";
+  const caixaFoto = (classe) => `<img class="${classe || "caixa-foto"}" src="${FOTO_CAIXA}" alt="Caixa de tinta em pó Policoating" width="1072" height="1008">`;
+
   function abrirProduto(id, corNome) {
     const p = buscarProduto(id);
     if (!p) return;
@@ -428,7 +431,7 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
     <div class="modal-foto" id="modal-vitrine">${imgProduto(p, corSel, FOTO_MODAL)}</div>
     <div class="modal-miniaturas" role="tablist" aria-label="Visualização">
       <button type="button" class="ativo" data-vista="foto" aria-label="Foto da cor">${imgProduto(p, corSel, FOTO_CARTAO, "mini-foto")}</button>
-      <button type="button" data-vista="caixa" aria-label="Embalagem">${caixaSVG(corSel.hex)}</button>
+      <button type="button" data-vista="caixa" aria-label="Embalagem">${caixaFoto("mini-foto")}</button>
     </div>
     <p class="modal-legenda" id="modal-legenda">${esc(corSel.nome)} · ${esc(p.acabamento || "")}</p>
   </div>
@@ -474,10 +477,9 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
       alvo.classList.remove("trocando");
       void alvo.offsetWidth;
       alvo.classList.add("trocando");
-      alvo.innerHTML = vista === "foto" ? imgProduto(p, corSel, FOTO_MODAL) : caixaSVG(corSel.hex);
+      alvo.innerHTML = vista === "foto" ? imgProduto(p, corSel, FOTO_MODAL) : caixaFoto();
       const minis = $$(".modal-miniaturas button", modal);
       minis[0].innerHTML = imgProduto(p, corSel, FOTO_CARTAO, "mini-foto");
-      minis[1].innerHTML = caixaSVG(corSel.hex);
       minis.forEach((m) => m.classList.toggle("ativo", m.dataset.vista === vista));
       $("#modal-legenda").textContent = vista === "foto" ? `${corSel.nome} · ${p.acabamento || ""}` : "Embalagem: caixa de papelão Policoating";
     };

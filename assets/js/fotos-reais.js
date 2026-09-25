@@ -1,47 +1,47 @@
 /* =========================================================
-   Policoating — Fotos reais de ambientes (casas, fachadas, indústria)
+   Policoating — Fotos reais de peças metálicas pintadas a pó
    Fotos do banco gratuito Pexels (licença livre para uso comercial).
    Para trocar por fotos próprias: use `src` com o caminho do arquivo,
-   ex.: { src: "assets/img/galeria/minha-obra.jpg", cor: "preto", ... }
+   ex.: { src: "assets/img/galeria/portao-cliente.jpg", cor: "preto", ... }
    ========================================================= */
 (function () {
   "use strict";
 
   // Grupos de cor mostrados nos filtros (na ordem)
   const GRUPOS = [
-    { id: "branco", nome: "Branco", hex: "#F1F0EA" },
     { id: "preto", nome: "Preto", hex: "#0E0E10" },
+    { id: "branco", nome: "Branco", hex: "#F1F0EA" },
     { id: "cinza", nome: "Cinza e grafite", hex: "#474A50" },
     { id: "azul", nome: "Azul", hex: "#0E4C92" },
-    { id: "amarelo", nome: "Amarelo", hex: "#F2A900" },
+    { id: "amarelo", nome: "Amarelo e laranja", hex: "#F2A900" },
     { id: "verde", nome: "Verde", hex: "#114232" },
     { id: "vermelho", nome: "Vermelho", hex: "#A72920" },
-    { id: "colorido", nome: "Coloridas", hex: "conic-gradient(#A72920,#F2A900,#57A639,#0E4C92,#A72920)" },
-    { id: "industria", nome: "Indústria", hex: "#8D9296" }
+    { id: "metalico", nome: "Metálicos", hex: "linear-gradient(135deg,#8a8a8a,#e8e8e8 45%,#b08d43)" }
   ];
 
-  // pexels: código da foto no Pexels | produto/cor: tinta sugerida para o visual da foto
+  // Só peças que são pintadas com tinta em pó (metal): portões, grades, esquadrias, móveis, rodas...
+  // pexels: código da foto no Pexels | produto/corProduto: tinta indicada para o visual da peça
   const FOTOS = [
-    { pexels: 1115804, cor: "branco", titulo: "Residência branca", texto: "Esquadrias e gradis em branco", produto: "poliester-brilhante", corProduto: "Branco Tráfego RAL 9016" },
-    { pexels: 2525329, cor: "branco", titulo: "Casas brancas com gradil", texto: "Gradil metálico branco fosco", produto: "poliester-fosco", corProduto: "Branco RAL 9010" },
-    { pexels: 280222, cor: "branco", titulo: "Casa branca e cinza", texto: "Acabamento acetinado branco", produto: "hibrida-acetinada", corProduto: "Branco RAL 9016" },
-    { pexels: 698772, cor: "preto", titulo: "Portão preto", texto: "Portão de aço preto fosco", produto: "poliester-fosco", corProduto: "Preto RAL 9005" },
-    { pexels: 13505706, cor: "preto", titulo: "Fachada com portão preto", texto: "Portão e grades pretos texturizados", produto: "texturizada-rugosa", corProduto: "Preto RAL 9005" },
-    { pexels: 186077, cor: "cinza", titulo: "Casa azul e cinza", texto: "Esquadrias em cinza antracite", produto: "poliester-fosco", corProduto: "Cinza Antracite RAL 7016" },
-    { pexels: 13589789, cor: "cinza", titulo: "Casa com portão cinza", texto: "Portão metálico grafite", produto: "poliester-fosco", corProduto: "Grafite RAL 7024" },
-    { pexels: 4556051, cor: "azul", titulo: "Fachada azul", texto: "Janelas e detalhes em azul", produto: "poliester-brilhante", corProduto: "Azul Genciana RAL 5010" },
-    { pexels: 2102587, cor: "amarelo", titulo: "Casa amarela", texto: "Detalhes metálicos em amarelo", produto: "poliester-brilhante", corProduto: "Amarelo Sinal RAL 1003" },
-    { pexels: 2323079, cor: "amarelo", titulo: "Prédio amarelo", texto: "Fachada em tom amarelo", produto: "poliester-brilhante", corProduto: "Amarelo Sinal RAL 1003" },
-    { pexels: 688336, cor: "verde", titulo: "Parede verde", texto: "Verde vivo em fachada", produto: "hibrida-brilhante", corProduto: "Verde RAL 6018" },
-    { pexels: 4946986, cor: "verde", titulo: "Casa com porta verde", texto: "Porta e detalhes em verde", produto: "poliester-brilhante", corProduto: "Verde Musgo RAL 6005" },
-    { pexels: 210538, cor: "vermelho", titulo: "Casa vermelha e preta", texto: "Vermelho intenso com preto", produto: "poliester-brilhante", corProduto: "Vermelho Fogo RAL 3000" },
-    { pexels: 1029612, cor: "vermelho", titulo: "Fachada vermelha", texto: "Revestimento vermelho", produto: "poliester-brilhante", corProduto: "Vermelho Fogo RAL 3000" },
-    { pexels: 6370162, cor: "colorido", titulo: "Rua de casas coloridas", texto: "Cada casa com uma cor", produto: "cor-especial", corProduto: "Cor a definir" },
-    { pexels: 16215566, cor: "colorido", titulo: "Fachadas multicoloridas", texto: "Cores sob medida", produto: "cor-especial", corProduto: "Cor a definir" },
-    { pexels: 31801216, cor: "colorido", titulo: "Casas coloridas", texto: "Paleta viva e alegre", produto: "cor-especial", corProduto: "Cor a definir" },
-    { pexels: 11667731, cor: "industria", titulo: "Galpão com estrutura azul", texto: "Estrutura metálica protegida", produto: "epoxi-anticorrosivo", corProduto: "Azul Segurança RAL 5005" },
-    { pexels: 236705, cor: "industria", titulo: "Estrutura metálica", texto: "Proteção anticorrosiva", produto: "primer-zinco", corProduto: "Cinza Zinco" },
-    { pexels: 20954930, cor: "industria", titulo: "Fachada metálica", texto: "Acabamento metálico", produto: "metalica-prata", corProduto: "Prata RAL 9006" }
+    { pexels: 698772, cor: "preto", titulo: "Portão de aço", texto: "Portões e grades", produto: "poliester-fosco", corProduto: "Preto RAL 9005" },
+    { pexels: 4726, cor: "preto", titulo: "Grade ornamental", texto: "Gradis e cercas", produto: "texturizada-rugosa", corProduto: "Preto RAL 9005" },
+    { pexels: 3392146, cor: "preto", titulo: "Esquadria de alumínio", texto: "Janelas e caixilhos", produto: "poliester-fosco", corProduto: "Preto RAL 9005" },
+    { pexels: 17110820, cor: "preto", titulo: "Roda automotiva", texto: "Rodas e peças automotivas", produto: "poliester-brilhante", corProduto: "Preto Intenso RAL 9005" },
+    { pexels: 18120179, cor: "branco", titulo: "Móveis de jardim", texto: "Mesas e cadeiras de metal", produto: "poliester-brilhante", corProduto: "Branco Tráfego RAL 9016" },
+    { pexels: 13589789, cor: "cinza", titulo: "Portão residencial", texto: "Portões e grades", produto: "poliester-fosco", corProduto: "Grafite RAL 7024" },
+    { pexels: 33706880, cor: "cinza", titulo: "Painéis elétricos", texto: "Quadros e gabinetes", produto: "epoxi-painel-eletrico", corProduto: "Cinza Claro RAL 7035" },
+    { pexels: 11513526, cor: "azul", titulo: "Armários de aço", texto: "Armários e roupeiros", produto: "hibrida-brilhante", corProduto: "Azul Céu RAL 5015" },
+    { pexels: 32726107, cor: "azul", titulo: "Rodas esportivas", texto: "Rodas e peças automotivas", produto: "poliester-brilhante", corProduto: "Azul Genciana RAL 5010" },
+    { pexels: 11667731, cor: "azul", titulo: "Estrutura metálica", texto: "Vigas e estruturas", produto: "epoxi-anticorrosivo", corProduto: "Azul Segurança RAL 5005" },
+    { pexels: 16091345, cor: "amarelo", titulo: "Corrimão industrial", texto: "Escadas e guarda-corpos", produto: "poliester-brilhante", corProduto: "Amarelo Sinal RAL 1003" },
+    { pexels: 30625283, cor: "amarelo", titulo: "Estantes e carrinhos", texto: "Porta-paletes e carrinhos", produto: "epoxi-anticorrosivo", corProduto: "Laranja Segurança RAL 2004" },
+    { pexels: 5671072, cor: "verde", titulo: "Cadeiras de metal", texto: "Mobiliário urbano", produto: "poliester-brilhante", corProduto: "Verde Musgo RAL 6005" },
+    { pexels: 9333824, cor: "verde", titulo: "Banco de praça", texto: "Mobiliário urbano", produto: "poliester-brilhante", corProduto: "Verde Musgo RAL 6005" },
+    { pexels: 8180445, cor: "verde", titulo: "Gradil", texto: "Cercas e alambrados", produto: "poliester-brilhante", corProduto: "Verde Musgo RAL 6005" },
+    { pexels: 7930374, cor: "vermelho", titulo: "Quadro de bicicleta", texto: "Bicicletas e academia", produto: "poliester-brilhante", corProduto: "Vermelho Fogo RAL 3000" },
+    { pexels: 2463380, cor: "vermelho", titulo: "Estrutura em aço", texto: "Estruturas e perfis", produto: "poliester-brilhante", corProduto: "Vermelho Fogo RAL 3000" },
+    { pexels: 9648649, cor: "metalico", titulo: "Roda dourada", texto: "Efeitos metálicos", produto: "metalica-cobre", corProduto: "Ouro Velho" },
+    { pexels: 20954930, cor: "metalico", titulo: "Fachada metálica", texto: "Painéis e revestimentos", produto: "metalica-prata", corProduto: "Prata RAL 9006" },
+    { pexels: 236705, cor: "metalico", titulo: "Estrutura galvanizada", texto: "Proteção anticorrosiva", produto: "primer-zinco", corProduto: "Cinza Zinco" }
   ];
 
   function url(f, largura) {

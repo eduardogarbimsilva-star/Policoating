@@ -17,8 +17,8 @@
       categoria: f.categoria || "aplicacoes", titulo: f.titulo || "", sub: f.descricao || "", img: f.src, real: true
     }));
 
-    // 1b) Fotos reais de casas e fachadas (fotos-reais.js)
-    const FR = window.FotosReais, ambientesDesenho = [];
+    // 1b) Fotos reais de peças metálicas pintadas a pó (fotos-reais.js)
+    const FR = window.FotosReais;
     if (FR) FR.FOTOS.forEach((f) => itens.push({
       categoria: "ambientes", titulo: f.titulo, sub: `${f.texto} · ${f.corProduto}`, img: FR.url(f, 900), real: true, produto: f.produto
     }));
@@ -36,18 +36,6 @@
      ["#3B5B8A", "Martelado", "Azul martelado"], ["#A5A5A5", "Metálico", "Prata RAL 9006"], ["#B06A3B", "Metálico", "Cobre"],
      ["#0E0E10", "Texturizado", "Preto RAL 9005"], ["#0E0E10", "Brilhante", "Preto RAL 9005"]].forEach(([hex, acab, nome]) =>
       itens.push({ categoria: "acabamentos", titulo: "Acabamento " + acab.toLowerCase(), sub: nome, img: F.fotoCor(hex, acab, TAM) }));
-
-    // 4) Ambientes (casas, comércio, indústria)
-    [["casa", "#0E0E10", "Fosco", "Residência", "Portão, grades e esquadrias · RAL 9005 fosco", "poliester-fosco"],
-     ["sobrado", "#383E42", "Fosco", "Sobrado com sacada", "Guarda-corpo e esquadrias · RAL 7016", "poliester-fosco"],
-     ["loja", "#0E4C92", "Brilhante", "Fachada comercial", "Esquadrias de alumínio · RAL 5010", "poliester-brilhante"],
-     ["galpao", "#F2A900", "Brilhante", "Galpão industrial", "Estrutura metálica · RAL 1003", "poliester-brilhante"],
-     ["escritorio", "#57A639", "Acetinado", "Escritório", "Móveis de aço · verde RAL 6018", "hibrida-brilhante"],
-     ["casa", "#114232", "Brilhante", "Residência", "Portão e grades · RAL 6005", "poliester-brilhante"],
-     ["sobrado", "#F1F0EA", "Brilhante", "Sobrado claro", "Esquadrias brancas · RAL 9016", "poliester-brilhante"],
-     ["loja", "#A72920", "Brilhante", "Loja", "Fachada · vermelho RAL 3000", "poliester-brilhante"]
-    ].forEach(([tipo, hex, acab, titulo, sub, id]) =>
-      (FR ? ambientesDesenho : itens).push({ categoria: "ambientes", titulo, sub, svg: F.ambienteSVG(tipo, hex, acab), produto: id }));
 
     // 5) Peças
     [["portao", "#0E0E10", "Fosco", "Portão", "Poliéster fosco · RAL 9005", "poliester-fosco"],
@@ -115,15 +103,17 @@
     lb.addEventListener("touchstart", (e) => { x0 = e.touches[0].clientX; }, { passive: true });
     lb.addEventListener("touchend", (e) => { if (x0 == null) return; const d = e.changedTouches[0].clientX - x0; if (Math.abs(d) > 50) mostrar(atual + (d < 0 ? 1 : -1)); x0 = null; });
 
-    // Se nenhuma foto real carregar, volta para os desenhos de ambientes
+    // Se nenhuma foto de peça real carregar, mostra só as fotos da marca
     const falhas = new Set();
     document.addEventListener("foto-real-falhou", (e) => {
       if (!FR) return;
       falhas.add(e.detail.src);
       const reais = itens.filter((it) => it.real && it.categoria === "ambientes");
-      if (reais.length && reais.every((it) => falhas.has(it.img))) {
+      if (reais.length && reais.every((it) => falhas.has(it.img))) {  // nenhuma foto carregou
         reais.forEach((it) => itens.splice(itens.indexOf(it), 1));
-        itens.push(...ambientesDesenho.splice(0));
+        const chip = $('#filtros-galeria [data-filtro="ambientes"]');
+        if (chip) chip.hidden = true;
+        if (filtro === "ambientes") { filtro = "todas"; $$("#filtros-galeria .chip").forEach((c) => c.classList.toggle("ativo", c.dataset.filtro === "todas")); }
         render();
       }
     });

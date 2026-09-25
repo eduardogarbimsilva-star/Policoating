@@ -101,7 +101,9 @@
     slides.forEach((s, i) => {
       const arte = $(".slide-arte", s);
       const foto = (MIDIA.slides || [])[i] || s.dataset.foto;
-      if (arte && ARTES[s.dataset.arte]) {
+      if (arte && s.dataset.imagem) {
+        arte.innerHTML = `<img class="slide-foto" src="${s.dataset.imagem}" alt="${s.dataset.imagemAlt || ""}" loading="${i ? "lazy" : "eager"}">`;
+      } else if (arte && ARTES[s.dataset.arte]) {
         arte.innerHTML = ARTES[s.dataset.arte]();
         const c = $("canvas.particulas", arte);
         if (c) spray = { slide: i, ctrl: particulasSpray(c) };

@@ -16,9 +16,14 @@ window.MIDIA = {
   slides: [],
 
   // Fotos reais da galeria (aparecem antes das ilustrações).
-  // categoria: "cores", "acabamentos" ou "aplicacoes"
-  // Ex.: { src: "assets/img/galeria/portao-preto.jpg", titulo: "Portão em RAL 9005 fosco", categoria: "aplicacoes" }
-  galeria: [],
+  // categoria: "ambientes" (Fotos reais), "cores", "acabamentos" ou "aplicacoes"
+  // Ex.: { src: "assets/img/galeria/portao-preto.jpg", titulo: "Portão em RAL 9005 fosco", categoria: "ambientes" }
+  galeria: [
+    { src: "assets/img/marca/potes-cores.jpg", titulo: "Cartela de cores Policoating", descricao: "Tinta em pó em várias cores e efeitos", categoria: "ambientes" },
+    { src: "assets/img/marca/aplicacoes-metalicas.jpg", titulo: "Aplicações em ferragens", descricao: "Portões, grades, pergolados e esquadrias", categoria: "ambientes" },
+    { src: "assets/img/marca/banner-policoating.jpg", titulo: "Policoating", descricao: "Tecnologia que reveste, qualidade que permanece", categoria: "ambientes" },
+    { src: "assets/img/marca/caixa-policoating.jpg", titulo: "Embalagem", descricao: "Caixa de papelão Policoating", categoria: "ambientes" }
+  ],
 
   // Vídeos da empresa: YouTube (só o código do vídeo) ou arquivo .mp4 próprio.
   // Ex.: { titulo: "Conheça nossa fábrica", youtube: "CODIGO_DO_VIDEO" }

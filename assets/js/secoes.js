@@ -2,7 +2,7 @@
    Policoating — seções interativas
    - Carrossel rolante "Tipos de tinta"
    - Vitrine de ambientes (casa, sobrado, loja, galpão, escritório)
-   - Inspiração: fotos reais de casas por cor
+   - Aplicações: fotos reais de peças metálicas por cor
    - Guia "Qual pó usar?"
    ========================================================= */
 (function () {
@@ -212,7 +212,7 @@
     }
   }
 
-  /* ---------- Inspiração: fotos reais de casas por cor ---------- */
+  /* ---------- Aplicações: fotos reais de peças metálicas por cor ---------- */
   function iniciarInspiracao(raiz) {
     const CW = window.ColorWeg, FR = window.FotosReais;
     if (!FR || !CW) return;

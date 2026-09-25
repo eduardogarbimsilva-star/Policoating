@@ -1428,3 +1428,7 @@ h1, h2 { letter-spacing: -.01em; }
 }
 @media (prefers-reduced-motion: reduce) { .insp-card { animation: none; } .insp-card img { transition: none; } }
 .slide.com-foto { position: relative; }
+.modal-foto .caixa-foto { object-fit: contain; background: #e6e3df; }
+.slide-arte .slide-foto { display: block; width: 100%; max-height: 440px; object-fit: cover; border-radius: 6px; box-shadow: 0 24px 60px rgba(0,0,0,.35); animation: insp-entrar .8s var(--suave, ease) both; }
+.slide[data-arte="caixas"] .slide-foto { object-fit: contain; background: #dcd8d3; }
+@media (max-width: 900px) { .slide-arte .slide-foto { max-height: 260px; } }

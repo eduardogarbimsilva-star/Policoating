@@ -242,6 +242,7 @@
 
   function abrirCarrinho() {
     fecharModal();
+    $("#toast").classList.remove("visivel");
     $("#carrinho").classList.add("aberto");
     $("#carrinho").setAttribute("aria-hidden", "false");
     $("#sobreposicao").classList.add("aberto");

@@ -19,8 +19,10 @@ window.SITE_CONFIG = {
   // Login com código por e-mail (Supabase). Enquanto vazio, o site funciona em
   // "modo demonstração" (o código aparece na tela). Veja o passo a passo no README.
   supabase: {
-    url: "",      // ex.: "https://abcdefgh.supabase.co"
-    anonKey: ""   // chave pública "anon"/"publishable" do projeto
+    url: "https://miakoeajctykqdjkkczo.supabase.co",
+    // Chave pública (publishable). É feita para ficar no site; a segurança vem das regras (RLS) do banco.
+    // Nunca coloque aqui a chave secreta (sb_secret_... / service_role).
+    anonKey: "sb_publishable_K5qH5wJJ4mLbQAInGiUqZw_i2AFC1y9"
   },
 
   redes: {

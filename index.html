@@ -7,11 +7,30 @@
   <meta name="description" content="Policoating: tintas eletrostáticas em pó poliéster, epóxi, híbridas, texturizadas e metálicas. Monte seu pedido e fale direto com um vendedor pelo WhatsApp.">
   <meta name="theme-color" content="#1558d6">
   <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="assets/img/icone-180.png">
+  <link rel="canonical" href="https://eduardogarbimsilva-star.github.io/Color-Weg/">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="pt_BR">
+  <meta property="og:site_name" content="Policoating">
+  <meta property="og:title" content="Policoating | Tinta eletrostática em pó">
+  <meta property="og:description" content="Policoating: tintas eletrostáticas em pó poliéster, epóxi, híbridas, texturizadas e metálicas. Monte seu pedido e fale direto com um vendedor pelo WhatsApp.">
+  <meta property="og:url" content="https://eduardogarbimsilva-star.github.io/Color-Weg/">
+  <meta property="og:image" content="https://eduardogarbimsilva-star.github.io/Color-Weg/assets/img/compartilhar.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"Organization","name":"Policoating","description":"Tinta eletrostática em pó",
+   "url":"https://eduardogarbimsilva-star.github.io/Color-Weg/","logo":"https://eduardogarbimsilva-star.github.io/Color-Weg/assets/img/icone-180.png","email":"contato@policoating.com.br",
+   "contactPoint":{"@type":"ContactPoint","telephone":"+55-16-99270-8155","contactType":"sales","areaServed":"BR","availableLanguage":"Portuguese"}}
+  </script>
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
+  <a class="pular" href="#conteudo">Pular para o conteúdo</a>
 
   <!-- ===== Barra superior ===== -->
   <div class="barra-topo">
@@ -47,7 +66,7 @@
     </div>
   </header>
 
-  <main>
+  <main id="conteudo">
     <!-- ===== Slides ===== -->
     <section class="slider" data-slider aria-roledescription="carrossel" aria-label="Destaques Policoating" tabindex="0">
       <div class="slides">
@@ -123,16 +142,21 @@
       </div>
     </section>
 
-    <!-- ===== Categorias ===== -->
+    <!-- ===== Tipos de tinta (carrossel) ===== -->
     <section class="secao">
       <div class="container">
         <div class="secao-titulo revelar">
           <span class="rotulo">Nossas linhas</span>
-          <h2>Um pó certo para cada aplicação</h2>
-          <p>Do portão da serralheria ao painel elétrico industrial: resistência, acabamento e cor para peças metálicas.</p>
+          <h2>Conheça os tipos de tinta em pó</h2>
+          <p>Cada linha foi feita para um ambiente e um tipo de peça. Compare uso, resistência e acabamentos.</p>
         </div>
-        <div class="grade-categorias" id="grade-categorias"></div>
       </div>
+      <div class="carrossel revelar" data-carrossel-tipos aria-label="Tipos de tinta em pó">
+        <button type="button" class="carrossel-seta ant" aria-label="Anterior">‹</button>
+        <div class="carrossel-trilho" tabindex="0"></div>
+        <button type="button" class="carrossel-seta prox" aria-label="Próximo">›</button>
+      </div>
+      <div class="container centro" style="margin-top:28px"><a href="recursos.html#guia" class="btn btn-contorno-azul">Não sabe qual escolher? Faça o guia →</a></div>
     </section>
 
     <!-- ===== Destaques ===== -->
@@ -145,6 +169,18 @@
         </div>
         <div class="grade-produtos" id="destaques"></div>
         <div class="centro"><a href="produtos.html" class="btn btn-contorno-azul">Ver catálogo completo →</a></div>
+      </div>
+    </section>
+
+    <!-- ===== Ambientes ===== -->
+    <section class="secao">
+      <div class="container">
+        <div class="secao-titulo revelar">
+          <span class="rotulo">Onde nossas tintas estão</span>
+          <h2>Da sua casa à indústria</h2>
+          <p>Portões, grades, esquadrias, estruturas e móveis de aço. Escolha um ambiente e teste as cores.</p>
+        </div>
+        <div class="ambientes revelar" data-ambientes></div>
       </div>
     </section>
 
@@ -223,7 +259,7 @@
           <a href="recursos.html#calculadora" class="cartao-recurso revelar"><div class="icone">🧮</div><h3>Calculadora de consumo</h3><p>Descubra quantos quilos de pó você precisa para o seu lote de peças.</p><span class="link">Calcular agora →</span></a>
           <a href="recursos.html#simulador" class="cartao-recurso revelar"><div class="icone">🎨</div><h3>Simulador de cores</h3><p>Veja as cores e acabamentos aplicados em peças metálicas.</p><span class="link">Simular →</span></a>
           <a href="recursos.html#documentos" class="cartao-recurso revelar"><div class="icone">📄</div><h3>Fichas técnicas</h3><p>Boletins técnicos, FISPQ e cartela RAL.</p><span class="link">Acessar →</span></a>
-          <a href="recursos.html#dicas" class="cartao-recurso revelar"><div class="icone">💡</div><h3>Dúvidas frequentes</h3><p>Pré-tratamento, cura, espessura, armazenamento e mais.</p><span class="link">Ler dicas →</span></a>
+          <a href="recursos.html#guia" class="cartao-recurso revelar"><div class="icone">🧭</div><h3>Qual pó usar?</h3><p>Responda 3 perguntas e receba a indicação do produto ideal.</p><span class="link">Fazer o guia →</span></a>
         </div>
       </div>
     </section>
@@ -318,6 +354,7 @@
   <script src="assets/js/auth.js"></script>
   <script src="assets/js/main.js"></script>
   <script src="assets/js/animacoes.js"></script>
+  <script src="assets/js/secoes.js"></script>
   <script>
     document.addEventListener("DOMContentLoaded", function () {
       var CW = window.ColorWeg;
@@ -333,13 +370,6 @@
             '" alt="' + CW.esc(p.nome + " — " + cor.nome) + '" loading="lazy"><span><strong>' + CW.esc(cor.nome) + '</strong>' + CW.esc(p.acabamento) + '</span></a>';
         }).join("");
       }
-
-      // Categorias
-      document.getElementById("grade-categorias").innerHTML = Object.keys(CATEGORIAS).map(function (k) {
-        var c = CATEGORIAS[k];
-        return '<a class="cartao-categoria revelar" href="produtos.html?categoria=' + k + '">' +
-          '<div class="icone">' + c.icone + '</div><h3>' + CW.esc(c.nome) + '</h3><p>' + CW.esc(c.descricao) + '</p></a>';
-      }).join("");
 
       // Destaques
       CW.renderProdutos(document.getElementById("destaques"), PRODUTOS.filter(function (p) { return p.destaque; }).slice(0, 8));

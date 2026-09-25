@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /conta.html
+
+Sitemap: https://eduardogarbimsilva-star.github.io/Color-Weg/sitemap.xml

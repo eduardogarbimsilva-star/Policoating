@@ -9,13 +9,14 @@ cliente montar um carrinho e **enviar o pedido direto para o WhatsApp do vendedo
 
 | Página | Conteúdo |
 |---|---|
-| `index.html` | Slides, selos, linhas de produtos, destaques, vídeo animado do processo, prévia da galeria, quem somos, recursos, contato |
+| `index.html` | Slides, selos, carrossel dos tipos de tinta, destaques, ambientes (casa, loja, galpão…), vídeo animado do processo, galeria, contato |
 | `produtos.html` | Catálogo completo com filtro por categoria e busca |
 | `sobre.html` | Quem somos, processo de pintura a pó, história, missão/visão/valores, sustentabilidade |
 | `galeria.html` | Galeria de cores, acabamentos e peças pintadas, com filtros e ampliação |
 | `conta.html` | Área do cliente: entrar/criar conta com código por e-mail, cadastro PF/PJ, pedidos, favoritos |
 | `privacidade.html` | Política de Privacidade (LGPD) |
-| `recursos.html` | Calculadora de consumo de pó (kg e caixas), simulador de cores/acabamentos em peças, documentos, FAQ |
+| `404.html` | Página de "não encontrado" (usada automaticamente pelo GitHub Pages) |
+| `recursos.html` | Guia "Qual pó usar?", calculadora de consumo (kg e caixas), simulador de cores, documentos, FAQ |
 
 Em todas as páginas: carrinho lateral, botão flutuante do WhatsApp e modal de produto (cor RAL, caixa, quantidade).
 O layout é responsivo (celular, tablet e computador).
@@ -142,6 +143,21 @@ Para a foto real de uma cor específica, adicione `foto` na cor dentro de `asset
 ```
 
 Dica: use fotos em `.jpg` com cerca de 1200 px de largura (proporção 5:4 para produtos e galeria) para o site continuar leve.
+
+## Tipos de tinta e guia de escolha
+
+As informações do carrossel **"Conheça os tipos de tinta"** (ideal para, uso, cura, notas de resistência e
+acabamentos) ficam em `CATEGORIAS`, no início de [`assets/js/produtos.js`](assets/js/produtos.js).
+O guia **"Qual pó usar?"** (em Recursos) usa essas mesmas linhas para indicar produtos; as regras estão em
+`assets/js/secoes.js` (função `recomendar`).
+
+## Google e compartilhamento
+
+- Cada página tem título, descrição e **imagem de compartilhamento** (`assets/img/compartilhar.png`), exibida
+  quando o link é enviado no WhatsApp ou em redes sociais.
+- `sitemap.xml` e `robots.txt` ajudam o Google a encontrar as páginas. Se o endereço do site mudar
+  (domínio próprio), atualize-o nesses dois arquivos e nas tags `og:` das páginas.
+- Dados estruturados da empresa (schema.org) na página inicial.
 
 ## Rodar localmente
 

@@ -244,5 +244,86 @@
     </svg>`;
   }
 
-  window.Fotos = { fotoCor, fotoProduto, aplicacaoSVG, tipoAcabamento, tom };
+
+  /* ---------- Ambientes (casas, loja, galpão, escritório) ----------
+     Só as partes metálicas (portões, grades, esquadrias, estruturas)
+     recebem a cor da tinta em pó. */
+  let idAmb = 0;
+  function ambienteSVG(tipo, hex, acabamento) {
+    const id = "amb" + ++idAmb;
+    const fx = tipoAcabamento(acabamento);
+    const brilho = { brilhante: 0.45, acetinado: 0.25, fosco: 0.06, texturizado: 0.1, martelado: 0.25, metalico: 0.4 }[fx];
+    const esc = tom(hex, -0.35);
+    const ceu = `<linearGradient id="${id}c" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9cc6f0"/><stop offset="1" stop-color="#e6f1fb"/></linearGradient>`;
+    const grama = `<rect y="330" width="600" height="70" fill="#8fbf6a"/><rect y="340" width="600" height="60" fill="#cfd4da"/><rect y="346" width="600" height="3" fill="#b7bec6"/>`;
+    const nuvens = `<g fill="#fff" opacity=".85"><ellipse cx="90" cy="60" rx="46" ry="14"/><ellipse cx="120" cy="52" rx="30" ry="12"/><ellipse cx="480" cy="44" rx="40" ry="11"/></g>`;
+    const arvore = (x) => `<rect x="${x - 5}" y="270" width="10" height="64" fill="#7a5436"/><circle cx="${x}" cy="255" r="34" fill="#5f9e4a"/><circle cx="${x - 20}" cy="272" r="22" fill="#6fae55"/><circle cx="${x + 22}" cy="268" r="24" fill="#6fae55"/>`;
+    const janela = (x, y, w, h) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#bfe0f5"/><path d="M${x + 6} ${y + 6} l${w * 0.35} 0 -${w * 0.35} ${h * 0.5}z" fill="#fff" opacity=".45"/>`;
+    const moldura = (x, y, w, h) => `<rect x="${x - 5}" y="${y - 5}" width="${w + 10}" height="5"/><rect x="${x - 5}" y="${y + h}" width="${w + 10}" height="5"/>
+      <rect x="${x - 5}" y="${y}" width="5" height="${h}"/><rect x="${x + w}" y="${y}" width="5" height="${h}"/><rect x="${x + w / 2 - 2}" y="${y}" width="4" height="${h}"/>`;
+    const grade = (x, y, w, h, passo) => {
+      let r = `<rect x="${x}" y="${y}" width="${w}" height="5"/><rect x="${x}" y="${y + h - 5}" width="${w}" height="5"/>`;
+      for (let i = x; i <= x + w - 4; i += passo) r += `<rect x="${i}" y="${y}" width="4" height="${h}"/>`;
+      return r;
+    };
+
+    const cenas = {
+      casa: {
+        fundo: `<rect width="600" height="400" fill="url(#${id}c)"/>${nuvens}${grama}${arvore(530)}
+          <rect x="150" y="170" width="300" height="165" fill="#efe6d8"/><path d="M130 175 L300 90 L470 175z" fill="#b5522e"/><path d="M130 175 L300 90 L470 175" fill="none" stroke="#8e3f22" stroke-width="4"/>
+          ${janela(185, 205, 80, 60)}${janela(335, 205, 80, 60)}<rect x="275" y="250" width="50" height="85" fill="#7a5436"/><circle cx="316" cy="295" r="3" fill="#e9c46a"/>`,
+        pecas: `${moldura(185, 205, 80, 60)}${moldura(335, 205, 80, 60)}${grade(20, 280, 250, 60, 14)}${grade(330, 280, 250, 60, 14)}
+          <rect x="16" y="270" width="10" height="72"/><rect x="262" y="270" width="10" height="72"/><rect x="328" y="270" width="10" height="72"/><rect x="574" y="270" width="10" height="72"/>`
+      },
+      sobrado: {
+        fundo: `<rect width="600" height="400" fill="url(#${id}c)"/>${nuvens}${grama}${arvore(70)}
+          <rect x="170" y="80" width="280" height="255" fill="#e7e2da"/><rect x="160" y="70" width="300" height="14" fill="#4a4e52"/>
+          ${janela(200, 110, 90, 70)}${janela(330, 110, 90, 70)}<rect x="160" y="190" width="300" height="10" fill="#cfc7bb"/>
+          ${janela(200, 230, 90, 100)}<rect x="330" y="240" width="60" height="95" fill="#5b4636"/>`,
+        pecas: `${moldura(200, 110, 90, 70)}${moldura(330, 110, 90, 70)}${moldura(200, 230, 90, 100)}${grade(160, 160, 300, 40, 12)}
+          <rect x="324" y="234" width="72" height="6"/><rect x="324" y="234" width="6" height="101"/><rect x="390" y="234" width="6" height="101"/>`
+      },
+      loja: {
+        fundo: `<rect width="600" height="400" fill="url(#${id}c)"/>${grama}
+          <rect x="60" y="70" width="480" height="265" fill="#d7dbe0"/><rect x="60" y="70" width="480" height="60" fill="#1c2f55"/>
+          <text x="300" y="110" text-anchor="middle" font-family="Inter,Arial" font-weight="800" font-size="26" fill="#fff" letter-spacing="3">LOJA</text>
+          ${janela(90, 160, 170, 170)}${janela(340, 160, 170, 170)}<rect x="270" y="170" width="60" height="165" fill="#bfe0f5" opacity=".9"/>`,
+        pecas: `${moldura(90, 160, 170, 170)}${moldura(340, 160, 170, 170)}<rect x="264" y="164" width="72" height="6"/><rect x="264" y="164" width="6" height="171"/><rect x="330" y="164" width="6" height="171"/>
+          <path d="M60 130 h480 l-20 22 h-440z"/>`
+      },
+      galpao: {
+        fundo: `<rect width="600" height="400" fill="url(#${id}c)"/>${nuvens}${grama}
+          <path d="M60 170 L300 90 L540 170 V335 H60z" fill="#b9c1ca"/>
+          ${Array.from({ length: 24 }, (_, i) => `<rect x="${64 + i * 20}" y="170" width="2" height="165" fill="#a3acb6"/>`).join("")}
+          <rect x="230" y="210" width="140" height="125" fill="#5f6873"/>
+          ${Array.from({ length: 12 }, (_, i) => `<rect x="230" y="${214 + i * 10}" width="140" height="2" fill="#4c545e"/>`).join("")}`,
+        pecas: `<rect x="56" y="166" width="10" height="170"/><rect x="534" y="166" width="10" height="170"/><rect x="295" y="92" width="10" height="80"/>
+          <path d="M56 170 L300 86 L544 170 L536 176 L300 96 L64 176z"/>
+          <rect x="222" y="202" width="156" height="8"/><rect x="222" y="202" width="8" height="133"/><rect x="370" y="202" width="8" height="133"/>`
+      },
+      escritorio: {
+        fundo: `<rect width="600" height="400" fill="#eef1f5"/><rect y="320" width="600" height="80" fill="#c9b79c"/>
+          ${janela(360, 60, 180, 150)}<rect x="80" y="210" width="220" height="14" fill="#d9c3a1"/><rect x="90" y="150" width="60" height="44" rx="3" fill="#2b2f36"/>
+          <rect x="116" y="194" width="8" height="16" fill="#2b2f36"/><rect x="190" y="180" width="70" height="30" fill="#e7e2d8"/>
+          <rect x="400" y="236" width="70" height="46" rx="8" fill="#2b2f36"/><rect x="398" y="282" width="80" height="10" rx="4" fill="#2b2f36"/>`,
+        pecas: `${moldura(360, 60, 180, 150)}<rect x="88" y="224" width="8" height="98"/><rect x="284" y="224" width="8" height="98"/><rect x="88" y="300" width="204" height="6"/>
+          <rect x="398" y="226" width="8" height="96"/><rect x="470" y="276" width="8" height="46"/><rect x="398" y="226" width="60" height="6"/>
+          <rect x="30" y="120" width="8" height="200"/><rect x="30" y="160" width="40" height="5"/><rect x="30" y="220" width="40" height="5"/><rect x="30" y="280" width="40" height="5"/>`
+      }
+    };
+    const c = cenas[tipo] || cenas.casa;
+    return `<svg viewBox="0 0 600 400" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Ambiente com peças metálicas pintadas">
+      <defs>${ceu}
+        <linearGradient id="${id}b" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="${brilho}"/><stop offset=".4" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".2"/></linearGradient>
+        <g id="${id}p">${c.pecas}</g>
+        <filter id="${id}w"><feColorMatrix type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 1 0"/></filter>
+        <mask id="${id}m"><use href="#${id}p" filter="url(#${id}w)"/></mask>
+      </defs>
+      ${c.fundo}
+      <use href="#${id}p" fill="${hex}" stroke="${esc}" stroke-width=".6"/>
+      <rect width="600" height="400" fill="url(#${id}b)" mask="url(#${id}m)"/>
+    </svg>`;
+  }
+
+  window.Fotos = { fotoCor, fotoProduto, aplicacaoSVG, ambienteSVG, tipoAcabamento, tom };
 })();

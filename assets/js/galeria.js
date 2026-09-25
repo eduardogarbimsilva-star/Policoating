@@ -31,7 +31,19 @@
      ["#0E0E10", "Texturizado", "Preto RAL 9005"], ["#0E0E10", "Brilhante", "Preto RAL 9005"]].forEach(([hex, acab, nome]) =>
       itens.push({ categoria: "acabamentos", titulo: "Acabamento " + acab.toLowerCase(), sub: nome, img: F.fotoCor(hex, acab, TAM) }));
 
-    // 4) Aplicações
+    // 4) Ambientes (casas, comércio, indústria)
+    [["casa", "#0E0E10", "Fosco", "Residência", "Portão, grades e esquadrias · RAL 9005 fosco", "poliester-fosco"],
+     ["sobrado", "#383E42", "Fosco", "Sobrado com sacada", "Guarda-corpo e esquadrias · RAL 7016", "poliester-fosco"],
+     ["loja", "#0E4C92", "Brilhante", "Fachada comercial", "Esquadrias de alumínio · RAL 5010", "poliester-brilhante"],
+     ["galpao", "#F2A900", "Brilhante", "Galpão industrial", "Estrutura metálica · RAL 1003", "poliester-brilhante"],
+     ["escritorio", "#57A639", "Acetinado", "Escritório", "Móveis de aço · verde RAL 6018", "hibrida-brilhante"],
+     ["casa", "#114232", "Brilhante", "Residência", "Portão e grades · RAL 6005", "poliester-brilhante"],
+     ["sobrado", "#F1F0EA", "Brilhante", "Sobrado claro", "Esquadrias brancas · RAL 9016", "poliester-brilhante"],
+     ["loja", "#A72920", "Brilhante", "Loja", "Fachada · vermelho RAL 3000", "poliester-brilhante"]
+    ].forEach(([tipo, hex, acab, titulo, sub, id]) =>
+      itens.push({ categoria: "ambientes", titulo, sub, svg: F.ambienteSVG(tipo, hex, acab), produto: id }));
+
+    // 5) Peças
     [["portao", "#0E0E10", "Fosco", "Portão", "Poliéster fosco · RAL 9005", "poliester-fosco"],
      ["painel", "#CBD0CC", "Texturizado fino", "Painel elétrico", "Epóxi · RAL 7035", "epoxi-painel-eletrico"],
      ["cadeira", "#A72920", "Acetinado", "Cadeira de aço", "Híbrida acetinada · vermelho", "hibrida-acetinada"],

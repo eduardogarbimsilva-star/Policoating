@@ -7,8 +7,8 @@
 window.SITE_CONFIG = {
   empresa: "Color Weg Tintas",
   slogan: "Cor, proteção e tecnologia para cada superfície",
-  whatsapp: "5547999999999",
-  telefone: "(47) 99999-9999",
+  whatsapp: "5516992708155",
+  telefone: "(16) 99270-8155",
   email: "contato@colorweg.com.br",
   endereco: "Rua das Cores, 1000 - Distrito Industrial - Jaraguá do Sul/SC",
   horario: "Seg a Sex, 8h às 18h | Sáb, 8h às 12h",

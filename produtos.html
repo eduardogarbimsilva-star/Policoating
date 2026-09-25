@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Produtos | Color Weg Tintas</title>
+  <meta name="description" content="Catálogo completo de tintas Color Weg: imobiliária, industrial, automotiva, madeira, impermeabilizantes e complementos.">
+  <meta name="theme-color" content="#00579d">
+  <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+  <!-- ===== Barra superior ===== -->
+  <div class="barra-topo">
+    <div class="container">
+      <span>📞 <a data-tel data-cfg="telefone">(47) 99999-9999</a></span>
+      <span class="ocultar-mobile">🕒 <span data-cfg="horario"></span></span>
+      <span class="ocultar-mobile">✉️ <a data-email data-cfg="email"></a></span>
+    </div>
+  </div>
+
+  <!-- ===== Cabeçalho ===== -->
+  <header class="cabecalho">
+    <div class="container">
+      <a href="index.html" class="logo" aria-label="Color Weg Tintas - início">
+        <span class="logo-marca">CW</span>
+        <span>Color Weg<small>Tintas</small></span>
+      </a>
+      <nav>
+        <ul class="menu">
+          <li><a href="index.html">Início</a></li>
+          <li><a href="produtos.html" class="ativo">Produtos</a></li>
+          <li><a href="sobre.html">A Empresa</a></li>
+          <li><a href="recursos.html">Recursos</a></li>
+          <li><a href="index.html#contato">Contato</a></li>
+        </ul>
+      </nav>
+      <div class="acoes-topo">
+        <button class="btn-carrinho" aria-label="Abrir carrinho">🛒 <span class="texto">Carrinho</span> <span class="contador">0</span></button>
+        <button class="btn-menu" aria-label="Abrir menu" aria-expanded="false"><span></span><span></span><span></span></button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="cabecalho-pagina">
+      <div class="container">
+        <div class="migalhas"><a href="index.html">Início</a> / Produtos</div>
+        <h1>Catálogo de produtos</h1>
+        <p>Encontre a tinta ideal para o seu projeto. Escolha a cor e a embalagem, adicione ao carrinho e finalize o pedido direto com nosso vendedor pelo WhatsApp.</p>
+      </div>
+    </section>
+
+    <section class="secao">
+      <div class="container">
+        <div class="barra-filtros">
+          <div class="chips" id="chips" role="tablist" aria-label="Filtrar por categoria"></div>
+          <label class="busca"><input type="search" id="busca" placeholder="Buscar produto, linha ou cor..." aria-label="Buscar produtos"></label>
+        </div>
+        <p id="contagem" style="color:var(--texto-suave);font-size:.9rem;margin-bottom:18px"></p>
+        <div class="grade-produtos" id="lista-produtos"></div>
+      </div>
+    </section>
+
+    <section class="secao" style="padding-top:0">
+      <div class="container">
+        <div class="cta">
+          <div>
+            <h2>Não encontrou o que procura?</h2>
+            <p>Temos mais de 1.500 cores no sistema tintométrico e produtos sob encomenda. Fale com a gente!</p>
+          </div>
+          <a class="btn btn-whats" data-whats="Olá! Não encontrei um produto no site e gostaria de ajuda.">Consultar vendedor</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ===== Rodapé ===== -->
+  <footer class="rodape">
+    <div class="container rodape-grade">
+      <div>
+        <a href="index.html" class="logo"><span class="logo-marca">CW</span><span>Color Weg<small>Tintas</small></span></a>
+        <p data-cfg="slogan"></p>
+        <div class="redes">
+          <a data-rede="instagram" aria-label="Instagram">IG</a>
+          <a data-rede="facebook" aria-label="Facebook">FB</a>
+          <a data-rede="linkedin" aria-label="LinkedIn">IN</a>
+          <a data-rede="youtube" aria-label="YouTube">YT</a>
+        </div>
+      </div>
+      <div>
+        <h4>Produtos</h4>
+        <ul>
+          <li><a href="produtos.html?categoria=imobiliaria">Imobiliária</a></li>
+          <li><a href="produtos.html?categoria=industrial">Industrial</a></li>
+          <li><a href="produtos.html?categoria=automotiva">Automotiva</a></li>
+          <li><a href="produtos.html?categoria=madeira">Madeiras</a></li>
+          <li><a href="produtos.html?categoria=impermeabilizante">Impermeabilizantes</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Institucional</h4>
+        <ul>
+          <li><a href="sobre.html">A Empresa</a></li>
+          <li><a href="sobre.html#historia">Nossa história</a></li>
+          <li><a href="sobre.html#sustentabilidade">Sustentabilidade</a></li>
+          <li><a href="recursos.html">Recursos</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Atendimento</h4>
+        <ul>
+          <li><a data-whats data-cfg="telefone"></a></li>
+          <li><a data-email data-cfg="email"></a></li>
+          <li data-cfg="endereco"></li>
+        </ul>
+      </div>
+    </div>
+    <div class="container rodape-base">
+      <span>© <span data-ano>2026</span> <span data-cfg="empresa">Color Weg Tintas</span>. Todos os direitos reservados.</span>
+      <span>Pedidos finalizados via WhatsApp com nossa equipe de vendas.</span>
+    </div>
+    <div class="rodape-faixa"></div>
+  </footer>
+
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/produtos.js"></script>
+  <script src="assets/js/main.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      var CW = window.ColorWeg;
+      var params = new URLSearchParams(location.search);
+      var categoria = CATEGORIAS[params.get("categoria")] ? params.get("categoria") : "todas";
+      var chips = document.getElementById("chips");
+      var busca = document.getElementById("busca");
+      busca.value = params.get("busca") || "";
+
+      var opcoes = [["todas", "Todas"]].concat(Object.keys(CATEGORIAS).map(function (k) { return [k, CATEGORIAS[k].nome]; }));
+      chips.innerHTML = opcoes.map(function (o) {
+        return '<button class="chip" role="tab" data-cat="' + o[0] + '">' + CW.esc(o[1]) + '</button>';
+      }).join("");
+
+      function normalizar(s) { return String(s).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, ""); }
+
+      function atualizar() {
+        var termo = normalizar(busca.value.trim());
+        var lista = PRODUTOS.filter(function (p) {
+          if (categoria !== "todas" && p.categoria !== categoria) return false;
+          if (!termo) return true;
+          var texto = normalizar([p.nome, p.linha, p.descricao, (CATEGORIAS[p.categoria] || {}).nome, p.cores.map(function (c) { return c.nome; }).join(" ")].join(" "));
+          return texto.indexOf(termo) !== -1;
+        });
+        document.querySelectorAll(".chip").forEach(function (c) {
+          var ativo = c.dataset.cat === categoria;
+          c.classList.toggle("ativo", ativo);
+          c.setAttribute("aria-selected", ativo);
+        });
+        document.getElementById("contagem").textContent = lista.length + (lista.length === 1 ? " produto encontrado" : " produtos encontrados");
+        CW.renderProdutos(document.getElementById("lista-produtos"), lista);
+
+        var url = new URL(location.href);
+        if (categoria === "todas") url.searchParams.delete("categoria"); else url.searchParams.set("categoria", categoria);
+        if (busca.value.trim()) url.searchParams.set("busca", busca.value.trim()); else url.searchParams.delete("busca");
+        history.replaceState(null, "", url);
+      }
+
+      chips.addEventListener("click", function (e) {
+        var b = e.target.closest(".chip");
+        if (!b) return;
+        categoria = b.dataset.cat;
+        atualizar();
+      });
+      busca.addEventListener("input", atualizar);
+      atualizar();
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Color Weg Tintas | Tintas imobiliárias, industriais e automotivas</title>
+  <meta name="description" content="Color Weg Tintas: tintas imobiliárias, industriais, automotivas, para madeira e impermeabilizantes. Monte seu pedido e fale direto com um vendedor pelo WhatsApp.">
+  <meta name="theme-color" content="#00579d">
+  <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+  <!-- ===== Barra superior ===== -->
+  <div class="barra-topo">
+    <div class="container">
+      <span>📞 <a data-tel data-cfg="telefone">(47) 99999-9999</a></span>
+      <span class="ocultar-mobile">🕒 <span data-cfg="horario"></span></span>
+      <span class="ocultar-mobile">✉️ <a data-email data-cfg="email"></a></span>
+    </div>
+  </div>
+
+  <!-- ===== Cabeçalho ===== -->
+  <header class="cabecalho">
+    <div class="container">
+      <a href="index.html" class="logo" aria-label="Color Weg Tintas - início">
+        <span class="logo-marca">CW</span>
+        <span>Color Weg<small>Tintas</small></span>
+      </a>
+      <nav>
+        <ul class="menu">
+          <li><a href="index.html" class="ativo">Início</a></li>
+          <li><a href="produtos.html">Produtos</a></li>
+          <li><a href="sobre.html">A Empresa</a></li>
+          <li><a href="recursos.html">Recursos</a></li>
+          <li><a href="index.html#contato">Contato</a></li>
+        </ul>
+      </nav>
+      <div class="acoes-topo">
+        <button class="btn-carrinho" aria-label="Abrir carrinho">🛒 <span class="texto">Carrinho</span> <span class="contador">0</span></button>
+        <button class="btn-menu" aria-label="Abrir menu" aria-expanded="false"><span></span><span></span><span></span></button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- ===== Hero ===== -->
+    <section class="hero">
+      <div class="container">
+        <div>
+          <h1>Transformamos superfícies em <em>cor, proteção e valor</em></h1>
+          <p>Tintas imobiliárias, industriais, automotivas e soluções para madeira com tecnologia de ponta. Escolha seus produtos, monte o carrinho e fale direto com nosso vendedor pelo WhatsApp.</p>
+          <div class="hero-botoes">
+            <a href="produtos.html" class="btn btn-primario" style="background:#fff;color:var(--azul)">Ver produtos</a>
+            <a class="btn btn-contorno" data-whats>Falar com vendedor</a>
+          </div>
+          <div class="hero-selos">
+            <div><strong><span data-anos-mercado>25</span>+</strong><span>anos de mercado</span></div>
+            <div><strong>1.500+</strong><span>cores disponíveis</span></div>
+            <div><strong>6</strong><span>linhas de produtos</span></div>
+          </div>
+        </div>
+        <div class="hero-arte" id="hero-arte" aria-hidden="true"></div>
+      </div>
+      <svg class="hero-onda" viewBox="0 0 1440 70" preserveAspectRatio="none" aria-hidden="true"><path d="M0 40 C 360 90 1080 -10 1440 40 L1440 70 L0 70 Z" fill="#fff"/></svg>
+    </section>
+
+    <!-- ===== Categorias ===== -->
+    <section class="secao">
+      <div class="container">
+        <div class="secao-titulo revelar">
+          <span class="rotulo">Nossas linhas</span>
+          <h2>Uma solução para cada superfície</h2>
+          <p>Do acabamento da sua casa à proteção de grandes estruturas industriais, temos o produto certo para o seu projeto.</p>
+        </div>
+        <div class="grade-categorias" id="grade-categorias"></div>
+      </div>
+    </section>
+
+    <!-- ===== Destaques ===== -->
+    <section class="secao secao-alt">
+      <div class="container">
+        <div class="secao-titulo revelar">
+          <span class="rotulo">Destaques</span>
+          <h2>Produtos mais procurados</h2>
+          <p>Clique em um produto para escolher cor, embalagem e quantidade.</p>
+        </div>
+        <div class="grade-produtos" id="destaques"></div>
+        <div class="centro"><a href="produtos.html" class="btn btn-contorno-azul">Ver catálogo completo →</a></div>
+      </div>
+    </section>
+
+    <!-- ===== Sobre (resumo) ===== -->
+    <section class="secao">
+      <div class="container duas-colunas">
+        <div class="revelar">
+          <span class="rotulo" style="color:var(--azul);font-weight:700;font-size:.8rem;letter-spacing:.12em;text-transform:uppercase">Nossa história</span>
+          <h2>Mais de duas décadas colorindo o Brasil</h2>
+          <p>Fundada em <strong data-cfg="fundacao">1998</strong>, a Color Weg nasceu de um pequeno laboratório de formulação e se tornou referência em tintas de alta performance, atendendo lojistas, pintores, construtoras e indústrias.</p>
+          <p>Investimos continuamente em pesquisa, tecnologia e sustentabilidade para entregar produtos com mais rendimento, durabilidade e menor impacto ambiental.</p>
+          <a href="sobre.html" class="btn btn-primario" style="margin-top:8px">Conheça a empresa</a>
+        </div>
+        <div class="painel-cores revelar" aria-hidden="true">
+          <div style="background:#00579d">Azul Institucional</div>
+          <div style="background:#f2c94c;color:#5a4500">Canário</div>
+          <div style="background:#c0673e">Terracota</div>
+          <div style="background:#1f5f6b">Petróleo</div>
+          <div style="background:#8a9a5b">Oliva</div>
+          <div style="background:#6e2f1a">Mogno</div>
+          <div style="background:#9ea3a6">Urbano</div>
+          <div style="background:#c62828">Vermelho</div>
+          <div style="background:#1e4fa0">França</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Números ===== -->
+    <section class="secao faixa-numeros">
+      <div class="container numeros">
+        <div class="numero revelar"><strong><span data-anos-mercado>25</span>+</strong><span>anos de experiência</span></div>
+        <div class="numero revelar"><strong>300+</strong><span>revendas parceiras</span></div>
+        <div class="numero revelar"><strong>12 mil</strong><span>toneladas/ano</span></div>
+        <div class="numero revelar"><strong>98%</strong><span>clientes satisfeitos</span></div>
+      </div>
+    </section>
+
+    <!-- ===== Recursos ===== -->
+    <section class="secao">
+      <div class="container">
+        <div class="secao-titulo revelar">
+          <span class="rotulo">Recursos</span>
+          <h2>Ferramentas para acertar na escolha</h2>
+          <p>Calcule a quantidade de tinta, simule cores no ambiente e acesse documentos técnicos.</p>
+        </div>
+        <div class="grade-recursos">
+          <a href="recursos.html#calculadora" class="cartao-recurso revelar"><div class="icone">🧮</div><h3>Calculadora de tinta</h3><p>Descubra quantos litros você precisa para o seu ambiente.</p><span class="link">Calcular agora →</span></a>
+          <a href="recursos.html#simulador" class="cartao-recurso revelar"><div class="icone">🎨</div><h3>Simulador de cores</h3><p>Visualize como cada cor fica na parede antes de comprar.</p><span class="link">Simular →</span></a>
+          <a href="recursos.html#documentos" class="cartao-recurso revelar"><div class="icone">📄</div><h3>Fichas técnicas</h3><p>Boletins técnicos, FISPQ e catálogos para download.</p><span class="link">Acessar →</span></a>
+          <a href="recursos.html#dicas" class="cartao-recurso revelar"><div class="icone">💡</div><h3>Dicas de pintura</h3><p>Guia passo a passo e respostas às dúvidas mais comuns.</p><span class="link">Ler dicas →</span></a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== CTA ===== -->
+    <section class="secao" style="padding-top:0">
+      <div class="container">
+        <div class="cta revelar">
+          <div>
+            <h2>Precisa de ajuda para escolher?</h2>
+            <p>Nossos consultores respondem rapidinho pelo WhatsApp e montam o orçamento ideal para você.</p>
+          </div>
+          <a class="btn btn-whats" data-whats>Chamar no WhatsApp</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Contato ===== -->
+    <section class="secao secao-alt" id="contato">
+      <div class="container">
+        <div class="secao-titulo revelar">
+          <span class="rotulo">Contato</span>
+          <h2>Fale com a gente</h2>
+        </div>
+        <div class="grade-contato">
+          <div class="cartao-contato revelar"><div class="icone">💬</div><h3>WhatsApp</h3><a data-whats data-cfg="telefone"></a></div>
+          <div class="cartao-contato revelar"><div class="icone">✉️</div><h3>E-mail</h3><a data-email data-cfg="email"></a></div>
+          <div class="cartao-contato revelar"><div class="icone">📍</div><h3>Endereço</h3><p data-cfg="endereco"></p></div>
+          <div class="cartao-contato revelar"><div class="icone">🕒</div><h3>Horário</h3><p data-cfg="horario"></p></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ===== Rodapé ===== -->
+  <footer class="rodape">
+    <div class="container rodape-grade">
+      <div>
+        <a href="index.html" class="logo"><span class="logo-marca">CW</span><span>Color Weg<small>Tintas</small></span></a>
+        <p data-cfg="slogan"></p>
+        <div class="redes">
+          <a data-rede="instagram" aria-label="Instagram">IG</a>
+          <a data-rede="facebook" aria-label="Facebook">FB</a>
+          <a data-rede="linkedin" aria-label="LinkedIn">IN</a>
+          <a data-rede="youtube" aria-label="YouTube">YT</a>
+        </div>
+      </div>
+      <div>
+        <h4>Produtos</h4>
+        <ul>
+          <li><a href="produtos.html?categoria=imobiliaria">Imobiliária</a></li>
+          <li><a href="produtos.html?categoria=industrial">Industrial</a></li>
+          <li><a href="produtos.html?categoria=automotiva">Automotiva</a></li>
+          <li><a href="produtos.html?categoria=madeira">Madeiras</a></li>
+          <li><a href="produtos.html?categoria=impermeabilizante">Impermeabilizantes</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Institucional</h4>
+        <ul>
+          <li><a href="sobre.html">A Empresa</a></li>
+          <li><a href="sobre.html#historia">Nossa história</a></li>
+          <li><a href="sobre.html#sustentabilidade">Sustentabilidade</a></li>
+          <li><a href="recursos.html">Recursos</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Atendimento</h4>
+        <ul>
+          <li><a data-whats data-cfg="telefone"></a></li>
+          <li><a data-email data-cfg="email"></a></li>
+          <li data-cfg="endereco"></li>
+        </ul>
+      </div>
+    </div>
+    <div class="container rodape-base">
+      <span>© <span data-ano>2026</span> <span data-cfg="empresa">Color Weg Tintas</span>. Todos os direitos reservados.</span>
+      <span>Pedidos finalizados via WhatsApp com nossa equipe de vendas.</span>
+    </div>
+    <div class="rodape-faixa"></div>
+  </footer>
+
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/produtos.js"></script>
+  <script src="assets/js/main.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      var CW = window.ColorWeg;
+      // Latas do hero
+      document.getElementById("hero-arte").innerHTML =
+        CW.lataSVG("#00579d", "", "lata-hero") + CW.lataSVG("#f2c94c", "", "lata-hero") + CW.lataSVG("#c0673e", "", "lata-hero");
+
+      // Categorias
+      document.getElementById("grade-categorias").innerHTML = Object.keys(CATEGORIAS).map(function (k) {
+        var c = CATEGORIAS[k];
+        return '<a class="cartao-categoria revelar" href="produtos.html?categoria=' + k + '">' +
+          '<div class="icone">' + c.icone + '</div><h3>' + CW.esc(c.nome) + '</h3><p>' + CW.esc(c.descricao) + '</p></a>';
+      }).join("");
+
+      // Destaques
+      CW.renderProdutos(document.getElementById("destaques"), PRODUTOS.filter(function (p) { return p.destaque; }).slice(0, 8));
+    });
+  </script>
+</body>
+</html>

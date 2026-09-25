@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Recursos | Color Weg Tintas</title>
+  <meta name="description" content="Calculadora de tinta, simulador de cores, fichas técnicas e dicas de pintura da Color Weg Tintas.">
+  <meta name="theme-color" content="#00579d">
+  <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+  <!-- ===== Barra superior ===== -->
+  <div class="barra-topo">
+    <div class="container">
+      <span>📞 <a data-tel data-cfg="telefone">(47) 99999-9999</a></span>
+      <span class="ocultar-mobile">🕒 <span data-cfg="horario"></span></span>
+      <span class="ocultar-mobile">✉️ <a data-email data-cfg="email"></a></span>
+    </div>
+  </div>
+
+  <!-- ===== Cabeçalho ===== -->
+  <header class="cabecalho">
+    <div class="container">
+      <a href="index.html" class="logo" aria-label="Color Weg Tintas - início">
+        <span class="logo-marca">CW</span>
+        <span>Color Weg<small>Tintas</small></span>
+      </a>
+      <nav>
+        <ul class="menu">
+          <li><a href="index.html">Início</a></li>
+          <li><a href="produtos.html">Produtos</a></li>
+          <li><a href="sobre.html">A Empresa</a></li>
+          <li><a href="recursos.html" class="ativo">Recursos</a></li>
+          <li><a href="index.html#contato">Contato</a></li>
+        </ul>
+      </nav>
+      <div class="acoes-topo">
+        <button class="btn-carrinho" aria-label="Abrir carrinho">🛒 <span class="texto">Carrinho</span> <span class="contador">0</span></button>
+        <button class="btn-menu" aria-label="Abrir menu" aria-expanded="false"><span></span><span></span><span></span></button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="cabecalho-pagina">
+      <div class="container">
+        <div class="migalhas"><a href="index.html">Início</a> / Recursos</div>
+        <h1>Recursos e ferramentas</h1>
+        <p>Tudo o que você precisa para planejar a pintura: calculadora de consumo, simulador de cores, documentos técnicos e dicas de aplicação.</p>
+      </div>
+    </section>
+
+    <!-- ===== Calculadora ===== -->
+    <section class="secao" id="calculadora">
+      <div class="container">
+        <div class="secao-titulo revelar">
+          <span class="rotulo">Calculadora</span>
+          <h2>Quanta tinta eu preciso?</h2>
+          <p>Informe as medidas do ambiente e calculamos a quantidade e as embalagens ideais.</p>
+        </div>
+        <div class="ferramenta revelar">
+          <div class="ferramenta-corpo">
+            <form class="ferramenta-form" id="form-calc" onsubmit="return false">
+              <h3>Medidas do ambiente</h3>
+              <p>Valores em metros. Descontamos portas (1,6 m²) e janelas (2 m²).</p>
+              <div class="grupo-duplo">
+                <div class="grupo"><label for="c-larg">Largura (m)</label><input id="c-larg" type="number" min="0" step="0.1" value="4"></div>
+                <div class="grupo"><label for="c-comp">Comprimento (m)</label><input id="c-comp" type="number" min="0" step="0.1" value="5"></div>
+              </div>
+              <div class="grupo-duplo">
+                <div class="grupo"><label for="c-alt">Pé-direito (m)</label><input id="c-alt" type="number" min="0" step="0.1" value="2.7"></div>
+                <div class="grupo"><label for="c-demaos">Demãos</label>
+                  <select id="c-demaos"><option value="1">1 demão</option><option value="2" selected>2 demãos</option><option value="3">3 demãos</option></select></div>
+              </div>
+              <div class="grupo-duplo">
+                <div class="grupo"><label for="c-portas">Portas</label><input id="c-portas" type="number" min="0" step="1" value="1"></div>
+                <div class="grupo"><label for="c-janelas">Janelas</label><input id="c-janelas" type="number" min="0" step="1" value="1"></div>
+              </div>
+              <div class="grupo-duplo">
+                <div class="grupo"><label for="c-teto">Pintar o teto?</label>
+                  <select id="c-teto"><option value="0">Não</option><option value="1">Sim</option></select></div>
+                <div class="grupo"><label for="c-superficie">Superfície</label>
+                  <select id="c-superficie"><option value="1">Lisa / massa corrida</option><option value="1.25">Reboco / áspera</option></select></div>
+              </div>
+              <div class="grupo"><label for="c-produto">Produto</label><select id="c-produto"></select></div>
+            </form>
+            <div class="resultado" aria-live="polite">
+              <p>Você vai precisar de aproximadamente</p>
+              <div class="grande"><span id="r-litros">0</span> L</div>
+              <p>para <strong id="r-area">0</strong> m² de área pintável</p>
+              <ul id="r-embalagens"></ul>
+              <button class="btn btn-whats" id="r-add" type="button">Adicionar embalagens ao carrinho</button>
+              <p style="font-size:.78rem;margin-top:12px">*Cálculo estimado. Rendimento pode variar conforme superfície, cor e método de aplicação.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Simulador ===== -->
+    <section class="secao secao-alt" id="simulador">
+      <div class="container">
+        <div class="secao-titulo revelar">
+          <span class="rotulo">Simulador</span>
+          <h2>Experimente as cores no ambiente</h2>
+          <p>Clique em uma cor da paleta e veja como fica na parede.</p>
+        </div>
+        <div class="ferramenta revelar">
+          <div class="simulador">
+            <div class="ambiente">
+              <svg viewBox="0 0 600 400" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Simulação de sala com a cor escolhida na parede">
+                <rect id="parede" x="0" y="0" width="600" height="300" fill="#8FB3D9"/>
+                <rect x="0" y="0" width="600" height="300" fill="url(#luz)"/>
+                <defs>
+                  <radialGradient id="luz" cx="0.3" cy="0.1" r="0.9"><stop offset="0" stop-color="#fff" stop-opacity=".25"/><stop offset="1" stop-color="#000" stop-opacity=".18"/></radialGradient>
+                </defs>
+                <rect x="0" y="290" width="600" height="10" fill="#f4f1ea"/>
+                <rect x="0" y="300" width="600" height="100" fill="#b98b5e"/>
+                <g stroke="#a37a51" stroke-width="2"><line x1="0" y1="330" x2="600" y2="330"/><line x1="0" y1="365" x2="600" y2="365"/><line x1="120" y1="300" x2="120" y2="330"/><line x1="340" y1="330" x2="340" y2="365"/><line x1="480" y1="300" x2="480" y2="330"/><line x1="220" y1="365" x2="220" y2="400"/></g>
+                <rect x="70" y="50" width="130" height="150" fill="#fff" rx="3"/>
+                <rect x="78" y="58" width="114" height="134" fill="#cfe7f5"/>
+                <line x1="135" y1="58" x2="135" y2="192" stroke="#fff" stroke-width="6"/>
+                <line x1="78" y1="125" x2="192" y2="125" stroke="#fff" stroke-width="6"/>
+                <rect x="330" y="70" width="150" height="100" fill="#fff" rx="2"/>
+                <rect x="338" y="78" width="134" height="84" fill="#f2c94c"/>
+                <circle cx="380" cy="120" r="22" fill="#c0673e"/>
+                <rect x="410" y="100" width="44" height="50" fill="#00579d"/>
+                <rect x="250" y="210" width="290" height="70" rx="16" fill="#e7e2d8"/>
+                <rect x="240" y="235" width="310" height="55" rx="14" fill="#d8d1c3"/>
+                <rect x="265" y="190" width="120" height="50" rx="14" fill="#ece7dd"/>
+                <rect x="400" y="190" width="120" height="50" rx="14" fill="#ece7dd"/>
+                <rect x="255" y="288" width="10" height="16" fill="#6e4b2a"/><rect x="525" y="288" width="10" height="16" fill="#6e4b2a"/>
+                <rect x="60" y="250" width="44" height="50" rx="6" fill="#c0673e"/>
+                <path d="M82 250 C60 200 50 180 70 150 C78 190 82 200 82 250Z M82 250 C100 200 118 185 104 150 C92 190 86 205 82 250Z M82 250 C82 200 84 170 82 130 C78 175 78 210 82 250Z" fill="#43a047"/>
+                <line x1="560" y1="0" x2="560" y2="60" stroke="#555" stroke-width="2"/>
+                <path d="M540 60 h40 l-8 22 h-24z" fill="#f5f0e6"/>
+              </svg>
+            </div>
+            <div class="paleta-simulador">
+              <h3>Escolha uma cor</h3>
+              <p>Cores disponíveis nas nossas linhas imobiliárias.</p>
+              <div class="grade-paleta" id="paleta"></div>
+              <div class="cor-escolhida"><i id="cor-amostra"></i><div><strong id="cor-nome">—</strong><span id="cor-produto"></span></div></div>
+              <div class="grupo"><label for="cor-livre">Ou teste qualquer cor</label><input type="color" id="cor-livre" value="#8fb3d9" style="height:44px;padding:4px"></div>
+              <button class="btn btn-primario btn-bloco" id="btn-quero-cor">Quero essa cor</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Documentos ===== -->
+    <section class="secao" id="documentos">
+      <div class="container">
+        <div class="secao-titulo revelar">
+          <span class="rotulo">Documentos</span>
+          <h2>Fichas técnicas e catálogos</h2>
+          <p>Solicite os documentos técnicos pelo WhatsApp e receba na hora.</p>
+        </div>
+        <div class="lista-downloads" id="lista-docs"></div>
+      </div>
+    </section>
+
+    <!-- ===== Dicas / FAQ ===== -->
+    <section class="secao secao-alt" id="dicas">
+      <div class="container" style="max-width:860px">
+        <div class="secao-titulo revelar">
+          <span class="rotulo">Dicas de pintura</span>
+          <h2>Perguntas frequentes</h2>
+        </div>
+        <div class="faq revelar">
+          <details open><summary>Como preparar a parede antes de pintar?</summary><p>Remova partes soltas, mofo e gordura. Lixe a superfície, elimine o pó e corrija imperfeições com massa corrida (interno) ou massa acrílica (externo). Em reboco novo, aguarde 28 dias de cura e aplique selador acrílico.</p></details>
+          <details><summary>Quantas demãos devo aplicar?</summary><p>Recomendamos de 2 a 3 demãos, respeitando o intervalo indicado na embalagem. Cores intensas ou mudanças de cor escura para clara podem exigir uma demão extra.</p></details>
+          <details><summary>Qual a diferença entre acabamento fosco e semibrilho?</summary><p>O fosco disfarça imperfeições e traz sofisticação, ideal para salas e quartos. O semibrilho é mais lavável e resistente, indicado para cozinhas, banheiros e áreas de circulação.</p></details>
+          <details><summary>Como diluir a tinta corretamente?</summary><p>Siga a indicação da embalagem: em geral, tintas acrílicas são diluídas de 10% a 20% com água limpa. Esmaltes sintéticos utilizam aguarrás. Nunca exceda a diluição recomendada.</p></details>
+          <details><summary>Qual o melhor clima para pintar?</summary><p>Pinte com temperatura entre 10 °C e 35 °C e umidade relativa abaixo de 85%. Evite dias chuvosos ou com sol forte incidindo diretamente na superfície.</p></details>
+          <details><summary>Como faço meu pedido?</summary><p>Escolha os produtos no catálogo, selecione cor, embalagem e quantidade e adicione ao carrinho. Ao clicar em "Comprar pelo WhatsApp", seu pedido é enviado pronto para o nosso vendedor, que confirma valores, frete e forma de pagamento.</p></details>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ===== Rodapé ===== -->
+  <footer class="rodape">
+    <div class="container rodape-grade">
+      <div>
+        <a href="index.html" class="logo"><span class="logo-marca">CW</span><span>Color Weg<small>Tintas</small></span></a>
+        <p data-cfg="slogan"></p>
+        <div class="redes">
+          <a data-rede="instagram" aria-label="Instagram">IG</a>
+          <a data-rede="facebook" aria-label="Facebook">FB</a>
+          <a data-rede="linkedin" aria-label="LinkedIn">IN</a>
+          <a data-rede="youtube" aria-label="YouTube">YT</a>
+        </div>
+      </div>
+      <div>
+        <h4>Produtos</h4>
+        <ul>
+          <li><a href="produtos.html?categoria=imobiliaria">Imobiliária</a></li>
+          <li><a href="produtos.html?categoria=industrial">Industrial</a></li>
+          <li><a href="produtos.html?categoria=automotiva">Automotiva</a></li>
+          <li><a href="produtos.html?categoria=madeira">Madeiras</a></li>
+          <li><a href="produtos.html?categoria=impermeabilizante">Impermeabilizantes</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Institucional</h4>
+        <ul>
+          <li><a href="sobre.html">A Empresa</a></li>
+          <li><a href="sobre.html#historia">Nossa história</a></li>
+          <li><a href="sobre.html#sustentabilidade">Sustentabilidade</a></li>
+          <li><a href="recursos.html">Recursos</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Atendimento</h4>
+        <ul>
+          <li><a data-whats data-cfg="telefone"></a></li>
+          <li><a data-email data-cfg="email"></a></li>
+          <li data-cfg="endereco"></li>
+        </ul>
+      </div>
+    </div>
+    <div class="container rodape-base">
+      <span>© <span data-ano>2026</span> <span data-cfg="empresa">Color Weg Tintas</span>. Todos os direitos reservados.</span>
+      <span>Pedidos finalizados via WhatsApp com nossa equipe de vendas.</span>
+    </div>
+    <div class="rodape-faixa"></div>
+  </footer>
+
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/produtos.js"></script>
+  <script src="assets/js/main.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      var CW = window.ColorWeg;
+      var $ = function (id) { return document.getElementById(id); };
+
+      /* ---------- Calculadora ---------- */
+      // Rendimento em m² por litro, por demão
+      var RENDIMENTOS = [
+        { id: "acrilica-premium-fosca", rend: 21, emb: [["18 L", 18], ["3,6 L", 3.6], ["800 ml", 0.8]] },
+        { id: "acrilica-semibrilho", rend: 19, emb: [["18 L", 18], ["3,6 L", 3.6], ["800 ml", 0.8]] },
+        { id: "latex-pva-economica", rend: 14, emb: [["18 L", 18], ["3,6 L", 3.6]] }
+      ];
+      $("c-produto").innerHTML = RENDIMENTOS.map(function (r, i) {
+        var p = PRODUTOS.find(function (x) { return x.id === r.id; });
+        return '<option value="' + i + '">' + CW.esc(p ? p.nome : r.id) + '</option>';
+      }).join("");
+
+      var sugestao = [];
+      function num(id) { return Math.max(0, parseFloat($(id).value) || 0); }
+
+      // Escolhe a combinação de embalagens que cobre a quantidade com o menor excesso
+      function combinarEmbalagens(litros, emb) {
+        var restante = litros, res = [];
+        emb.forEach(function (e, i) {
+          var ultimo = i === emb.length - 1;
+          var qtd = ultimo ? Math.ceil(restante / e[1] - 1e-9) : Math.floor(restante / e[1]);
+          // Se o que sobra for mais que 80% de uma embalagem maior, arredonda para cima
+          if (!ultimo && restante - qtd * e[1] > e[1] * 0.8) qtd++;
+          if (qtd > 0) { res.push([e[0], qtd]); restante -= qtd * e[1]; }
+        });
+        return res;
+      }
+
+      function calcular() {
+        var larg = num("c-larg"), comp = num("c-comp"), alt = num("c-alt");
+        var area = 2 * (larg + comp) * alt - num("c-portas") * 1.6 - num("c-janelas") * 2;
+        if ($("c-teto").value === "1") area += larg * comp;
+        area = Math.max(0, area);
+        var r = RENDIMENTOS[+$("c-produto").value];
+        var litros = area * (+$("c-demaos").value) * (+$("c-superficie").value) / r.rend;
+        $("r-area").textContent = area.toLocaleString("pt-BR", { maximumFractionDigits: 1 });
+        $("r-litros").textContent = litros.toLocaleString("pt-BR", { maximumFractionDigits: 1 });
+        sugestao = litros > 0 ? combinarEmbalagens(litros, r.emb) : [];
+        $("r-embalagens").innerHTML = sugestao.length
+          ? sugestao.map(function (s) { return "<li><span>Embalagem " + s[0] + "</span><strong>" + s[1] + "x</strong></li>"; }).join("")
+          : "<li><span>Informe as medidas</span></li>";
+        $("r-add").disabled = !sugestao.length;
+      }
+      document.querySelectorAll("#form-calc input, #form-calc select").forEach(function (el) {
+        el.addEventListener("input", calcular);
+      });
+      $("r-add").addEventListener("click", function () {
+        var r = RENDIMENTOS[+$("c-produto").value];
+        sugestao.forEach(function (s) { CW.adicionarAoCarrinho(r.id, null, s[0], s[1]); });
+        CW.abrirCarrinho();
+      });
+      calcular();
+
+      /* ---------- Simulador ---------- */
+      var cores = [];
+      PRODUTOS.filter(function (p) { return p.categoria === "imobiliaria"; }).forEach(function (p) {
+        p.cores.forEach(function (c) {
+          if (!cores.some(function (x) { return x.hex.toLowerCase() === c.hex.toLowerCase(); })) cores.push({ nome: c.nome, hex: c.hex, produto: p });
+        });
+      });
+      var escolhida = null;
+      $("paleta").innerHTML = cores.map(function (c, i) {
+        return '<button data-i="' + i + '" style="background:' + c.hex + '" title="' + CW.esc(c.nome) + '" aria-label="' + CW.esc(c.nome) + '"></button>';
+      }).join("");
+      function aplicarCor(hex, nome, produto) {
+        $("parede").setAttribute("fill", hex);
+        $("cor-amostra").style.background = hex;
+        $("cor-nome").textContent = nome;
+        $("cor-produto").textContent = produto ? produto.nome : "Cor personalizada (sistema tintométrico) " + hex.toUpperCase();
+      }
+      $("paleta").addEventListener("click", function (e) {
+        var b = e.target.closest("button");
+        if (!b) return;
+        escolhida = cores[+b.dataset.i];
+        document.querySelectorAll("#paleta button").forEach(function (x) { x.classList.toggle("ativo", x === b); });
+        aplicarCor(escolhida.hex, escolhida.nome, escolhida.produto);
+      });
+      $("cor-livre").addEventListener("input", function (e) {
+        escolhida = { nome: "Cor personalizada", hex: e.target.value, produto: null };
+        document.querySelectorAll("#paleta button").forEach(function (x) { x.classList.remove("ativo"); });
+        aplicarCor(escolhida.hex, escolhida.nome, null);
+      });
+      $("btn-quero-cor").addEventListener("click", function () {
+        if (escolhida && escolhida.produto) return CW.abrirProduto(escolhida.produto.id);
+        var hex = escolhida ? escolhida.hex.toUpperCase() : $("cor-livre").value.toUpperCase();
+        window.open(CW.linkWhatsApp("Olá! Usei o simulador do site e gostaria de um orçamento para a cor personalizada " + hex + "."), "_blank", "noopener");
+      });
+      var inicial = document.querySelector("#paleta button[data-i='3']");
+      if (inicial) inicial.click();
+
+      /* ---------- Documentos ---------- */
+      var docs = [
+        ["Catálogo geral de produtos " + new Date().getFullYear(), "Todas as linhas, cores e embalagens", "PDF"],
+        ["Cartela de cores — Linha Imobiliária", "Mais de 1.500 cores do sistema tintométrico", "PDF"],
+        ["Boletins técnicos (BT)", "Especificações de aplicação e desempenho", "PDF"],
+        ["FISPQ / FDS", "Fichas de informações de segurança de produtos químicos", "PDF"],
+        ["Guia de especificação industrial", "Sistemas de pintura anticorrosiva por ambiente", "PDF"]
+      ];
+      $("lista-docs").innerHTML = docs.map(function (d) {
+        var link = CW.linkWhatsApp("Olá! Gostaria de receber o documento: " + d[0] + ".");
+        return '<a class="download revelar" target="_blank" rel="noopener" href="' + CW.esc(link) + '"><div><strong>' + CW.esc(d[0]) +
+          '</strong><span>' + CW.esc(d[1]) + '</span></div><span class="tipo">' + d[2] + ' ↓</span></a>';
+      }).join("");
+      CW.observarRevelar();
+
+      if (location.hash) {
+        var alvo = document.querySelector(location.hash);
+        if (alvo) setTimeout(function () { alvo.scrollIntoView(); }, 50);
+      }
+    });
+  </script>
+</body>
+</html>

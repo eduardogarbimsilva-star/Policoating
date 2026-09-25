@@ -1,5 +1,5 @@
 /* =========================================================
-   Color Weg Tintas — scripts comuns a todas as páginas
+   Policoating — scripts comuns a todas as páginas
    (carrinho, modal de produto, WhatsApp, menu, animações)
    ========================================================= */
 (function () {
@@ -8,8 +8,8 @@
   const CFG = window.SITE_CONFIG || {};
   const PRODUTOS = window.PRODUTOS || [];
   const CATEGORIAS = window.CATEGORIAS || {};
-  const CHAVE_CARRINHO = "colorweg_carrinho";
-  const CHAVE_CLIENTE = "colorweg_cliente";
+  const CHAVE_CARRINHO = "policoating_carrinho";
+  const CHAVE_CLIENTE = "policoating_cliente";
 
   /* ---------- Utilidades ---------- */
   const $ = (sel, ctx = document) => ctx.querySelector(sel);
@@ -43,35 +43,38 @@
     return (r * 299 + g * 587 + b * 114) / 1000 < 150;
   }
 
-  /* ---------- Ilustração da lata de tinta (SVG) ---------- */
+  /* ---------- Ilustração da caixa de papelão Policoating (SVG) ---------- */
   let idSvg = 0;
-  function lataSVG(cor, rotulo, classe) {
-    const id = "lt" + ++idSvg;
-    const nome = esc(rotulo || CFG.empresa || "");
+  function caixaSVG(cor, classe) {
+    const id = "cx" + ++idSvg;
     return `
-<svg class="${classe || ""}" viewBox="0 0 200 230" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Lata de tinta ${nome}">
+<svg class="${classe || ""}" viewBox="0 0 220 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Caixa de tinta em pó Policoating">
   <defs>
-    <linearGradient id="${id}m" x1="0" x2="1">
-      <stop offset="0" stop-color="#9aa3ad"/><stop offset=".25" stop-color="#eef2f5"/>
-      <stop offset=".6" stop-color="#c3cad1"/><stop offset="1" stop-color="#7d8792"/>
-    </linearGradient>
-    <linearGradient id="${id}s" x1="0" x2="1">
-      <stop offset="0" stop-color="#000" stop-opacity=".18"/><stop offset=".3" stop-color="#fff" stop-opacity=".25"/>
-      <stop offset=".7" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".22"/>
-    </linearGradient>
+    <pattern id="${id}p" width="5" height="5" patternUnits="userSpaceOnUse"><circle cx="2.5" cy="2.5" r="1.1" fill="#1c2f55"/></pattern>
+    <linearGradient id="${id}f" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d7b079"/><stop offset="1" stop-color="#c49a62"/></linearGradient>
+    <linearGradient id="${id}h" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#fff"/></linearGradient>
+    <mask id="${id}m"><rect x="20" y="118" width="70" height="67" fill="url(#${id}h)"/></mask>
   </defs>
-  <path d="M40 58 C40 8 160 8 160 58" fill="none" stroke="#6c7682" stroke-width="5" stroke-linecap="round"/>
-  <rect x="24" y="52" width="152" height="164" rx="10" fill="url(#${id}m)"/>
-  <rect x="24" y="78" width="152" height="112" fill="#fff"/>
-  <rect x="24" y="78" width="152" height="44" fill="${cor}"/>
-  <path d="M24 122 h152 v8 c-14 0 -14 10 -28 10 s-14 -10 -28 -10 s-14 12 -28 12 s-14 -12 -28 -12 s-14 8 -28 8 s-12 -8 -12 -8z" fill="${cor}"/>
-  <rect x="24" y="182" width="152" height="8" fill="#00579d"/>
-  <text x="100" y="163" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-weight="800" font-size="17" fill="#0a1f3a">COLOR WEG</text>
-  <text x="100" y="178" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-weight="600" font-size="8.5" letter-spacing="1.5" fill="#5a6775">TINTAS</text>
-  <rect x="24" y="52" width="152" height="164" rx="10" fill="url(#${id}s)"/>
-  <ellipse cx="100" cy="52" rx="76" ry="12" fill="#b9c1c9"/>
-  <ellipse cx="100" cy="50" rx="68" ry="9" fill="${cor}" stroke="#8b949e" stroke-width="2"/>
-  <ellipse cx="86" cy="48" rx="20" ry="3" fill="#fff" opacity=".35"/>
+  <ellipse cx="112" cy="190" rx="98" ry="8" fill="#000" opacity=".12"/>
+  <polygon points="20,70 65,45 205,45 160,70" fill="#e2c08e"/>
+  <line x1="42.5" y1="57.5" x2="182.5" y2="57.5" stroke="#b48a55" stroke-width="1.4"/>
+  <polygon points="160,70 205,45 205,158 160,185" fill="#b58b56"/>
+  <rect x="20" y="70" width="140" height="115" fill="url(#${id}f)"/>
+  <rect x="20" y="118" width="70" height="67" fill="url(#${id}p)" opacity=".45" mask="url(#${id}m)"/>
+  <rect x="20" y="150" width="140" height="7" fill="#1c2f55"/>
+  <rect x="20" y="162" width="140" height="7" fill="#1c2f55"/>
+  <polygon points="160,150 205,125 205,132 160,157" fill="#15254a"/>
+  <polygon points="160,162 205,137 205,144 160,169" fill="#15254a"/>
+  <g fill="none" stroke="#1c2f55" stroke-width="1.3">
+    <polygon points="170,92 180,86.5 180,104 170,109.5"/><polygon points="184,84 194,78.5 194,96 184,101.5"/>
+    <path d="M173 104 v-9 m0 0 l-2 3 m2 -3 l2 3 M177 102 v-9 m0 0 l-2 3 m2 -3 l2 3"/>
+  </g>
+  <text x="90" y="126" text-anchor="middle" font-family="Georgia,'Times New Roman',serif" font-weight="700" font-size="19" fill="#1c2f55" textLength="118" lengthAdjust="spacingAndGlyphs">POLICOATING</text>
+  <rect x="30" y="80" width="54" height="26" rx="2" fill="#fff" stroke="#1c2f55" stroke-width=".8"/>
+  <rect x="33" y="83" width="18" height="20" rx="1.5" fill="${cor}" stroke="rgba(0,0,0,.15)" stroke-width=".6"/>
+  <text x="55" y="92" font-family="Inter,Arial,sans-serif" font-weight="800" font-size="6.5" fill="#1c2f55">PÓ</text>
+  <text x="55" y="100" font-family="Inter,Arial,sans-serif" font-weight="600" font-size="4.6" fill="#1c2f55">ELETROST.</text>
+  <polygon points="20,70 160,70 160,185 20,185" fill="none" stroke="#a97f4b" stroke-width=".8"/>
 </svg>`;
   }
 
@@ -93,7 +96,6 @@
       if (CFG.redes && CFG.redes[r]) el.href = CFG.redes[r];
     });
     $$("[data-ano]").forEach((el) => (el.textContent = new Date().getFullYear()));
-    $$("[data-anos-mercado]").forEach((el) => (el.textContent = new Date().getFullYear() - (CFG.fundacao || 1998)));
   }
 
   /* ---------- Menu mobile ---------- */
@@ -214,7 +216,7 @@
     $("#btn-finalizar").disabled = carrinho.length === 0;
 
     if (!carrinho.length) {
-      lista.innerHTML = `<div class="carrinho-vazio"><div class="icone">🎨</div>
+      lista.innerHTML = `<div class="carrinho-vazio"><div class="icone">📦</div>
         <p>Seu carrinho está vazio.</p><p><a href="produtos.html">Explore nossos produtos →</a></p></div>`;
       return;
     }
@@ -224,7 +226,7 @@
         const cor = p.cores.find((c) => c.nome === item.cor) || p.cores[0];
         return `
 <div class="item-carrinho" data-idx="${idx}">
-  ${lataSVG(cor.hex)}
+  ${caixaSVG(cor.hex)}
   <div>
     <h4>${esc(p.nome)}</h4>
     <div class="detalhes"><i style="background:${cor.hex}"></i>${esc(cor.nome)} · ${esc(item.embalagem)}</div>
@@ -294,22 +296,23 @@
     modal.innerHTML = `
 <button class="fechar" aria-label="Fechar">×</button>
 <div class="modal-corpo">
-  <div class="modal-vitrine" id="modal-vitrine">${lataSVG(corSel.hex)}</div>
+  <div class="modal-vitrine" id="modal-vitrine">${caixaSVG(corSel.hex)}</div>
   <div class="modal-info">
     <span class="etiqueta" style="position:static">${esc(cat.nome || "")}</span>
     <h2>${esc(p.nome)}</h2>
     <p class="desc">${esc(p.descricao)}</p>
     <ul class="ficha">
       <li><span>Linha</span><span>${esc(p.linha)}</span></li>
+      <li><span>Acabamento</span><span>${esc(p.acabamento)}</span></li>
       <li><span>Rendimento</span><span>${esc(p.rendimento)}</span></li>
-      <li><span>Secagem</span><span>${esc(p.secagem)}</span></li>
+      <li><span>Cura</span><span>${esc(p.cura)}</span></li>
       ${p.preco ? `<li><span>Preço a partir de</span><span>${formatarPreco(p.preco)}</span></li>` : ""}
     </ul>
     <div class="campo-titulo">Cor: <span id="nome-cor">${esc(corSel.nome)}</span></div>
     <div class="seletor-cores">
       ${p.cores.map((c, i) => `<button class="${i === 0 ? "ativo" : ""}" data-cor="${i}" style="background:${c.hex}" title="${esc(c.nome)}" aria-label="${esc(c.nome)}"></button>`).join("")}
     </div>
-    <div class="campo-titulo">Embalagem</div>
+    <div class="campo-titulo">Embalagem (caixa)</div>
     <div class="seletor-embalagem">
       ${p.embalagens.map((e, i) => `<button class="${i === 0 ? "ativo" : ""}" data-emb="${esc(e)}">${esc(e)}</button>`).join("")}
     </div>
@@ -330,7 +333,7 @@
         corSel = p.cores[+b.dataset.cor];
         $$("[data-cor]", modal).forEach((x) => x.classList.toggle("ativo", x === b));
         $("#nome-cor").textContent = corSel.nome;
-        $("#modal-vitrine").innerHTML = lataSVG(corSel.hex);
+        $("#modal-vitrine").innerHTML = caixaSVG(corSel.hex);
       })
     );
     $$("[data-emb]", modal).forEach((b) =>
@@ -371,7 +374,7 @@
 <article class="cartao-produto revelar" data-id="${esc(p.id)}">
   <div class="vitrine" data-abrir="${esc(p.id)}">
     <span class="etiqueta">${esc(cat.nome || "")}</span>
-    ${lataSVG(p.cores[0].hex)}
+    ${caixaSVG(p.cores[0].hex)}
   </div>
   <div class="info">
     <span class="linha">${esc(p.linha)}</span>
@@ -446,5 +449,5 @@
   });
 
   /* API pública usada pelas páginas */
-  window.ColorWeg = { lataSVG, renderProdutos, abrirProduto, adicionarAoCarrinho, linkWhatsApp, ehEscura, esc, observarRevelar, mostrarToast, abrirCarrinho };
+  window.ColorWeg = { caixaSVG, renderProdutos, abrirProduto, adicionarAoCarrinho, linkWhatsApp, ehEscura, esc, observarRevelar, mostrarToast, abrirCarrinho };
 })();

@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Recursos | Color Weg Tintas</title>
-  <meta name="description" content="Calculadora de tinta, simulador de cores, fichas técnicas e dicas de pintura da Color Weg Tintas.">
-  <meta name="theme-color" content="#00579d">
+  <title>Recursos | Policoating</title>
+  <meta name="description" content="Calculadora de consumo de tinta em pó, simulador de cores e acabamentos, fichas técnicas e dúvidas frequentes.">
+  <meta name="theme-color" content="#1558d6">
   <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -16,7 +16,7 @@
   <!-- ===== Barra superior ===== -->
   <div class="barra-topo">
     <div class="container">
-      <span>📞 <a data-tel data-cfg="telefone">(16) 99270-8155</a></span>
+      <span>📞 <a data-whats data-cfg="telefone">(16) 99270-8155</a></span>
       <span class="ocultar-mobile">🕒 <span data-cfg="horario"></span></span>
       <span class="ocultar-mobile">✉️ <a data-email data-cfg="email"></a></span>
     </div>
@@ -25,9 +25,9 @@
   <!-- ===== Cabeçalho ===== -->
   <header class="cabecalho">
     <div class="container">
-      <a href="index.html" class="logo" aria-label="Color Weg Tintas - início">
-        <span class="logo-marca">CW</span>
-        <span>Color Weg<small>Tintas</small></span>
+      <a href="index.html" class="logo" aria-label="Policoating - início">
+        <span class="logo-marca"><svg viewBox="0 0 64 64" aria-hidden="true"><path fill="#111418" fill-rule="evenodd" d="M22 6h24c11 0 17 7 15 17-2 11-11 18-23 18h-8l-4 17H12L22 6zm10 11-3.5 13H37c5 0 8-2.6 9-6.5 1-4-1-6.5-5.5-6.5H32z"/><path fill="#1558d6" d="M4 58 14 20h11l-4 14c8 0 14-2 18-7-3 9-10 14-21 14h-2l-4 17z"/></svg></span>
+        <span class="logo-texto"><strong>Poli<span>coating</span></strong><small>Tinta eletrostática em pó</small></span>
       </a>
       <nav>
         <ul class="menu">
@@ -50,7 +50,7 @@
       <div class="container">
         <div class="migalhas"><a href="index.html">Início</a> / Recursos</div>
         <h1>Recursos e ferramentas</h1>
-        <p>Tudo o que você precisa para planejar a pintura: calculadora de consumo, simulador de cores, documentos técnicos e dicas de aplicação.</p>
+        <p>Tudo para planejar a pintura a pó: calculadora de consumo, simulador de cores e acabamentos, documentos técnicos e dúvidas frequentes.</p>
       </div>
     </section>
 
@@ -59,42 +59,32 @@
       <div class="container">
         <div class="secao-titulo revelar">
           <span class="rotulo">Calculadora</span>
-          <h2>Quanta tinta eu preciso?</h2>
-          <p>Informe as medidas do ambiente e calculamos a quantidade e as embalagens ideais.</p>
+          <h2>Quanto pó eu preciso?</h2>
+          <p>Informe a área das peças e a espessura desejada. Calculamos o consumo e as caixas ideais.</p>
         </div>
         <div class="ferramenta revelar">
           <div class="ferramenta-corpo">
             <form class="ferramenta-form" id="form-calc" onsubmit="return false">
-              <h3>Medidas do ambiente</h3>
-              <p>Valores em metros. Descontamos portas (1,6 m²) e janelas (2 m²).</p>
+              <h3>Dados do lote</h3>
+              <p>Some as duas faces da peça quando ela for pintada dos dois lados.</p>
               <div class="grupo-duplo">
-                <div class="grupo"><label for="c-larg">Largura (m)</label><input id="c-larg" type="number" min="0" step="0.1" value="4"></div>
-                <div class="grupo"><label for="c-comp">Comprimento (m)</label><input id="c-comp" type="number" min="0" step="0.1" value="5"></div>
+                <div class="grupo"><label for="c-area">Área por peça (m²)</label><input id="c-area" type="number" min="0" step="0.01" value="0.8"></div>
+                <div class="grupo"><label for="c-qtd">Quantidade de peças</label><input id="c-qtd" type="number" min="0" step="1" value="200"></div>
               </div>
               <div class="grupo-duplo">
-                <div class="grupo"><label for="c-alt">Pé-direito (m)</label><input id="c-alt" type="number" min="0" step="0.1" value="2.7"></div>
-                <div class="grupo"><label for="c-demaos">Demãos</label>
-                  <select id="c-demaos"><option value="1">1 demão</option><option value="2" selected>2 demãos</option><option value="3">3 demãos</option></select></div>
-              </div>
-              <div class="grupo-duplo">
-                <div class="grupo"><label for="c-portas">Portas</label><input id="c-portas" type="number" min="0" step="1" value="1"></div>
-                <div class="grupo"><label for="c-janelas">Janelas</label><input id="c-janelas" type="number" min="0" step="1" value="1"></div>
-              </div>
-              <div class="grupo-duplo">
-                <div class="grupo"><label for="c-teto">Pintar o teto?</label>
-                  <select id="c-teto"><option value="0">Não</option><option value="1">Sim</option></select></div>
-                <div class="grupo"><label for="c-superficie">Superfície</label>
-                  <select id="c-superficie"><option value="1">Lisa / massa corrida</option><option value="1.25">Reboco / áspera</option></select></div>
+                <div class="grupo"><label for="c-esp">Espessura da camada (µm)</label><input id="c-esp" type="number" min="20" step="5" value="70"></div>
+                <div class="grupo"><label for="c-efi">Aproveitamento do pó</label>
+                  <select id="c-efi"><option value="0.6">Sem recuperação (≈ 60%)</option><option value="0.8">Recuperação parcial (≈ 80%)</option><option value="0.95">Com recuperação (≈ 95%)</option></select></div>
               </div>
               <div class="grupo"><label for="c-produto">Produto</label><select id="c-produto"></select></div>
             </form>
             <div class="resultado" aria-live="polite">
               <p>Você vai precisar de aproximadamente</p>
-              <div class="grande"><span id="r-litros">0</span> L</div>
-              <p>para <strong id="r-area">0</strong> m² de área pintável</p>
-              <ul id="r-embalagens"></ul>
-              <button class="btn btn-whats" id="r-add" type="button">Adicionar embalagens ao carrinho</button>
-              <p style="font-size:.78rem;margin-top:12px">*Cálculo estimado. Rendimento pode variar conforme superfície, cor e método de aplicação.</p>
+              <div class="grande"><span id="r-kg">0</span> kg</div>
+              <p>para <strong id="r-area">0</strong> m² · rendimento teórico de <strong id="r-rend">0</strong> m²/kg</p>
+              <ul id="r-caixas"></ul>
+              <button class="btn btn-whats" id="r-add" type="button">Adicionar caixas ao carrinho</button>
+              <p style="font-size:.78rem;margin-top:12px">*Estimativa. O consumo real varia com a geometria das peças, equipamento, cor e regulagem da pistola.</p>
             </div>
           </div>
         </div>
@@ -106,46 +96,71 @@
       <div class="container">
         <div class="secao-titulo revelar">
           <span class="rotulo">Simulador</span>
-          <h2>Experimente as cores no ambiente</h2>
-          <p>Clique em uma cor da paleta e veja como fica na parede.</p>
+          <h2>Veja a cor e o acabamento nas peças</h2>
+          <p>Escolha uma cor e um tipo de acabamento para visualizar em peças metálicas.</p>
         </div>
         <div class="ferramenta revelar">
           <div class="simulador">
             <div class="ambiente">
-              <svg viewBox="0 0 600 400" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Simulação de sala com a cor escolhida na parede">
-                <rect id="parede" x="0" y="0" width="600" height="300" fill="#8FB3D9"/>
-                <rect x="0" y="0" width="600" height="300" fill="url(#luz)"/>
+              <svg viewBox="0 0 600 400" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Simulação de peças metálicas pintadas com a cor escolhida">
                 <defs>
-                  <radialGradient id="luz" cx="0.3" cy="0.1" r="0.9"><stop offset="0" stop-color="#fff" stop-opacity=".25"/><stop offset="1" stop-color="#000" stop-opacity=".18"/></radialGradient>
+                  <linearGradient id="fundo-sim" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f4f7fb"/><stop offset="1" stop-color="#dfe6ef"/></linearGradient>
+                  <linearGradient id="fx-brilho" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset=".25" stop-color="#fff" stop-opacity=".08"/>
+                    <stop offset=".5" stop-color="#fff" stop-opacity=".3"/><stop offset=".55" stop-color="#fff" stop-opacity="0"/>
+                    <stop offset="1" stop-color="#000" stop-opacity=".25"/>
+                  </linearGradient>
+                  <linearGradient id="fx-fosco" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".06"/><stop offset="1" stop-color="#000" stop-opacity=".18"/></linearGradient>
+                  <pattern id="fx-textura" width="6" height="6" patternUnits="userSpaceOnUse">
+                    <rect width="6" height="6" fill="#000" opacity=".06"/><circle cx="1.5" cy="1.5" r="1.3" fill="#fff" opacity=".22"/><circle cx="4.5" cy="4.5" r="1.4" fill="#000" opacity=".25"/>
+                  </pattern>
+                  <linearGradient id="fx-metal" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0" stop-color="#000" stop-opacity=".35"/><stop offset=".3" stop-color="#fff" stop-opacity=".6"/>
+                    <stop offset=".5" stop-color="#000" stop-opacity=".1"/><stop offset=".75" stop-color="#fff" stop-opacity=".45"/><stop offset="1" stop-color="#000" stop-opacity=".35"/>
+                  </linearGradient>
+                  <g id="pecas">
+                    <!-- Portão -->
+                    <rect x="30" y="90" width="210" height="10"/><rect x="30" y="300" width="210" height="10"/>
+                    <rect x="30" y="90" width="12" height="220"/><rect x="228" y="90" width="12" height="220"/>
+                    <rect x="62" y="100" width="7" height="200"/><rect x="89" y="100" width="7" height="200"/><rect x="116" y="100" width="7" height="200"/>
+                    <rect x="143" y="100" width="7" height="200"/><rect x="170" y="100" width="7" height="200"/><rect x="197" y="100" width="7" height="200"/>
+                    <rect x="30" y="190" width="210" height="8"/>
+                    <!-- Painel elétrico -->
+                    <rect x="285" y="70" width="150" height="250" rx="4"/>
+                    <!-- Cadeira -->
+                    <rect x="480" y="120" width="10" height="200" rx="4"/><rect x="560" y="200" width="10" height="120" rx="4"/>
+                    <rect x="480" y="120" width="70" height="10" rx="4"/><rect x="480" y="200" width="90" height="12" rx="4"/>
+                  </g>
                 </defs>
-                <rect x="0" y="290" width="600" height="10" fill="#f4f1ea"/>
-                <rect x="0" y="300" width="600" height="100" fill="#b98b5e"/>
-                <g stroke="#a37a51" stroke-width="2"><line x1="0" y1="330" x2="600" y2="330"/><line x1="0" y1="365" x2="600" y2="365"/><line x1="120" y1="300" x2="120" y2="330"/><line x1="340" y1="330" x2="340" y2="365"/><line x1="480" y1="300" x2="480" y2="330"/><line x1="220" y1="365" x2="220" y2="400"/></g>
-                <rect x="70" y="50" width="130" height="150" fill="#fff" rx="3"/>
-                <rect x="78" y="58" width="114" height="134" fill="#cfe7f5"/>
-                <line x1="135" y1="58" x2="135" y2="192" stroke="#fff" stroke-width="6"/>
-                <line x1="78" y1="125" x2="192" y2="125" stroke="#fff" stroke-width="6"/>
-                <rect x="330" y="70" width="150" height="100" fill="#fff" rx="2"/>
-                <rect x="338" y="78" width="134" height="84" fill="#f2c94c"/>
-                <circle cx="380" cy="120" r="22" fill="#c0673e"/>
-                <rect x="410" y="100" width="44" height="50" fill="#00579d"/>
-                <rect x="250" y="210" width="290" height="70" rx="16" fill="#e7e2d8"/>
-                <rect x="240" y="235" width="310" height="55" rx="14" fill="#d8d1c3"/>
-                <rect x="265" y="190" width="120" height="50" rx="14" fill="#ece7dd"/>
-                <rect x="400" y="190" width="120" height="50" rx="14" fill="#ece7dd"/>
-                <rect x="255" y="288" width="10" height="16" fill="#6e4b2a"/><rect x="525" y="288" width="10" height="16" fill="#6e4b2a"/>
-                <rect x="60" y="250" width="44" height="50" rx="6" fill="#c0673e"/>
-                <path d="M82 250 C60 200 50 180 70 150 C78 190 82 200 82 250Z M82 250 C100 200 118 185 104 150 C92 190 86 205 82 250Z M82 250 C82 200 84 170 82 130 C78 175 78 210 82 250Z" fill="#43a047"/>
-                <line x1="560" y1="0" x2="560" y2="60" stroke="#555" stroke-width="2"/>
-                <path d="M540 60 h40 l-8 22 h-24z" fill="#f5f0e6"/>
+                <rect width="600" height="400" fill="url(#fundo-sim)"/>
+                <rect y="320" width="600" height="80" fill="#c9d2dd"/>
+                <ellipse cx="135" cy="322" rx="120" ry="6" fill="#000" opacity=".12"/>
+                <ellipse cx="360" cy="323" rx="90" ry="6" fill="#000" opacity=".12"/>
+                <ellipse cx="525" cy="323" rx="60" ry="5" fill="#000" opacity=".12"/>
+                <rect x="486" y="126" width="58" height="68" rx="6" fill="#2b2f36"/>
+                <rect x="484" y="196" width="84" height="8" rx="3" fill="#2b2f36"/>
+                <use href="#pecas" id="camada-cor" fill="#1558d6"/>
+                <use href="#pecas" id="camada-fx" fill="url(#fx-brilho)"/>
+                <line x1="360" y1="78" x2="360" y2="312" stroke="#000" stroke-opacity=".25" stroke-width="2"/>
+                <rect x="410" y="170" width="8" height="40" rx="3" fill="#2b2f36"/>
+                <g fill="#000" opacity=".25"><rect x="305" y="95" width="40" height="4" rx="2"/><rect x="305" y="105" width="40" height="4" rx="2"/><rect x="305" y="115" width="40" height="4" rx="2"/></g>
+                <rect x="300" y="250" width="44" height="30" rx="2" fill="#fff" opacity=".85"/>
+                <path d="M316 256 l-4 10 h6 l-3 9 9-12 h-6 l3-7z" fill="#f7c600" stroke="#111" stroke-width=".8"/>
               </svg>
             </div>
             <div class="paleta-simulador">
               <h3>Escolha uma cor</h3>
-              <p>Cores disponíveis nas nossas linhas imobiliárias.</p>
+              <p>Cores disponíveis nas nossas linhas.</p>
               <div class="grade-paleta" id="paleta"></div>
+              <div class="campo-titulo">Acabamento</div>
+              <div class="seletor-embalagem" id="acabamentos">
+                <button class="ativo" data-fx="brilho">Brilhante</button>
+                <button data-fx="fosco">Fosco</button>
+                <button data-fx="textura">Texturizado</button>
+                <button data-fx="metal">Metálico</button>
+              </div>
               <div class="cor-escolhida"><i id="cor-amostra"></i><div><strong id="cor-nome">—</strong><span id="cor-produto"></span></div></div>
-              <div class="grupo"><label for="cor-livre">Ou teste qualquer cor</label><input type="color" id="cor-livre" value="#8fb3d9" style="height:44px;padding:4px"></div>
+              <div class="grupo"><label for="cor-livre">Ou teste qualquer cor</label><input type="color" id="cor-livre" value="#1558d6" style="height:44px;padding:4px"></div>
               <button class="btn btn-primario btn-bloco" id="btn-quero-cor">Quero essa cor</button>
             </div>
           </div>
@@ -165,20 +180,22 @@
       </div>
     </section>
 
-    <!-- ===== Dicas / FAQ ===== -->
+    <!-- ===== Dúvidas ===== -->
     <section class="secao secao-alt" id="dicas">
       <div class="container" style="max-width:860px">
         <div class="secao-titulo revelar">
-          <span class="rotulo">Dicas de pintura</span>
-          <h2>Perguntas frequentes</h2>
+          <span class="rotulo">Dúvidas frequentes</span>
+          <h2>Tudo sobre tinta em pó</h2>
         </div>
         <div class="faq revelar">
-          <details open><summary>Como preparar a parede antes de pintar?</summary><p>Remova partes soltas, mofo e gordura. Lixe a superfície, elimine o pó e corrija imperfeições com massa corrida (interno) ou massa acrílica (externo). Em reboco novo, aguarde 28 dias de cura e aplique selador acrílico.</p></details>
-          <details><summary>Quantas demãos devo aplicar?</summary><p>Recomendamos de 2 a 3 demãos, respeitando o intervalo indicado na embalagem. Cores intensas ou mudanças de cor escura para clara podem exigir uma demão extra.</p></details>
-          <details><summary>Qual a diferença entre acabamento fosco e semibrilho?</summary><p>O fosco disfarça imperfeições e traz sofisticação, ideal para salas e quartos. O semibrilho é mais lavável e resistente, indicado para cozinhas, banheiros e áreas de circulação.</p></details>
-          <details><summary>Como diluir a tinta corretamente?</summary><p>Siga a indicação da embalagem: em geral, tintas acrílicas são diluídas de 10% a 20% com água limpa. Esmaltes sintéticos utilizam aguarrás. Nunca exceda a diluição recomendada.</p></details>
-          <details><summary>Qual o melhor clima para pintar?</summary><p>Pinte com temperatura entre 10 °C e 35 °C e umidade relativa abaixo de 85%. Evite dias chuvosos ou com sol forte incidindo diretamente na superfície.</p></details>
-          <details><summary>Como faço meu pedido?</summary><p>Escolha os produtos no catálogo, selecione cor, embalagem e quantidade e adicione ao carrinho. Ao clicar em "Comprar pelo WhatsApp", seu pedido é enviado pronto para o nosso vendedor, que confirma valores, frete e forma de pagamento.</p></details>
+          <details open><summary>O que é a pintura eletrostática a pó?</summary><p>É um processo em que o pó é carregado eletricamente por uma pistola e atraído pela peça metálica aterrada. Depois, a peça vai para a estufa, onde o pó derrete e cura, formando um revestimento uniforme, resistente e sem solventes.</p></details>
+          <details><summary>Qual a diferença entre poliéster, epóxi e híbrida?</summary><p><strong>Poliéster</strong> resiste ao sol e é indicado para uso externo. <strong>Epóxi</strong> tem máxima resistência química e à corrosão, mas amarela ao sol, por isso é para uso interno. <strong>Híbrida</strong> (epóxi-poliéster) une boa resistência e ótimo custo-benefício para ambientes internos.</p></details>
+          <details><summary>Por que o pré-tratamento é tão importante?</summary><p>A aderência e a resistência à corrosão dependem de uma superfície limpa e tratada. Remova óleo, ferrugem e carepa e aplique fosfatização ou nanotecnologia antes da pintura.</p></details>
+          <details><summary>Qual a temperatura e o tempo de cura?</summary><p>Depende do produto — em geral entre 10 e 20 minutos com a peça a 180–200 °C. Consulte a ficha técnica: o tempo conta a partir do momento em que a <strong>peça</strong> atinge a temperatura, não a estufa.</p></details>
+          <details><summary>Qual espessura de camada devo aplicar?</summary><p>Para a maioria das aplicações, de 60 a 80 µm. Texturizados podem pedir um pouco mais. Camadas muito finas deixam falhas; muito grossas podem gerar casca de laranja e desperdício.</p></details>
+          <details><summary>Como armazenar a tinta em pó?</summary><p>Mantenha as caixas fechadas, em local seco, ventilado e abaixo de 30 °C, longe do sol e da umidade. Empilhe no máximo 4 caixas, como indicado na embalagem.</p></details>
+          <details><summary>Vocês fazem cores especiais?</summary><p>Sim. Trabalhamos com o padrão RAL e desenvolvemos cores sob medida a partir de Munsell, Pantone ou amostra física. Fale com um vendedor pelo WhatsApp.</p></details>
+          <details><summary>Como faço meu pedido?</summary><p>Escolha os produtos no catálogo, selecione a cor, o tamanho da caixa e a quantidade e adicione ao carrinho. Ao clicar em "Comprar pelo WhatsApp", o pedido vai pronto para o nosso vendedor, que confirma valores, frete e pagamento.</p></details>
         </div>
       </div>
     </section>
@@ -188,7 +205,7 @@
   <footer class="rodape">
     <div class="container rodape-grade">
       <div>
-        <a href="index.html" class="logo"><span class="logo-marca">CW</span><span>Color Weg<small>Tintas</small></span></a>
+        <a href="index.html" class="logo logo-rodape"><span class="logo-marca"><svg viewBox="0 0 64 64" aria-hidden="true"><path fill="#ffffff" fill-rule="evenodd" d="M22 6h24c11 0 17 7 15 17-2 11-11 18-23 18h-8l-4 17H12L22 6zm10 11-3.5 13H37c5 0 8-2.6 9-6.5 1-4-1-6.5-5.5-6.5H32z"/><path fill="#4d8bff" d="M4 58 14 20h11l-4 14c8 0 14-2 18-7-3 9-10 14-21 14h-2l-4 17z"/></svg></span><span class="logo-texto"><strong>Poli<span>coating</span></strong><small>Tinta eletrostática em pó</small></span></a>
         <p data-cfg="slogan"></p>
         <div class="redes">
           <a data-rede="instagram" aria-label="Instagram">IG</a>
@@ -200,11 +217,12 @@
       <div>
         <h4>Produtos</h4>
         <ul>
-          <li><a href="produtos.html?categoria=imobiliaria">Imobiliária</a></li>
-          <li><a href="produtos.html?categoria=industrial">Industrial</a></li>
-          <li><a href="produtos.html?categoria=automotiva">Automotiva</a></li>
-          <li><a href="produtos.html?categoria=madeira">Madeiras</a></li>
-          <li><a href="produtos.html?categoria=impermeabilizante">Impermeabilizantes</a></li>
+          <li><a href="produtos.html?categoria=poliester">Poliéster</a></li>
+          <li><a href="produtos.html?categoria=epoxi">Epóxi</a></li>
+          <li><a href="produtos.html?categoria=hibrida">Híbrida</a></li>
+          <li><a href="produtos.html?categoria=texturizada">Texturizadas</a></li>
+          <li><a href="produtos.html?categoria=metalica">Metálicas</a></li>
+          <li><a href="produtos.html?categoria=especiais">Especiais</a></li>
         </ul>
       </div>
       <div>
@@ -212,7 +230,7 @@
         <ul>
           <li><a href="sobre.html">A Empresa</a></li>
           <li><a href="sobre.html#historia">Nossa história</a></li>
-          <li><a href="sobre.html#sustentabilidade">Sustentabilidade</a></li>
+          <li><a href="sobre.html#processo">Como funciona</a></li>
           <li><a href="recursos.html">Recursos</a></li>
         </ul>
       </div>
@@ -222,11 +240,12 @@
           <li><a data-whats data-cfg="telefone"></a></li>
           <li><a data-email data-cfg="email"></a></li>
           <li data-cfg="endereco"></li>
+          <li data-cfg="horario"></li>
         </ul>
       </div>
     </div>
     <div class="container rodape-base">
-      <span>© <span data-ano>2026</span> <span data-cfg="empresa">Color Weg Tintas</span>. Todos os direitos reservados.</span>
+      <span>© <span data-ano>2026</span> <span data-cfg="empresa">Policoating</span>. Todos os direitos reservados.</span>
       <span>Pedidos finalizados via WhatsApp com nossa equipe de vendas.</span>
     </div>
     <div class="rodape-faixa"></div>
@@ -239,76 +258,75 @@
     document.addEventListener("DOMContentLoaded", function () {
       var CW = window.ColorWeg;
       var $ = function (id) { return document.getElementById(id); };
+      var fmt = function (n, d) { return n.toLocaleString("pt-BR", { maximumFractionDigits: d == null ? 1 : d }); };
 
-      /* ---------- Calculadora ---------- */
-      // Rendimento em m² por litro, por demão
-      var RENDIMENTOS = [
-        { id: "acrilica-premium-fosca", rend: 21, emb: [["18 L", 18], ["3,6 L", 3.6], ["800 ml", 0.8]] },
-        { id: "acrilica-semibrilho", rend: 19, emb: [["18 L", 18], ["3,6 L", 3.6], ["800 ml", 0.8]] },
-        { id: "latex-pva-economica", rend: 14, emb: [["18 L", 18], ["3,6 L", 3.6]] }
-      ];
-      $("c-produto").innerHTML = RENDIMENTOS.map(function (r, i) {
-        var p = PRODUTOS.find(function (x) { return x.id === r.id; });
-        return '<option value="' + i + '">' + CW.esc(p ? p.nome : r.id) + '</option>';
+      /* ---------- Calculadora de consumo de pó ---------- */
+      var produtosCalc = PRODUTOS.filter(function (p) { return p.densidade; });
+      $("c-produto").innerHTML = produtosCalc.map(function (p, i) {
+        return '<option value="' + i + '">' + CW.esc(p.nome) + ' (' + String(p.densidade).replace(".", ",") + ' g/cm³)</option>';
       }).join("");
+
+      // Tamanhos de caixa em kg, a partir do texto ("Caixa 25 kg" -> 25)
+      function tamanhos(p) {
+        return p.embalagens.map(function (e) { return { rotulo: e, kg: parseFloat(e.replace(",", ".").replace(/[^\d.]/g, "")) }; })
+          .filter(function (e) { return e.kg > 0; }).sort(function (a, b) { return b.kg - a.kg; });
+      }
+
+      // Melhor combinação de caixas: menor sobra, depois menos caixas
+      function combinar(kg, caixas) {
+        if (caixas.length === 1) return [[caixas[0], Math.ceil(kg / caixas[0].kg)]];
+        var a = caixas[0], b = caixas[1], melhor = null;
+        for (var na = 0; na <= Math.ceil(kg / a.kg); na++) {
+          var nb = Math.max(0, Math.ceil((kg - na * a.kg) / b.kg - 1e-9));
+          var total = na * a.kg + nb * b.kg, sobra = total - kg, n = na + nb;
+          if (!melhor || sobra < melhor.sobra - 1e-9 || (Math.abs(sobra - melhor.sobra) < 1e-9 && n < melhor.n)) melhor = { na: na, nb: nb, sobra: sobra, n: n };
+        }
+        return [[a, melhor.na], [b, melhor.nb]].filter(function (x) { return x[1] > 0; });
+      }
 
       var sugestao = [];
       function num(id) { return Math.max(0, parseFloat($(id).value) || 0); }
-
-      // Escolhe a combinação de embalagens que cobre a quantidade com o menor excesso
-      function combinarEmbalagens(litros, emb) {
-        var restante = litros, res = [];
-        emb.forEach(function (e, i) {
-          var ultimo = i === emb.length - 1;
-          var qtd = ultimo ? Math.ceil(restante / e[1] - 1e-9) : Math.floor(restante / e[1]);
-          // Se o que sobra for mais que 80% de uma embalagem maior, arredonda para cima
-          if (!ultimo && restante - qtd * e[1] > e[1] * 0.8) qtd++;
-          if (qtd > 0) { res.push([e[0], qtd]); restante -= qtd * e[1]; }
-        });
-        return res;
-      }
-
       function calcular() {
-        var larg = num("c-larg"), comp = num("c-comp"), alt = num("c-alt");
-        var area = 2 * (larg + comp) * alt - num("c-portas") * 1.6 - num("c-janelas") * 2;
-        if ($("c-teto").value === "1") area += larg * comp;
-        area = Math.max(0, area);
-        var r = RENDIMENTOS[+$("c-produto").value];
-        var litros = area * (+$("c-demaos").value) * (+$("c-superficie").value) / r.rend;
-        $("r-area").textContent = area.toLocaleString("pt-BR", { maximumFractionDigits: 1 });
-        $("r-litros").textContent = litros.toLocaleString("pt-BR", { maximumFractionDigits: 1 });
-        sugestao = litros > 0 ? combinarEmbalagens(litros, r.emb) : [];
-        $("r-embalagens").innerHTML = sugestao.length
-          ? sugestao.map(function (s) { return "<li><span>Embalagem " + s[0] + "</span><strong>" + s[1] + "x</strong></li>"; }).join("")
-          : "<li><span>Informe as medidas</span></li>";
+        var p = produtosCalc[+$("c-produto").value];
+        var area = num("c-area") * num("c-qtd");
+        var esp = num("c-esp");
+        var rend = esp > 0 ? 1000 / (esp * p.densidade) : 0;          // m²/kg teórico
+        var kg = rend > 0 ? area / rend / (+$("c-efi").value) : 0;     // considerando o aproveitamento
+        $("r-area").textContent = fmt(area);
+        $("r-rend").textContent = fmt(rend);
+        $("r-kg").textContent = fmt(kg);
+        sugestao = kg > 0 ? combinar(kg, tamanhos(p)) : [];
+        $("r-caixas").innerHTML = sugestao.length
+          ? sugestao.map(function (s) { return "<li><span>" + CW.esc(s[0].rotulo) + "</span><strong>" + s[1] + "x</strong></li>"; }).join("")
+          : "<li><span>Informe os dados do lote</span></li>";
         $("r-add").disabled = !sugestao.length;
       }
-      document.querySelectorAll("#form-calc input, #form-calc select").forEach(function (el) {
-        el.addEventListener("input", calcular);
-      });
+      document.querySelectorAll("#form-calc input, #form-calc select").forEach(function (el) { el.addEventListener("input", calcular); });
       $("r-add").addEventListener("click", function () {
-        var r = RENDIMENTOS[+$("c-produto").value];
-        sugestao.forEach(function (s) { CW.adicionarAoCarrinho(r.id, null, s[0], s[1]); });
+        var p = produtosCalc[+$("c-produto").value];
+        sugestao.forEach(function (s) { CW.adicionarAoCarrinho(p.id, null, s[0].rotulo, s[1]); });
         CW.abrirCarrinho();
       });
       calcular();
 
       /* ---------- Simulador ---------- */
       var cores = [];
-      PRODUTOS.filter(function (p) { return p.categoria === "imobiliaria"; }).forEach(function (p) {
+      PRODUTOS.forEach(function (p) {
         p.cores.forEach(function (c) {
-          if (!cores.some(function (x) { return x.hex.toLowerCase() === c.hex.toLowerCase(); })) cores.push({ nome: c.nome, hex: c.hex, produto: p });
+          if (p.id !== "cor-especial" && !cores.some(function (x) { return x.hex.toLowerCase() === c.hex.toLowerCase(); }))
+            cores.push({ nome: c.nome, hex: c.hex, produto: p });
         });
       });
+      cores = cores.slice(0, 25);
       var escolhida = null;
       $("paleta").innerHTML = cores.map(function (c, i) {
         return '<button data-i="' + i + '" style="background:' + c.hex + '" title="' + CW.esc(c.nome) + '" aria-label="' + CW.esc(c.nome) + '"></button>';
       }).join("");
       function aplicarCor(hex, nome, produto) {
-        $("parede").setAttribute("fill", hex);
+        $("camada-cor").setAttribute("fill", hex);
         $("cor-amostra").style.background = hex;
         $("cor-nome").textContent = nome;
-        $("cor-produto").textContent = produto ? produto.nome : "Cor personalizada (sistema tintométrico) " + hex.toUpperCase();
+        $("cor-produto").textContent = produto ? produto.nome : "Cor sob medida " + hex.toUpperCase();
       }
       $("paleta").addEventListener("click", function (e) {
         var b = e.target.closest("button");
@@ -317,26 +335,33 @@
         document.querySelectorAll("#paleta button").forEach(function (x) { x.classList.toggle("ativo", x === b); });
         aplicarCor(escolhida.hex, escolhida.nome, escolhida.produto);
       });
+      $("acabamentos").addEventListener("click", function (e) {
+        var b = e.target.closest("button");
+        if (!b) return;
+        document.querySelectorAll("#acabamentos button").forEach(function (x) { x.classList.toggle("ativo", x === b); });
+        $("camada-fx").setAttribute("fill", "url(#fx-" + b.dataset.fx + ")");
+      });
       $("cor-livre").addEventListener("input", function (e) {
-        escolhida = { nome: "Cor personalizada", hex: e.target.value, produto: null };
+        escolhida = { nome: "Cor sob medida", hex: e.target.value, produto: null };
         document.querySelectorAll("#paleta button").forEach(function (x) { x.classList.remove("ativo"); });
         aplicarCor(escolhida.hex, escolhida.nome, null);
       });
       $("btn-quero-cor").addEventListener("click", function () {
         if (escolhida && escolhida.produto) return CW.abrirProduto(escolhida.produto.id);
         var hex = escolhida ? escolhida.hex.toUpperCase() : $("cor-livre").value.toUpperCase();
-        window.open(CW.linkWhatsApp("Olá! Usei o simulador do site e gostaria de um orçamento para a cor personalizada " + hex + "."), "_blank", "noopener");
+        var acab = document.querySelector("#acabamentos .ativo").textContent;
+        window.open(CW.linkWhatsApp("Olá! Usei o simulador do site e gostaria de um orçamento de tinta em pó na cor " + hex + ", acabamento " + acab.toLowerCase() + "."), "_blank", "noopener");
       });
-      var inicial = document.querySelector("#paleta button[data-i='3']");
+      var inicial = document.querySelector("#paleta button[data-i='2']");
       if (inicial) inicial.click();
 
       /* ---------- Documentos ---------- */
       var docs = [
-        ["Catálogo geral de produtos " + new Date().getFullYear(), "Todas as linhas, cores e embalagens", "PDF"],
-        ["Cartela de cores — Linha Imobiliária", "Mais de 1.500 cores do sistema tintométrico", "PDF"],
-        ["Boletins técnicos (BT)", "Especificações de aplicação e desempenho", "PDF"],
+        ["Catálogo geral Policoating " + new Date().getFullYear(), "Todas as linhas, cores e embalagens", "PDF"],
+        ["Cartela de cores RAL", "Cores padrão disponíveis para pronta entrega e sob encomenda", "PDF"],
+        ["Boletins técnicos (BT)", "Cura, espessura, rendimento e desempenho de cada produto", "PDF"],
         ["FISPQ / FDS", "Fichas de informações de segurança de produtos químicos", "PDF"],
-        ["Guia de especificação industrial", "Sistemas de pintura anticorrosiva por ambiente", "PDF"]
+        ["Guia de pré-tratamento e aplicação", "Boas práticas para aderência e acabamento perfeitos", "PDF"]
       ];
       $("lista-docs").innerHTML = docs.map(function (d) {
         var link = CW.linkWhatsApp("Olá! Gostaria de receber o documento: " + d[0] + ".");

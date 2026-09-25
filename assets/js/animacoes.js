@@ -11,6 +11,8 @@
 
   const $ = (s, c = document) => c.querySelector(s);
   const $$ = (s, c = document) => Array.from(c.querySelectorAll(s));
+  // Quem desliga as animações do sistema não recebe os movimentos grandes (zoom e profundidade).
+  // Slides, faixa rolante e vídeos continuam, sempre com botão para pausar.
   const menosMovimento = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
   const MIDIA = window.MIDIA || {};
 
@@ -108,7 +110,7 @@
         fundo.className = "slide-fundo";
         if (foto) fundo.style.backgroundImage = `url("${foto}")`;
         s.prepend(fundo);
-        if (s.dataset.video && !menosMovimento) {
+        if (s.dataset.video) {
           const v = document.createElement("video");
           Object.assign(v, { muted: true, loop: true, playsInline: true, autoplay: true, preload: "auto" });
           v.className = "slide-video";
@@ -145,12 +147,23 @@
       if (spray) (atual === spray.slide ? spray.ctrl.ligar() : spray.ctrl.desligar());
       agendar();
     }
+    let parado = false;                                   // pausado pelo botão
     function agendar() {
       clearTimeout(timer);
-      raiz.classList.toggle("pausado", pausado || menosMovimento);
-      if (!pausado && !menosMovimento) timer = setTimeout(() => ir(atual + 1), TEMPO);
+      raiz.classList.toggle("pausado", pausado || parado);
+      if (!pausado && !parado) timer = setTimeout(() => ir(atual + 1), TEMPO);
     }
     const pausar = (v) => { pausado = v; agendar(); };
+    const botaoPausa = document.createElement("button");
+    botaoPausa.type = "button"; botaoPausa.className = "slider-pausa";
+    const rotular = () => { botaoPausa.setAttribute("aria-label", parado ? "Continuar slides e vídeo" : "Pausar slides e vídeo"); botaoPausa.classList.toggle("parado", parado); };
+    rotular();
+    botaoPausa.addEventListener("click", (e) => {
+      e.stopPropagation();
+      parado = !parado; rotular(); agendar();
+      $$(".slide-video", raiz).forEach((v) => (parado ? v.pause() : v.play().catch(() => {})));
+    });
+    raiz.appendChild(botaoPausa);
 
     botoes.forEach((b, i) => b.addEventListener("click", () => ir(i)));
     $(".slider-seta.ant", raiz).addEventListener("click", () => ir(atual - 1));
@@ -185,7 +198,6 @@
     if (!els.length) return;
     const animar = (el) => {
       const fim = parseFloat(el.dataset.contar), pre = el.dataset.prefixo || "", suf = el.dataset.sufixo || "";
-      if (menosMovimento) { el.textContent = pre + fim + suf; return; }
       const t0 = performance.now(), dur = 1400;
       const passo = (t) => {
         const p = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - p, 3);
@@ -419,6 +431,17 @@
     $$("[data-faixa]").forEach((trilho) => {
       if (trilho.dataset.pronta) return;
       trilho.dataset.pronta = "1";
+      const secao = trilho.closest(".faixa-imagens");
+      if (secao && !secao.querySelector(".faixa-pausa")) {
+        const b = document.createElement("button");
+        b.type = "button"; b.className = "faixa-pausa"; b.setAttribute("aria-label", "Pausar imagens");
+        b.addEventListener("click", () => {
+          const parar = !secao.classList.contains("parada");
+          secao.classList.toggle("parada", parar);
+          b.setAttribute("aria-label", parar ? "Continuar imagens" : "Pausar imagens");
+        });
+        secao.appendChild(b);
+      }
       const originais = Array.from(trilho.children);
       const copiar = (el) => { const c = el.cloneNode(true); c.setAttribute("aria-hidden", "true"); c.tabIndex = -1; trilho.appendChild(c); };
       // repete até cobrir telas largas; depois duplica tudo para o laço de -50% ficar contínuo
@@ -477,7 +500,7 @@
         v.currentTime = 0;
         v.play().catch(() => {});
       });
-      if (menosMovimento || !("IntersectionObserver" in window)) { v.controls = true; return; }
+      if (!("IntersectionObserver" in window)) { v.controls = true; return; }
       new IntersectionObserver((ents) => ents.forEach((en) => {
         if (en.isIntersecting) v.play().catch(() => {}); else v.pause();
       }), { threshold: 0.35 }).observe(caixa);

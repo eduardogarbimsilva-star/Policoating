@@ -24,7 +24,7 @@
   function imgProduto(p, cor, tam, classe) {
     cor = cor || p.cores[0];
     if (!Fotos) return caixaSVG(cor.hex);
-    return `<img class="${classe || "foto-produto"}" src="${fotoProduto(p, cor, tam)}" alt="${esc(p.nome)} — ${esc(cor.nome)}" width="${tam.largura}" height="${tam.altura}" decoding="async" data-produto="${esc(p.id)}" data-cor="${esc(cor.nome)}">`;
+    return `<img class="${classe || "foto-produto"}" src="${esc(fotoProduto(p, cor, tam))}" alt="${esc(p.nome)} — ${esc(cor.nome)}" width="${tam.largura}" height="${tam.altura}" decoding="async" data-produto="${esc(p.id)}" data-cor="${esc(cor.nome)}">`;
   }
 
   /* ---------- Utilidades ---------- */

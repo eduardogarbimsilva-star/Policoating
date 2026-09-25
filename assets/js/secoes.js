@@ -289,7 +289,7 @@
       atual = (n + itens.length) % itens.length;
       itens[atual].classList.add("ativa");
     };
-    const auto = () => { clearInterval(timer); if (!menosMovimento) timer = setInterval(() => ir(atual + 1), 8000); };
+    const auto = () => { clearInterval(timer); timer = setInterval(() => ir(atual + 1), 8000); };
     $(".ant", raiz).addEventListener("click", () => { ir(atual - 1); auto(); });
     $(".prox", raiz).addEventListener("click", () => { ir(atual + 1); auto(); });
     auto();

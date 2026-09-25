@@ -3,22 +3,23 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Política de Privacidade | Policoating</title>
-  <meta name="description" content="Como a Policoating trata seus dados pessoais conforme a LGPD.">
+  <title>Painel da empresa | Policoating</title>
+  <meta name="description" content="Cadastro de produtos da Policoating.">
   <meta name="theme-color" content="#1558d6">
   <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="assets/img/icone-180.png">
-  <link rel="canonical" href="https://eduardogarbimsilva-star.github.io/Policoating/privacidade.html">
+  <link rel="canonical" href="https://eduardogarbimsilva-star.github.io/Policoating/admin.html">
   <meta property="og:type" content="website">
   <meta property="og:locale" content="pt_BR">
   <meta property="og:site_name" content="Policoating">
-  <meta property="og:title" content="Política de Privacidade | Policoating">
-  <meta property="og:description" content="Como a Policoating trata seus dados pessoais conforme a LGPD.">
-  <meta property="og:url" content="https://eduardogarbimsilva-star.github.io/Policoating/privacidade.html">
+  <meta property="og:title" content="Painel da empresa | Policoating">
+  <meta property="og:description" content="Cadastro de produtos da Policoating.">
+  <meta property="og:url" content="https://eduardogarbimsilva-star.github.io/Policoating/admin.html">
   <meta property="og:image" content="https://eduardogarbimsilva-star.github.io/Policoating/assets/img/compartilhar.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta name="twitter:card" content="summary_large_image">
+  <meta name="robots" content="noindex">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Barlow:wght@500;600;700&display=swap" rel="stylesheet">
@@ -89,44 +90,91 @@
   <main id="conteudo">
     <section class="cabecalho-pagina">
       <div class="container">
-        <div class="migalhas"><a href="index.html">Início</a> / Política de Privacidade</div>
-        <h1>Política de Privacidade</h1>
-        <p>Como a <span data-cfg="empresa">Policoating</span> trata seus dados pessoais, conforme a Lei Geral de Proteção de Dados (Lei nº 13.709/2018 – LGPD).</p>
+        <div class="migalhas"><a href="index.html">Início</a> / <a href="conta.html">Minha conta</a> / Painel da empresa</div>
+        <h1>Painel da empresa</h1>
+        <p>Cadastre, edite, oculte e exclua produtos do catálogo do site.</p>
       </div>
     </section>
 
     <section class="secao">
-      <div class="container texto-legal">
-        <h2>1. Quais dados coletamos</h2>
-        <ul>
-          <li><strong>Cadastro:</strong> e-mail, nome ou razão social, CPF ou CNPJ, inscrição estadual, nome do responsável, telefone e endereço de entrega.</li>
-          <li><strong>Pedidos:</strong> produtos, cores, embalagens, quantidades e observações que você envia.</li>
-          <li><strong>Navegador:</strong> o carrinho, os favoritos e a sessão de login ficam salvos no armazenamento local do seu navegador.</li>
-        </ul>
+      <div class="container">
+        <div class="admin-aviso" id="admin-carregando">Verificando acesso...</div>
 
-        <h2>2. Para que usamos</h2>
-        <ul>
-          <li>Identificar você com segurança por meio do código de verificação enviado ao seu e-mail;</li>
-          <li>Preparar orçamentos, faturar e entregar os pedidos enviados ao nosso vendedor pelo WhatsApp;</li>
-          <li>Manter o histórico dos seus pedidos na área do cliente;</li>
-          <li>Cumprir obrigações legais e fiscais.</li>
-        </ul>
+        <div class="admin-aviso" id="admin-entrar" hidden>
+          <h2>Entre com a conta da empresa</h2>
+          <p>O painel é liberado apenas para os e-mails cadastrados como administradores.</p>
+          <a href="conta.html" class="btn btn-primario">Entrar</a>
+        </div>
 
-        <h2>3. Compartilhamento</h2>
-        <p>Não vendemos seus dados. Eles são armazenados em provedor de infraestrutura contratado para o login e o banco de dados, e compartilhados apenas quando necessário para a entrega (transportadoras) ou por obrigação legal. Ao finalizar um pedido, a mensagem com seus dados é enviada por você pelo WhatsApp.</p>
-        <p>Para agilizar o cadastro, o site consulta serviços públicos de CEP (ViaCEP) e de CNPJ (BrasilAPI / Receita Federal) com o número que você informa.</p>
+        <div class="admin-aviso" id="admin-negado" hidden>
+          <h2>Sem acesso ao painel</h2>
+          <p>A conta <strong id="admin-email"></strong> não está na lista de administradores. Peça para liberar este e-mail no Supabase (veja o README).</p>
+        </div>
 
-        <h2>4. Seus direitos</h2>
-        <p>Você pode, a qualquer momento, solicitar acesso, correção, portabilidade ou exclusão dos seus dados, além de revogar o consentimento, pelo e-mail <a data-email data-cfg="email"></a> ou pelo WhatsApp <a data-whats data-cfg="telefone"></a>. Seus dados cadastrais podem ser corrigidos diretamente em <a href="conta.html#dados">Minha conta</a>.</p>
+        <div id="admin-painel" hidden>
+          <div class="admin-demo" id="admin-demo" hidden>
+            <strong>Modo demonstração:</strong> as alterações ficam salvas só neste navegador. Com o Supabase configurado, elas valem para todos os visitantes.
+          </div>
 
-        <h2>5. Segurança e retenção</h2>
-        <p>O acesso à conta é feito sem senha, por código de uso único enviado ao seu e-mail. Cada cliente só consegue ver os próprios dados e pedidos. Mantemos as informações pelo tempo necessário para as finalidades acima e para o cumprimento de obrigações legais.</p>
+          <div class="admin-barra">
+            <label class="busca"><input type="search" id="admin-busca" placeholder="Buscar produto..." aria-label="Buscar produto"></label>
+            <select id="admin-filtro" aria-label="Filtrar por linha"><option value="">Todas as linhas</option></select>
+            <div class="admin-acoes">
+              <button type="button" class="btn btn-contorno-azul" id="btn-importar" hidden>Importar produtos atuais do site</button>
+              <button type="button" class="btn btn-primario" id="btn-novo">+ Novo produto</button>
+            </div>
+          </div>
 
-        <h2>6. Contato do controlador</h2>
-        <p><span data-cfg="empresa">Policoating</span> — <a data-email data-cfg="email"></a>.</p>
-        <p class="nota">Última atualização: <span data-ano>2026</span>. Revise este texto com a assessoria jurídica da empresa antes da publicação definitiva.</p>
+          <p class="admin-contagem" id="admin-contagem"></p>
+          <div class="tabela-rolagem">
+            <table class="admin-tabela">
+              <thead><tr><th>Produto</th><th>Linha</th><th>Cores</th><th>Ordem</th><th>Situação</th><th><span class="sr">Ações</span></th></tr></thead>
+              <tbody id="admin-lista"></tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </section>
+
+    <!-- Formulário do produto -->
+    <div class="admin-modal" id="admin-modal" role="dialog" aria-modal="true" aria-labelledby="form-titulo" hidden>
+      <form class="admin-form" id="admin-form" novalidate>
+        <header>
+          <h2 id="form-titulo">Novo produto</h2>
+          <button type="button" class="fechar" data-fechar aria-label="Fechar">×</button>
+        </header>
+        <div class="admin-form-corpo">
+          <div class="grade-campos">
+            <label class="largo">Nome do produto *<input name="nome" required maxlength="80"></label>
+            <label>Código (id) *<input name="id" required maxlength="60"><small>Letras minúsculas, números e hífen. Não muda depois de salvo.</small></label>
+            <label>Linha *<select name="categoria" required></select></label>
+            <label>Nome da linha (ex.: Linha Exterior)<input name="linha" maxlength="60"></label>
+            <label>Acabamento<input name="acabamento" maxlength="60" placeholder="Brilhante, Fosco, Texturizado..."></label>
+            <label class="largo">Descrição<textarea name="descricao" rows="3" maxlength="400"></textarea></label>
+            <label>Rendimento<input name="rendimento" maxlength="60" placeholder="≈ 9,5 m²/kg a 70 µm"></label>
+            <label>Cura<input name="cura" maxlength="60" placeholder="10 min a 200 °C"></label>
+            <label>Densidade (g/cm³)<input name="densidade" type="number" step="0.01" min="0.5" max="5"></label>
+            <label>Preço por kg (opcional)<input name="preco" type="number" step="0.01" min="0" placeholder="Em branco = Sob consulta"></label>
+            <label class="largo">Embalagens * <input name="embalagens" required placeholder="Caixa 20 kg, Caixa 25 kg"><small>Separe por vírgula.</small></label>
+            <label>Ordem no catálogo<input name="ordem" type="number" step="1" value="100"></label>
+            <div class="checks">
+              <label class="check"><input type="checkbox" name="destaque"> Destaque na página inicial</label>
+              <label class="check"><input type="checkbox" name="ativo" checked> Visível no site</label>
+            </div>
+          </div>
+
+          <div class="admin-cores">
+            <div class="admin-cores-topo"><h3>Cores *</h3><button type="button" class="btn btn-contorno-azul" id="btn-cor">+ Adicionar cor</button></div>
+            <div id="lista-cores"></div>
+          </div>
+          <p class="form-erro" id="form-erro" role="alert"></p>
+        </div>
+        <footer>
+          <button type="button" class="btn btn-contorno-azul" data-fechar>Cancelar</button>
+          <button type="submit" class="btn btn-primario" id="btn-salvar">Salvar produto</button>
+        </footer>
+      </form>
+    </div>
   </main>
 
   <!-- ===== Rodapé ===== -->
@@ -194,5 +242,6 @@
   <script src="assets/js/animacoes.js?v=d458c529"></script>
   <script src="assets/js/secoes.js?v=6acddd4d"></script>
   <script src="assets/js/assistente.js?v=041927b2"></script>
+  <script src="assets/js/admin.js?v=9b2d402c"></script>
 </body>
 </html>

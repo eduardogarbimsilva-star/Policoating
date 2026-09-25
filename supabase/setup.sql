@@ -89,3 +89,75 @@ create policy "visitante se cadastra na newsletter" on public.newsletter
   for insert to anon, authenticated with check (true);
 
 grant insert on public.newsletter to anon, authenticated;
+
+-- ===========================================================
+-- PARTE D — Painel da empresa (cadastro de produtos)
+-- 1) Rode este bloco inteiro.
+-- 2) Troque o e-mail no final pelo e-mail da empresa e rode só aquela linha.
+--    Para liberar mais pessoas, rode a mesma linha com outros e-mails.
+-- ===========================================================
+
+-- Quem pode editar o catálogo (a lista não é lida pelo site)
+create table if not exists public.admins (
+  email text primary key
+);
+alter table public.admins enable row level security;
+
+create or replace function public.eh_admin()
+returns boolean
+language sql stable security definer
+set search_path = public
+as $$
+  select exists (select 1 from public.admins where lower(email) = lower(auth.jwt() ->> 'email'));
+$$;
+revoke all on function public.eh_admin() from public;
+grant execute on function public.eh_admin() to anon, authenticated;
+
+-- Produtos do catálogo (cada produto é guardado inteiro em "dados")
+create table if not exists public.produtos (
+  id            text primary key check (id ~ '^[a-z0-9-]{2,60}$'),
+  dados         jsonb not null,
+  ativo         boolean not null default true,
+  ordem         integer not null default 0,
+  atualizado_em timestamptz not null default now()
+);
+alter table public.produtos enable row level security;
+
+drop policy if exists "todos veem produtos ativos" on public.produtos;
+create policy "todos veem produtos ativos" on public.produtos
+  for select to anon, authenticated using (ativo or public.eh_admin());
+
+drop policy if exists "admin cadastra produtos" on public.produtos;
+create policy "admin cadastra produtos" on public.produtos
+  for insert to authenticated with check (public.eh_admin());
+
+drop policy if exists "admin edita produtos" on public.produtos;
+create policy "admin edita produtos" on public.produtos
+  for update to authenticated using (public.eh_admin()) with check (public.eh_admin());
+
+drop policy if exists "admin exclui produtos" on public.produtos;
+create policy "admin exclui produtos" on public.produtos
+  for delete to authenticated using (public.eh_admin());
+
+grant select on public.produtos to anon, authenticated;
+grant insert, update, delete on public.produtos to authenticated;
+
+-- Fotos dos produtos (pasta pública "produtos"; só administradores enviam)
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('produtos', 'produtos', true, 5242880, array['image/jpeg', 'image/png', 'image/webp'])
+on conflict (id) do nothing;
+
+drop policy if exists "admin envia fotos de produtos" on storage.objects;
+create policy "admin envia fotos de produtos" on storage.objects
+  for insert to authenticated with check (bucket_id = 'produtos' and public.eh_admin());
+
+drop policy if exists "admin troca fotos de produtos" on storage.objects;
+create policy "admin troca fotos de produtos" on storage.objects
+  for update to authenticated using (bucket_id = 'produtos' and public.eh_admin());
+
+drop policy if exists "admin apaga fotos de produtos" on storage.objects;
+create policy "admin apaga fotos de produtos" on storage.objects
+  for delete to authenticated using (bucket_id = 'produtos' and public.eh_admin());
+
+-- >>> TROQUE PELO E-MAIL DA EMPRESA E RODE ESTA LINHA <<<
+-- insert into public.admins (email) values ('email-da-empresa@exemplo.com') on conflict do nothing;

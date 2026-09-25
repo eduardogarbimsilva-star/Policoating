@@ -22,7 +22,7 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Barlow:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/style.css?v=a72e3d8e">
+  <link rel="stylesheet" href="assets/css/style.css?v=f2bc2d46">
 </head>
 <body>
   <a class="pular" href="#conteudo">Pular para o conteúdo</a>
@@ -174,15 +174,16 @@
 
   <script src="assets/js/config.js?v=2d363928"></script>
   <script src="assets/js/produtos.js?v=02717c64"></script>
+  <script src="assets/js/catalogo.js?v=1939b95a"></script>
   <script src="assets/js/icones.js?v=fbc0a612"></script>
-  <script src="assets/js/midia.js?v=e3890788"></script>
+  <script src="assets/js/midia.js?v=781286f8"></script>
   <script src="assets/js/fotos-reais.js?v=cd443528"></script>
   <script src="assets/js/fotos.js?v=b90ec185"></script>
-  <script src="assets/js/auth.js?v=60eb010b"></script>
-  <script src="assets/js/main.js?v=dd81bdf6"></script>
-  <script src="assets/js/animacoes.js?v=08ce97a6"></script>
-  <script src="assets/js/secoes.js?v=0885b063"></script>
-  <script src="assets/js/assistente.js?v=53cb04a4"></script>
+  <script src="assets/js/auth.js?v=a28ab023"></script>
+  <script src="assets/js/main.js?v=0fd3b5b0"></script>
+  <script src="assets/js/animacoes.js?v=d458c529"></script>
+  <script src="assets/js/secoes.js?v=6acddd4d"></script>
+  <script src="assets/js/assistente.js?v=041927b2"></script>
   <script>
     document.addEventListener("DOMContentLoaded", function () {
       var CW = window.ColorWeg;
@@ -228,6 +229,7 @@
         atualizar();
       });
       busca.addEventListener("input", atualizar);
+      document.addEventListener("catalogo-atualizado", atualizar);   // produtos novos do painel
       atualizar();
     });
   </script>

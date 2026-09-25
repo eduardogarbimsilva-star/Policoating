@@ -19,6 +19,10 @@ window.MIDIA = {
   // categoria: "ambientes" (Fotos reais), "cores", "acabamentos" ou "aplicacoes"
   // Ex.: { src: "assets/img/galeria/portao-preto.jpg", titulo: "Portão em RAL 9005 fosco", categoria: "ambientes" }
   galeria: [
+    { src: "assets/img/marca/estoque-ral.jpg", titulo: "Estoque por cor", descricao: "Tinta em pó organizada por código RAL", categoria: "ambientes" },
+    { src: "assets/img/marca/esquadria-bronze.jpg", titulo: "Esquadria metálica", descricao: "Acabamento bronze em perfil de alumínio", categoria: "ambientes" },
+    { src: "assets/img/marca/teste-impacto.jpg", titulo: "Teste de impacto", descricao: "Resistência da película a batidas", categoria: "ambientes" },
+    { src: "assets/img/marca/painel-estufa.jpg", titulo: "Controle da estufa", descricao: "Temperatura de cura monitorada", categoria: "ambientes" },
     { src: "assets/img/marca/linha-fabrica.jpg", titulo: "Linha de pintura", descricao: "Cabine robotizada, transportador e estufa", categoria: "ambientes" },
     { src: "assets/img/marca/pecas-linha.jpg", titulo: "Peças acabadas", descricao: "Gradil, esquadria, banco metálico e painel", categoria: "ambientes" },
     { src: "assets/img/marca/alimentador-po.jpg", titulo: "Alimentação do pó", descricao: "Reservatório que envia o pó para a pistola", categoria: "ambientes" },

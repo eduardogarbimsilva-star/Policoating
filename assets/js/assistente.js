@@ -227,7 +227,7 @@
     const cor = p.cores.find((c) => c.nome === item.cor) || p.cores[0];
     const foto = CW().fotoProduto(p, cor, { largura: 240, altura: 192 });
     return `<div class="assist-produto">
-      ${foto ? `<img src="${foto}" alt="" width="240" height="192" data-produto="${esc(p.id)}" data-cor="${esc(cor.nome)}">` : ""}
+      ${foto ? `<img src="${esc(foto)}" alt="" width="240" height="192" data-produto="${esc(p.id)}" data-cor="${esc(cor.nome)}">` : ""}
       <div><strong>${esc(p.nome)}</strong><small><i style="background:${cor.hex}"></i>${esc(cor.nome)}</small>
         <span><button type="button" data-ver="${esc(p.id)}">Ver detalhes</button>
         <button type="button" class="primario" data-add="${esc(p.id)}" data-cor="${esc(cor.nome)}">+ Carrinho</button></span></div>

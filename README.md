@@ -125,6 +125,30 @@ Todos os botões de WhatsApp, telefone, e-mail, endereço e redes sociais do sit
 Os ícones do rodapé (Instagram, Facebook, LinkedIn, YouTube) só aparecem quando o endereço é preenchido em
 `redes` no [`assets/js/config.js`](assets/js/config.js), por exemplo `instagram: "https://www.instagram.com/policoating"`.
 
+### Painel da empresa: cadastrar, editar, ocultar e excluir produtos
+
+Página [`admin.html`](admin.html), com link em **Minha conta → Painel da empresa**. Só aparece para e-mails
+liberados como administradores; clientes comuns não veem nem acessam.
+
+**Ativar (uma vez), no Supabase → SQL Editor:**
+1. Cole a **PARTE D** do [`supabase/setup.sql`](supabase/setup.sql) e clique em **Run**.
+   Ela cria a tabela `produtos`, a lista `admins` e a pasta de fotos `produtos`.
+2. Na última linha da PARTE D, troque o e-mail de exemplo pelo e-mail da empresa, tire os `--` do começo e rode
+   só essa linha. Repita a linha com outros e-mails para liberar mais pessoas.
+3. Entre no site com esse e-mail (código por e-mail), abra o painel e clique em
+   **Importar produtos atuais do site**. A partir daí, tudo é editado pelo painel.
+
+**No painel:**
+- **Novo produto:** nome, linha, acabamento, descrição, rendimento, cura, embalagens, preço opcional, destaque na
+  página inicial e cores. Cada cor pode ter uma foto real, que é reduzida e enviada automaticamente.
+- **Editar**, **Duplicar** (para criar variações) e **Excluir**.
+- **Visível/Oculto:** tira o produto do site sem apagar.
+- **Ordem no catálogo:** números menores aparecem primeiro.
+
+As mudanças valem para todos os visitantes em segundos. Enquanto o painel estiver vazio (ou sem internet), o site
+usa a lista de [`assets/js/produtos.js`](assets/js/produtos.js). Sem Supabase configurado, o painel funciona em
+modo demonstração e grava só no navegador.
+
 ### Produtos
 Edite **`assets/js/produtos.js`**. Cada produto tem nome, categoria, acabamento, descrição, rendimento,
 cura, densidade (usada na calculadora), embalagens (caixas) e cores (nome/RAL + código hex). Use `destaque: true` para exibir na página inicial e,
@@ -211,12 +235,14 @@ A função só aceita chamadas do endereço do site (lista `ORIGENS_PERMITIDAS`)
 ### Vídeos
 
 - `assets/video/fundo-topo.webm`: vídeo sem som que roda no fundo do primeiro slide.
-- `assets/video/processo-policoating.webm`: vídeo do processo (aplicação, cura, qualidade, acabamentos), na
-  seção "Como funciona" e na página Pintura a pó. Toca sozinho, sem som, quando aparece na tela.
+- `assets/video/institucional-policoating.webm`: vídeo institucional (abertura com o logo, capítulos, números e
+  encerramento), no bloco "Isto é Policoating" da página inicial.
+- `assets/video/processo-policoating.webm`: vídeo do processo (aplicação, cura, qualidade, acabamentos), na página Pintura a pó. Toca sozinho, sem som, quando aparece na tela.
 
 Os dois foram montados a partir das imagens de `assets/img/marca/`. Para usar um vídeo próprio, substitua o arquivo
 mantendo o mesmo nome (formato `.webm`), ou liste um `.mp4`/YouTube em `videos` no `midia.js`.
-Quem prefere menos movimento (configuração do sistema) vê a foto parada no lugar do vídeo.
+Slides, faixa de imagens e vídeos têm botão de pausar. Quem desliga as animações do sistema continua vendo
+slides e vídeos, mas sem os efeitos de zoom e de profundidade.
 
 ## Tipos de tinta e guia de escolha
 

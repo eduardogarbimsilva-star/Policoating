@@ -68,6 +68,12 @@
     aoMudar(fn) { ouvintes.push(fn); },
 
     get usuario() { return usuarioAtual; },
+
+    /** Cliente Supabase já autenticado (usado pelo painel da empresa) */
+    cliente() {
+      if (!USAR_SUPABASE) return Promise.reject(new Error("Servidor não configurado."));
+      return supabase();
+    },
     get perfil() { return perfilAtual; },
 
     /** Cadastro completo = tem os dados mínimos para faturar/entregar */

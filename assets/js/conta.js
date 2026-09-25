@@ -174,6 +174,8 @@
     $("#avatar").textContent = iniciais(p.tipo === "pj" ? (p.nome_fantasia || p.razao_social || p.responsavel) : p.nome || Conta.usuario.email);
     $("#ola-nome").textContent = titulo || "Complete seu cadastro";
     $("#ola-email").textContent = Conta.usuario.email;
+    // atalho para o painel da empresa, só para e-mails administradores
+    if (window.Catalogo) window.Catalogo.Admin.ehAdmin().then((sim) => { $("#link-admin").hidden = !sim || !Conta.usuario; }).catch(() => {});
     const selo = $("#selo-tipo");
     selo.hidden = !p.tipo;
     selo.textContent = p.tipo === "pj" ? "Empresa" : "Pessoa física";

@@ -9,9 +9,10 @@ cliente montar um carrinho e **enviar o pedido direto para o WhatsApp do vendedo
 
 | Página | Conteúdo |
 |---|---|
-| `index.html` | Hero com slogan e selos, faixa de valores, linhas de produtos, destaques, quem somos, recursos, contato |
+| `index.html` | Slides, selos, linhas de produtos, destaques, vídeo animado do processo, prévia da galeria, quem somos, recursos, contato |
 | `produtos.html` | Catálogo completo com filtro por categoria e busca |
 | `sobre.html` | Quem somos, processo de pintura a pó, história, missão/visão/valores, sustentabilidade |
+| `galeria.html` | Galeria de cores, acabamentos e peças pintadas, com filtros e ampliação |
 | `conta.html` | Área do cliente: entrar/criar conta com código por e-mail, cadastro PF/PJ, pedidos, favoritos |
 | `privacidade.html` | Política de Privacidade (LGPD) |
 | `recursos.html` | Calculadora de consumo de pó (kg e caixas), simulador de cores/acabamentos em peças, documentos, FAQ |
@@ -123,6 +124,24 @@ em `assets/js/main.js`. O logotipo foi redesenhado em SVG; para usar o arquivo o
 ### Textos provisórios
 A história da empresa (`sobre.html`), a missão/visão e alguns dados técnicos dos produtos são textos
 de exemplo — revise-os com as informações reais da Policoating.
+
+## Fotos e vídeos
+
+O site já vem com imagens geradas automaticamente, então funciona sem nenhuma foto:
+- **Foto de cada cor de produto:** placa metálica pintada, pendurada no gancho, com o pó da cor na frente.
+  O brilho, a textura, o efeito martelado ou metálico seguem o acabamento do produto.
+- **Galeria:** cores, acabamentos e peças pintadas (portão, painel elétrico, cadeira, estante, esquadria, roda).
+- **Slides** da página inicial e **vídeo animado** do processo de pintura a pó (pré-tratamento → aplicação → estufa → peça pronta).
+
+Para usar **fotos e vídeos reais** da empresa, coloque os arquivos em `assets/img/` e `assets/video/` e liste-os em
+[`assets/js/midia.js`](assets/js/midia.js) (slides, galeria e vídeos do YouTube ou `.mp4`).
+Para a foto real de uma cor específica, adicione `foto` na cor dentro de `assets/js/produtos.js`:
+
+```js
+{ nome: "Preto RAL 9005", hex: "#0E0E10", foto: "assets/img/produtos/poliester-preto.jpg" }
+```
+
+Dica: use fotos em `.jpg` com cerca de 1200 px de largura (proporção 5:4 para produtos e galeria) para o site continuar leve.
 
 ## Rodar localmente
 

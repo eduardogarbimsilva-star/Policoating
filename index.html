@@ -33,6 +33,7 @@
         <ul class="menu">
           <li><a href="index.html" class="ativo">Início</a></li>
           <li><a href="produtos.html">Produtos</a></li>
+          <li><a href="galeria.html">Galeria</a></li>
           <li><a href="sobre.html">A Empresa</a></li>
           <li><a href="recursos.html">Recursos</a></li>
           <li><a href="index.html#contato">Contato</a></li>
@@ -47,38 +48,78 @@
   </header>
 
   <main>
-    <!-- ===== Hero ===== -->
-    <section class="hero">
-      <div class="container">
-        <div>
-          <span class="sobretitulo">Tinta eletrostática em pó</span>
-          <h1>Tecnologia que <em>reveste</em>, qualidade que <em>permanece</em>.</h1>
-          <p>Tintas em pó poliéster, epóxi, híbridas, texturizadas e metálicas para indústrias, serralherias e aplicadores. Escolha os produtos, monte o carrinho e fale direto com nosso vendedor pelo WhatsApp.</p>
-          <div class="hero-botoes">
-            <a href="produtos.html" class="btn btn-primario">Ver produtos</a>
-            <a class="btn btn-contorno-azul" data-whats>Falar com vendedor</a>
+    <!-- ===== Slides ===== -->
+    <section class="slider" data-slider aria-roledescription="carrossel" aria-label="Destaques Policoating" tabindex="0">
+      <div class="slides">
+        <article class="slide" data-arte="linha">
+          <div class="container slide-grade">
+            <div class="slide-texto">
+              <span class="sobretitulo">Tinta eletrostática em pó</span>
+              <h1>Tecnologia que <em>reveste</em>, qualidade que <em>permanece</em>.</h1>
+              <p>Tintas em pó poliéster, epóxi, híbridas, texturizadas e metálicas para indústrias, serralherias e aplicadores.</p>
+              <div class="hero-botoes">
+                <a href="produtos.html" class="btn btn-primario">Ver produtos</a>
+                <a class="btn btn-contorno-azul" data-whats>Falar com vendedor</a>
+              </div>
+            </div>
+            <div class="slide-arte"></div>
           </div>
-          <div class="hero-selos">
-            <div><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg></span><strong>Alta proteção</strong>e resistência</div>
-            <div><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg></span><strong>Acabamento</strong>superior</div>
-            <div><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19c0-8 5-13 14-14 0 9-5 14-13 14"/><path d="M5 19l7-7"/></svg></span><strong>Sustentável</strong>e eficiente</div>
-            <div><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16M6 17v-4M10 17v-7M14 17v-5M18 17V8"/><path d="M5 9l5-4 4 3 5-5"/></svg></span><strong>Desempenho</strong>que gera resultados</div>
+        </article>
+        <article class="slide" data-arte="cores">
+          <div class="container slide-grade">
+            <div class="slide-texto">
+              <span class="sobretitulo">Cores RAL e sob medida</span>
+              <h2>Cada cor com <em>acabamento impecável</em>.</h2>
+              <p>Brilhante, fosco, texturizado, martelado ou metálico. Veja cada cor aplicada na nossa galeria.</p>
+              <div class="hero-botoes">
+                <a href="galeria.html" class="btn btn-primario">Ver galeria</a>
+                <a href="recursos.html#simulador" class="btn btn-contorno-azul">Simular cores</a>
+              </div>
+            </div>
+            <div class="slide-arte"></div>
           </div>
-        </div>
-        <div class="hero-arte" id="hero-arte" aria-hidden="true">
-          <span class="po po-azul"></span><span class="po po-verde"></span><span class="po po-amarelo"></span><span class="po po-laranja"></span>
-          <div class="selo"><div><span class="estrelas">★★★</span><b>Alta</b>performance<b>superior</b>em cada camada</div></div>
-        </div>
+        </article>
+        <article class="slide" data-arte="spray">
+          <div class="container slide-grade">
+            <div class="slide-texto">
+              <span class="sobretitulo">Linha industrial</span>
+              <h2>Proteção de <em>alta performance</em> em cada camada.</h2>
+              <p>Epóxi, poliéster e híbridas com excelente aderência e resistência à corrosão e às intempéries.</p>
+              <div class="hero-botoes">
+                <a href="produtos.html?categoria=epoxi" class="btn btn-primario">Linha industrial</a>
+                <a href="#como-funciona" class="btn btn-contorno-azul">Como funciona</a>
+              </div>
+            </div>
+            <div class="slide-arte"></div>
+          </div>
+        </article>
+        <article class="slide" data-arte="caixas">
+          <div class="container slide-grade">
+            <div class="slide-texto">
+              <span class="sobretitulo">Atendimento para todo o Brasil</span>
+              <h2>Peça pelo site e <em>finalize no WhatsApp</em>.</h2>
+              <p>Monte o carrinho, entre na sua conta e envie o pedido com seus dados de faturamento e entrega em um clique.</p>
+              <div class="hero-botoes">
+                <a href="conta.html?criar=1" class="btn btn-primario">Criar minha conta</a>
+                <a href="produtos.html" class="btn btn-contorno-azul">Ver produtos</a>
+              </div>
+            </div>
+            <div class="slide-arte hero-arte"></div>
+          </div>
+        </article>
       </div>
+      <button type="button" class="slider-seta ant" aria-label="Slide anterior">‹</button>
+      <button type="button" class="slider-seta prox" aria-label="Próximo slide">›</button>
+      <div class="slider-pontos"></div>
     </section>
 
-    <!-- ===== Faixa de valores ===== -->
-    <section class="faixa-valores">
-      <div class="container">
-        <div class="valor"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-4 10.5c.7.7 1 1.5 1 2.5h6c0-1 .3-1.8 1-2.5A6 6 0 0 0 12 3z"/></svg><div><strong>Inovação</strong><span>em cada detalhe</span></div></div>
-        <div class="valor"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="9" r="5"/><path d="M9 13.5 7 21l5-2.5 5 2.5-2-7.5"/></svg><div><strong>Qualidade</strong><span>que você confia</span></div></div>
-        <div class="valor"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12l4-4 4 2 3-2 4 1 3 3"/><path d="M7 12l4 4c1 1 2 1 3 0l4-4"/></svg><div><strong>Compromisso</strong><span>com o cliente</span></div></div>
-        <div class="valor"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.5 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/></svg><div><strong>Performance</strong><span>que faz a diferença</span></div></div>
+    <!-- ===== Selos ===== -->
+    <section class="faixa-selos">
+      <div class="container hero-selos">
+        <div class="revelar"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg></span><strong>Alta proteção</strong>e resistência</div>
+        <div class="revelar"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg></span><strong>Acabamento</strong>superior</div>
+        <div class="revelar"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19c0-8 5-13 14-14 0 9-5 14-13 14"/><path d="M5 19l7-7"/></svg></span><strong>Sustentável</strong>e eficiente</div>
+        <div class="revelar"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16M6 17v-4M10 17v-7M14 17v-5M18 17V8"/><path d="M5 9l5-4 4 3 5-5"/></svg></span><strong>Desempenho</strong>que gera resultados</div>
       </div>
     </section>
 
@@ -104,6 +145,35 @@
         </div>
         <div class="grade-produtos" id="destaques"></div>
         <div class="centro"><a href="produtos.html" class="btn btn-contorno-azul">Ver catálogo completo →</a></div>
+      </div>
+    </section>
+
+    <!-- ===== Como funciona (vídeo) ===== -->
+    <section class="secao secao-escura" id="como-funciona">
+      <div class="container">
+        <div class="secao-titulo revelar">
+          <span class="rotulo">Veja como funciona</span>
+          <h2>Da peça crua ao acabamento perfeito</h2>
+          <p>A pintura eletrostática a pó em quatro etapas: limpa, sem solventes e com alto aproveitamento.</p>
+        </div>
+        <div class="video-processo revelar" data-processo></div>
+        <div class="videos-reais" data-videos-reais hidden>
+          <h3>Vídeos da Policoating</h3>
+          <div class="grade-videos"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Galeria (prévia) ===== -->
+    <section class="secao">
+      <div class="container">
+        <div class="secao-titulo revelar">
+          <span class="rotulo">Galeria</span>
+          <h2>Cores e acabamentos em destaque</h2>
+          <p>Veja como cada cor fica aplicada nas peças.</p>
+        </div>
+        <div class="galeria-previa" id="galeria-previa"></div>
+        <div class="centro"><a href="galeria.html" class="btn btn-contorno-azul">Abrir galeria completa →</a></div>
       </div>
     </section>
 
@@ -134,9 +204,9 @@
     <!-- ===== Números ===== -->
     <section class="secao faixa-numeros">
       <div class="container numeros">
-        <div class="numero revelar"><strong>0%</strong><span>solventes (VOC)</span></div>
-        <div class="numero revelar"><strong>até 98%</strong><span>de aproveitamento do pó com recuperação</span></div>
-        <div class="numero revelar"><strong>60–80 µm</strong><span>de camada em uma só demão</span></div>
+        <div class="numero revelar"><strong data-contar="0" data-sufixo="%">0%</strong><span>solventes (VOC)</span></div>
+        <div class="numero revelar"><strong data-contar="98" data-prefixo="até " data-sufixo="%">até 98%</strong><span>de aproveitamento do pó com recuperação</span></div>
+        <div class="numero revelar"><strong data-contar="80" data-prefixo="60–" data-sufixo=" µm">60–80 µm</strong><span>de camada em uma só demão</span></div>
         <div class="numero revelar"><strong>RAL</strong><span>cores padrão e especiais sob medida</span></div>
       </div>
     </section>
@@ -219,6 +289,7 @@
           <li><a href="sobre.html#historia">Nossa história</a></li>
           <li><a href="sobre.html#processo">Como funciona</a></li>
           <li><a href="recursos.html">Recursos</a></li>
+          <li><a href="galeria.html">Galeria</a></li>
           <li><a href="conta.html">Área do cliente</a></li>
           <li><a href="privacidade.html">Política de Privacidade</a></li>
         </ul>
@@ -242,14 +313,26 @@
 
   <script src="assets/js/config.js"></script>
   <script src="assets/js/produtos.js"></script>
+  <script src="assets/js/midia.js"></script>
+  <script src="assets/js/fotos.js"></script>
   <script src="assets/js/auth.js"></script>
   <script src="assets/js/main.js"></script>
+  <script src="assets/js/animacoes.js"></script>
   <script>
     document.addEventListener("DOMContentLoaded", function () {
       var CW = window.ColorWeg;
-      // Caixas do hero
-      document.getElementById("hero-arte").insertAdjacentHTML("beforeend",
-        CW.caixaSVG("#f7c600", "caixa-hero") + CW.caixaSVG("#f47b20", "caixa-hero") + CW.caixaSVG("#1558d6", "caixa-hero"));
+      // Prévia da galeria: fotos das cores mais procuradas
+      var prev = document.getElementById("galeria-previa");
+      if (prev && window.Fotos) {
+        var escolhidos = [["poliester-brilhante", 2], ["texturizada-rugosa", 0], ["metalica-cobre", 0], ["epoxi-anticorrosivo", 2], ["hibrida-brilhante", 3], ["poliester-fosco", 2]];
+        prev.innerHTML = escolhidos.map(function (e) {
+          var p = PRODUTOS.find(function (x) { return x.id === e[0]; });
+          if (!p) return "";
+          var cor = p.cores[e[1]] || p.cores[0];
+          return '<a class="galeria-item revelar" href="produtos.html#produto=' + p.id + '"><img src="' + CW.fotoProduto(p, cor, { largura: 480, altura: 384 }) +
+            '" alt="' + CW.esc(p.nome + " — " + cor.nome) + '" loading="lazy"><span><strong>' + CW.esc(cor.nome) + '</strong>' + CW.esc(p.acabamento) + '</span></a>';
+        }).join("");
+      }
 
       // Categorias
       document.getElementById("grade-categorias").innerHTML = Object.keys(CATEGORIAS).map(function (k) {

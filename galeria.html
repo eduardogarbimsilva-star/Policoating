@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Produtos | Policoating</title>
-  <meta name="description" content="Catálogo de tintas eletrostáticas em pó Policoating: poliéster, epóxi, híbrida, texturizadas, metálicas e especiais.">
+  <title>Galeria | Policoating</title>
+  <meta name="description" content="Galeria de cores, acabamentos e peças pintadas com tintas eletrostáticas em pó Policoating.">
   <meta name="theme-color" content="#1558d6">
   <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -32,8 +32,8 @@
       <nav>
         <ul class="menu">
           <li><a href="index.html">Início</a></li>
-          <li><a href="produtos.html" class="ativo">Produtos</a></li>
-          <li><a href="galeria.html">Galeria</a></li>
+          <li><a href="produtos.html">Produtos</a></li>
+          <li><a href="galeria.html" class="ativo">Galeria</a></li>
           <li><a href="sobre.html">A Empresa</a></li>
           <li><a href="recursos.html">Recursos</a></li>
           <li><a href="index.html#contato">Contato</a></li>
@@ -50,34 +50,47 @@
   <main>
     <section class="cabecalho-pagina">
       <div class="container">
-        <div class="migalhas"><a href="index.html">Início</a> / Produtos</div>
-        <h1>Catálogo de produtos</h1>
-        <p>Encontre a tinta em pó ideal para as suas peças. Escolha a cor e o tamanho da caixa, adicione ao carrinho e finalize o pedido direto com nosso vendedor pelo WhatsApp.</p>
+        <div class="migalhas"><a href="index.html">Início</a> / Galeria</div>
+        <h1>Galeria de cores e aplicações</h1>
+        <p>Veja as cores, os acabamentos e peças pintadas com tintas em pó Policoating. Toque em uma imagem para ampliar.</p>
       </div>
     </section>
 
     <section class="secao">
       <div class="container">
         <div class="barra-filtros">
-          <div class="chips" id="chips" role="tablist" aria-label="Filtrar por categoria"></div>
-          <label class="busca"><input type="search" id="busca" placeholder="Buscar produto, linha ou cor..." aria-label="Buscar produtos"></label>
+          <div class="chips" id="filtros-galeria" role="tablist" aria-label="Filtrar galeria">
+            <button class="chip ativo" data-filtro="todas">Todas</button>
+            <button class="chip" data-filtro="cores">Cores</button>
+            <button class="chip" data-filtro="acabamentos">Acabamentos</button>
+            <button class="chip" data-filtro="aplicacoes">Aplicações</button>
+          </div>
         </div>
-        <p id="contagem" style="color:var(--texto-suave);font-size:.9rem;margin-bottom:18px"></p>
-        <div class="grade-produtos" id="lista-produtos"></div>
+        <div class="grade-galeria" id="grade-galeria"></div>
       </div>
     </section>
 
     <section class="secao" style="padding-top:0">
       <div class="container">
-        <div class="cta">
+        <div class="cta revelar">
           <div>
-            <h2>Não encontrou o que procura?</h2>
-            <p>Trabalhamos com cores RAL e desenvolvemos cores e efeitos sob medida. Fale com a gente!</p>
+            <h2>Precisa de uma cor específica?</h2>
+            <p>Desenvolvemos cores e efeitos sob medida a partir de RAL, Pantone ou amostra física.</p>
           </div>
-          <a class="btn btn-whats" data-whats="Olá! Não encontrei um produto no site e gostaria de ajuda.">Consultar vendedor</a>
+          <a class="btn btn-whats" data-whats="Olá! Vi a galeria do site e preciso de uma cor específica.">Pedir cor sob medida</a>
         </div>
       </div>
     </section>
+
+    <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Imagem ampliada" hidden>
+      <button type="button" class="lb-fechar" aria-label="Fechar">×</button>
+      <button type="button" class="lb-seta ant" aria-label="Anterior">‹</button>
+      <figure>
+        <div class="lb-midia" id="lb-midia"></div>
+        <figcaption><div><strong id="lb-titulo"></strong><span id="lb-sub"></span></div><a class="btn btn-primario" id="lb-acao"></a></figcaption>
+      </figure>
+      <button type="button" class="lb-seta prox" aria-label="Próxima">›</button>
+    </div>
   </main>
 
   <!-- ===== Rodapé ===== -->
@@ -140,53 +153,6 @@
   <script src="assets/js/auth.js"></script>
   <script src="assets/js/main.js"></script>
   <script src="assets/js/animacoes.js"></script>
-  <script>
-    document.addEventListener("DOMContentLoaded", function () {
-      var CW = window.ColorWeg;
-      var params = new URLSearchParams(location.search);
-      var categoria = CATEGORIAS[params.get("categoria")] ? params.get("categoria") : "todas";
-      var chips = document.getElementById("chips");
-      var busca = document.getElementById("busca");
-      busca.value = params.get("busca") || "";
-
-      var opcoes = [["todas", "Todas"]].concat(Object.keys(CATEGORIAS).map(function (k) { return [k, CATEGORIAS[k].nome]; }));
-      chips.innerHTML = opcoes.map(function (o) {
-        return '<button class="chip" role="tab" data-cat="' + o[0] + '">' + CW.esc(o[1]) + '</button>';
-      }).join("");
-
-      function normalizar(s) { return String(s).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, ""); }
-
-      function atualizar() {
-        var termo = normalizar(busca.value.trim());
-        var lista = PRODUTOS.filter(function (p) {
-          if (categoria !== "todas" && p.categoria !== categoria) return false;
-          if (!termo) return true;
-          var texto = normalizar([p.nome, p.linha, p.descricao, (CATEGORIAS[p.categoria] || {}).nome, p.cores.map(function (c) { return c.nome; }).join(" ")].join(" "));
-          return texto.indexOf(termo) !== -1;
-        });
-        document.querySelectorAll(".chip").forEach(function (c) {
-          var ativo = c.dataset.cat === categoria;
-          c.classList.toggle("ativo", ativo);
-          c.setAttribute("aria-selected", ativo);
-        });
-        document.getElementById("contagem").textContent = lista.length + (lista.length === 1 ? " produto encontrado" : " produtos encontrados");
-        CW.renderProdutos(document.getElementById("lista-produtos"), lista);
-
-        var url = new URL(location.href);
-        if (categoria === "todas") url.searchParams.delete("categoria"); else url.searchParams.set("categoria", categoria);
-        if (busca.value.trim()) url.searchParams.set("busca", busca.value.trim()); else url.searchParams.delete("busca");
-        history.replaceState(null, "", url);
-      }
-
-      chips.addEventListener("click", function (e) {
-        var b = e.target.closest(".chip");
-        if (!b) return;
-        categoria = b.dataset.cat;
-        atualizar();
-      });
-      busca.addEventListener("input", atualizar);
-      atualizar();
-    });
-  </script>
+  <script src="assets/js/galeria.js"></script>
 </body>
 </html>

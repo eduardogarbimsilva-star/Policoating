@@ -14,6 +14,17 @@
   const CHAVE_LGPD = "policoating_lgpd";
   const CHAVE_VOLTAR = "policoating_voltar";
   const Conta = window.Conta || null;
+  const Fotos = window.Fotos || null;
+  const FOTO_CARTAO = { largura: 480, altura: 384 };
+  const FOTO_MODAL = { largura: 760, altura: 608 };
+  function fotoProduto(p, cor, tam) {
+    return Fotos ? Fotos.fotoProduto(p, cor, tam) : "";
+  }
+  function imgProduto(p, cor, tam, classe) {
+    cor = cor || p.cores[0];
+    if (!Fotos) return caixaSVG(cor.hex);
+    return `<img class="${classe || "foto-produto"}" src="${fotoProduto(p, cor, tam)}" alt="${esc(p.nome)} — ${esc(cor.nome)}" width="${tam.largura}" height="${tam.altura}" decoding="async">`;
+  }
 
   /* ---------- Utilidades ---------- */
   const $ = (sel, ctx = document) => ctx.querySelector(sel);
@@ -228,7 +239,7 @@
         const cor = p.cores.find((c) => c.nome === item.cor) || p.cores[0];
         return `
 <div class="item-carrinho" data-idx="${idx}">
-  ${caixaSVG(cor.hex)}
+  ${imgProduto(p, cor, FOTO_CARTAO, "mini-foto")}
   <div>
     <h4>${esc(p.nome)}</h4>
     <div class="detalhes"><i style="background:${cor.hex}"></i>${esc(cor.nome)} · ${esc(item.embalagem)}</div>
@@ -405,7 +416,14 @@
     modal.innerHTML = `
 <button class="fechar" aria-label="Fechar">×</button>
 <div class="modal-corpo">
-  <div class="modal-vitrine" id="modal-vitrine">${caixaSVG(corSel.hex)}</div>
+  <div class="modal-vitrine">
+    <div class="modal-foto" id="modal-vitrine">${imgProduto(p, corSel, FOTO_MODAL)}</div>
+    <div class="modal-miniaturas" role="tablist" aria-label="Visualização">
+      <button type="button" class="ativo" data-vista="foto" aria-label="Foto da cor">${imgProduto(p, corSel, FOTO_CARTAO, "mini-foto")}</button>
+      <button type="button" data-vista="caixa" aria-label="Embalagem">${caixaSVG(corSel.hex)}</button>
+    </div>
+    <p class="modal-legenda" id="modal-legenda">${esc(corSel.nome)} · ${esc(p.acabamento || "")}</p>
+  </div>
   <div class="modal-info">
     <div class="modal-topo"><span class="etiqueta" style="position:static">${esc(cat.nome || "")}</span>${botaoFav(p.id)}</div>
     <h2>${esc(p.nome)}</h2>
@@ -442,12 +460,26 @@
 </div>`;
 
     $(".fechar", modal).addEventListener("click", fecharTudo);
+    let vista = "foto";
+    const desenharVitrine = () => {
+      const alvo = $("#modal-vitrine");
+      alvo.classList.remove("trocando");
+      void alvo.offsetWidth;
+      alvo.classList.add("trocando");
+      alvo.innerHTML = vista === "foto" ? imgProduto(p, corSel, FOTO_MODAL) : caixaSVG(corSel.hex);
+      const minis = $$(".modal-miniaturas button", modal);
+      minis[0].innerHTML = imgProduto(p, corSel, FOTO_CARTAO, "mini-foto");
+      minis[1].innerHTML = caixaSVG(corSel.hex);
+      minis.forEach((m) => m.classList.toggle("ativo", m.dataset.vista === vista));
+      $("#modal-legenda").textContent = vista === "foto" ? `${corSel.nome} · ${p.acabamento || ""}` : "Embalagem: caixa de papelão Policoating";
+    };
+    $$(".modal-miniaturas button", modal).forEach((b) => b.addEventListener("click", () => { vista = b.dataset.vista; desenharVitrine(); }));
     $$("[data-cor]", modal).forEach((b) =>
       b.addEventListener("click", () => {
         corSel = p.cores[+b.dataset.cor];
         $$("[data-cor]", modal).forEach((x) => x.classList.toggle("ativo", x === b));
         $("#nome-cor").textContent = corSel.nome;
-        $("#modal-vitrine").innerHTML = caixaSVG(corSel.hex);
+        desenharVitrine();
       })
     );
     $$("[data-emb]", modal).forEach((b) =>
@@ -499,14 +531,15 @@
   /* ---------- Cartões de produto ---------- */
   function cartaoProduto(p) {
     const cat = CATEGORIAS[p.categoria] || {};
-    const amostras = p.cores.slice(0, 6).map((c) => `<span class="amostra" style="background:${c.hex}" title="${esc(c.nome)}"></span>`).join("");
+    const amostras = p.cores.slice(0, 6).map((c, i) => `<span class="amostra${i === 0 ? " ativa" : ""}" data-amostra="${i}" style="background:${c.hex}" title="${esc(c.nome)}"></span>`).join("");
     const extra = p.cores.length > 6 ? `<small>+${p.cores.length - 6}</small>` : "";
     return `
 <article class="cartao-produto revelar" data-id="${esc(p.id)}">
   <div class="vitrine" data-abrir="${esc(p.id)}">
     <span class="etiqueta">${esc(cat.nome || "")}</span>
     ${botaoFav(p.id)}
-    ${caixaSVG(p.cores[0].hex)}
+    ${imgProduto(p, p.cores[0], FOTO_CARTAO)}
+    <span class="ver-detalhes">Ver cores e detalhes</span>
   </div>
   <div class="info">
     <span class="linha">${esc(p.linha)}</span>
@@ -529,7 +562,26 @@
     observarRevelar();
   }
 
+  // Passar o mouse (ou tocar) nas bolinhas troca a foto do cartão
+  function trocarFotoCartao(amostra) {
+    const cartao = amostra.closest(".cartao-produto");
+    const p = cartao && buscarProduto(cartao.dataset.id);
+    if (!p) return;
+    const cor = p.cores[+amostra.dataset.amostra];
+    const img = $(".foto-produto", cartao);
+    if (!cor || !img) return;
+    img.src = fotoProduto(p, cor, FOTO_CARTAO);
+    img.alt = `${p.nome} — ${cor.nome}`;
+    $$(".amostra", cartao).forEach((a) => a.classList.toggle("ativa", a === amostra));
+  }
+  document.addEventListener("mouseover", (e) => {
+    const a = e.target.closest("[data-amostra]");
+    if (a) trocarFotoCartao(a);
+  });
+
   document.addEventListener("click", (e) => {
+    const amostra = e.target.closest("[data-amostra]");
+    if (amostra) { trocarFotoCartao(amostra); return; }
     const fav = e.target.closest("[data-fav]");
     if (fav) { alternarFavorito(fav.dataset.fav); return; }
     const alvo = e.target.closest("[data-abrir]");
@@ -558,8 +610,12 @@
     observador = observador || new IntersectionObserver(
       (entradas) => entradas.forEach((en) => {
         if (en.isIntersecting) {
+          const irmaos = Array.from(en.target.parentElement.children).filter((c) => c.classList.contains("revelar"));
+          const i = Math.max(0, irmaos.indexOf(en.target));
+          en.target.style.transitionDelay = Math.min(i, 6) * 70 + "ms";
           en.target.classList.add("visivel");
           observador.unobserve(en.target);
+          setTimeout(() => (en.target.style.transitionDelay = ""), 1200);
         }
       }),
       { threshold: 0.12 }
@@ -611,5 +667,5 @@
   });
 
   /* API pública usada pelas páginas */
-  window.ColorWeg = { lerFavoritos, alternarFavorito, gravarStorage, lerStorage, buscarProduto, $, $$, caixaSVG, renderProdutos, abrirProduto, adicionarAoCarrinho, linkWhatsApp, ehEscura, esc, observarRevelar, mostrarToast, abrirCarrinho };
+  window.ColorWeg = { fotoProduto, imgProduto, lerFavoritos, alternarFavorito, gravarStorage, lerStorage, buscarProduto, $, $$, caixaSVG, renderProdutos, abrirProduto, adicionarAoCarrinho, linkWhatsApp, ehEscura, esc, observarRevelar, mostrarToast, abrirCarrinho };
 })();

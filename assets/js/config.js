@@ -25,6 +25,13 @@ window.SITE_CONFIG = {
     anonKey: "sb_publishable_K5qH5wJJ4mLbQAInGiUqZw_i2AFC1y9"
   },
 
+  // Assistente de compras. Funciona sem configuração (entende os pedidos no próprio site).
+  // Para usar IA de verdade (Claude), publique a função supabase/functions/assistente e
+  // coloque o endereço dela aqui, ex.: "https://miakoeajctykqdjkkczo.supabase.co/functions/v1/assistente"
+  assistente: {
+    endpoint: ""
+  },
+
   redes: {
     instagram: "#",
     facebook: "#",

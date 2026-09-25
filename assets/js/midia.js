@@ -7,6 +7,10 @@
  *   { nome: "Preto RAL 9005", hex: "#0E0E10", foto: "assets/img/produtos/poliester-preto.jpg" }
  */
 window.MIDIA = {
+  // true = usar as fotos reais dos produtos em assets/img/produtos/ (nomes em FOTOS.md).
+  // Cores sem foto continuam com a imagem gerada automaticamente.
+  fotosProdutos: false,
+
   // Fotos no fundo dos slides da página inicial (na ordem dos slides). Ex.:
   // slides: ["assets/img/slides/fabrica.jpg", "assets/img/slides/cores.jpg"],
   slides: [],

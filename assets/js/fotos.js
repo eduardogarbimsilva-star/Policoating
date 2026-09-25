@@ -194,11 +194,31 @@
   }
 
   /** URL da foto de uma cor de produto (foto real, se houver, senão gerada) */
+  const slug = (t) => String(t).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+
+  /** Caminho da foto real de uma cor, pelo padrão de nomes (ver FOTOS.md) */
+  function caminhoFotoReal(produto, cor) {
+    return `assets/img/produtos/${produto.id}--${slug(cor.nome)}.jpg`;
+  }
+
+  /** URL da foto de uma cor de produto: foto real (se houver) ou imagem gerada */
   function fotoProduto(produto, cor, opcoes) {
     cor = cor || produto.cores[0];
     if (cor.foto) return cor.foto;
+    if ((window.MIDIA || {}).fotosProdutos) return caminhoFotoReal(produto, cor);
     return fotoCor(cor.hex, produto.acabamento, opcoes);
   }
+
+  // Se a foto real ainda não existir, troca pela imagem gerada (sem imagem quebrada)
+  document.addEventListener("error", (e) => {
+    const img = e.target;
+    if (!(img instanceof HTMLImageElement) || !img.dataset.produto || img.dataset.trocada) return;
+    const p = (window.PRODUTOS || []).find((x) => x.id === img.dataset.produto);
+    const cor = p && (p.cores.find((c) => c.nome === img.dataset.cor) || p.cores[0]);
+    if (!cor) return;
+    img.dataset.trocada = "1";
+    img.src = fotoCor(cor.hex, p.acabamento, { largura: +img.getAttribute("width") || 600, altura: +img.getAttribute("height") || 480 });
+  }, true);
 
   /* ---------- Peças pintadas (aplicações) ---------- */
   let idAp = 0;
@@ -389,5 +409,5 @@
     return url;
   }
 
-  window.Fotos = { cenaLinha, fotoCor, fotoProduto, aplicacaoSVG, ambienteSVG, tipoAcabamento, tom };
+  window.Fotos = { caminhoFotoReal, slug, cenaLinha, fotoCor, fotoProduto, aplicacaoSVG, ambienteSVG, tipoAcabamento, tom };
 })();

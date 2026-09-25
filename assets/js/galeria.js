@@ -22,7 +22,7 @@
     PRODUTOS.forEach((p) => p.cores.forEach((c, i) => {
       if (p.id === "cor-especial" || vistas.has(c.hex.toLowerCase()) || i > 2) return;
       vistas.add(c.hex.toLowerCase());
-      itens.push({ categoria: "cores", titulo: c.nome, sub: p.nome, img: F.fotoProduto(p, c, TAM), produto: p.id });
+      itens.push({ categoria: "cores", titulo: c.nome, sub: p.nome, img: F.fotoProduto(p, c, TAM), produto: p.id, cor: c.nome });
     }));
 
     // 3) Acabamentos
@@ -62,7 +62,7 @@
       visiveis = itens.filter((it) => filtro === "todas" || it.categoria === filtro);
       grade.innerHTML = visiveis.map((it, i) => `
         <button type="button" class="galeria-item revelar${i % 7 === 0 ? " destaque" : ""}" data-i="${i}" aria-label="Ampliar: ${esc(it.titulo)}">
-          ${it.svg ? it.svg : `<img src="${esc(it.img)}" alt="${esc(it.titulo)}" loading="lazy">`}
+          ${it.svg ? it.svg : `<img src="${esc(it.img)}" alt="${esc(it.titulo)}" loading="lazy" width="600" height="480"${it.cor ? ` data-produto="${esc(it.produto)}" data-cor="${esc(it.cor)}"` : ""}>`}
           <span><strong>${esc(it.titulo)}</strong>${esc(it.sub)}</span>
         </button>`).join("");
       CW.observarRevelar();
@@ -84,7 +84,7 @@
       const it = visiveis[atual];
       const midia = $("#lb-midia");
       midia.classList.remove("trocando"); void midia.offsetWidth; midia.classList.add("trocando");
-      midia.innerHTML = it.svg ? it.svg : `<img src="${esc(it.img)}" alt="${esc(it.titulo)}">`;
+      midia.innerHTML = it.svg ? it.svg : `<img src="${esc(it.img)}" alt="${esc(it.titulo)}" width="600" height="480"${it.cor ? ` data-produto="${esc(it.produto)}" data-cor="${esc(it.cor)}"` : ""}>`;
       $("#lb-titulo").textContent = it.titulo;
       $("#lb-sub").textContent = it.sub;
       const acao = $("#lb-acao");

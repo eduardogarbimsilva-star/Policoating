@@ -136,13 +136,51 @@ O site já vem com imagens geradas automaticamente, então funciona sem nenhuma 
 
 Para usar **fotos e vídeos reais** da empresa, coloque os arquivos em `assets/img/` e `assets/video/` e liste-os em
 [`assets/js/midia.js`](assets/js/midia.js) (slides, galeria e vídeos do YouTube ou `.mp4`).
-Para a foto real de uma cor específica, adicione `foto` na cor dentro de `assets/js/produtos.js`:
+### Fotos reais dos produtos (uma por cor)
+
+O guia [`FOTOS.md`](FOTOS.md) lista **o nome exato do arquivo de cada cor** e um **prompt pronto** para gerar a foto
+fotorrealista em uma IA de imagens (Gemini, ChatGPT…), além dos prompts das fotos de casas, fachadas e slides.
+
+1. Suba os arquivos em `assets/img/produtos/` (GitHub → *Add file → Upload files*).
+2. Em `assets/js/midia.js`, mude `fotosProdutos: false` para `fotosProdutos: true`.
+
+Pode subir aos poucos: a cor que ainda não tiver foto continua com a imagem gerada automaticamente.
+
+Outra opção: para a foto real de uma cor específica, adicione `foto` na cor dentro de `assets/js/produtos.js`:
 
 ```js
 { nome: "Preto RAL 9005", hex: "#0E0E10", foto: "assets/img/produtos/poliester-preto.jpg" }
 ```
 
 Dica: use fotos em `.jpg` com cerca de 1200 px de largura (proporção 5:4 para produtos e galeria) para o site continuar leve.
+
+## Assistente de compras (botão no canto da tela)
+
+Substitui o antigo botão do WhatsApp. O cliente conversa em linguagem natural e o assistente:
+- **pesquisa produtos** por uso, cor, código RAL e acabamento (ex.: *"portão preto fosco"*, *"painel elétrico RAL 7035"*,
+  *"churrasqueira"*) e mostra cartões com foto, **Ver detalhes** e **+ Carrinho** já na cor certa;
+- mostra os **pedidos recentes** com **Comprar novamente** (coloca os mesmos itens no carrinho), os **vistos recentemente**,
+  os **favoritos** e o **carrinho**;
+- responde sobre **preço, entrega e fichas técnicas** e ajuda a escolher o tipo de tinta;
+- **fala com o vendedor** no WhatsApp já levando o resumo do que o cliente procurou.
+
+Funciona sozinho, sem custo (interpretação local no navegador).
+
+### Opcional: ligar a IA Claude no assistente
+
+Com a IA, o assistente entende perguntas livres e mais complexas; se ela falhar, ele volta ao modo local automaticamente.
+A chave da Anthropic **nunca** fica no site: ela fica guardada no Supabase, dentro da função
+[`supabase/functions/assistente/index.ts`](supabase/functions/assistente/index.ts).
+
+1. Crie uma chave em **console.anthropic.com** (API Keys) e defina um **limite de gasto mensal** (Billing → Limits).
+   Cada conversa custa alguns centavos.
+2. No Supabase: **Edge Functions → Deploy a new function → Via Editor**, nome `assistente`, cole o conteúdo de
+   `index.ts` e publique. Em *Details*, **desligue "Verify JWT"**.
+3. **Edge Functions → Secrets**: adicione `ANTHROPIC_API_KEY` com a chave.
+4. Em `assets/js/config.js`, preencha
+   `assistente: { endpoint: "https://SEU-PROJETO.supabase.co/functions/v1/assistente" }`.
+
+A função só aceita chamadas do endereço do site (lista `ORIGENS_PERMITIDAS`) e limita 30 mensagens a cada 10 minutos por visitante.
 
 ## Tipos de tinta e guia de escolha
 

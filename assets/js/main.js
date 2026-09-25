@@ -24,7 +24,7 @@
   function imgProduto(p, cor, tam, classe) {
     cor = cor || p.cores[0];
     if (!Fotos) return caixaSVG(cor.hex);
-    return `<img class="${classe || "foto-produto"}" src="${fotoProduto(p, cor, tam)}" alt="${esc(p.nome)} — ${esc(cor.nome)}" width="${tam.largura}" height="${tam.altura}" decoding="async">`;
+    return `<img class="${classe || "foto-produto"}" src="${fotoProduto(p, cor, tam)}" alt="${esc(p.nome)} — ${esc(cor.nome)}" width="${tam.largura}" height="${tam.altura}" decoding="async" data-produto="${esc(p.id)}" data-cor="${esc(cor.nome)}">`;
   }
 
   /* ---------- Utilidades ---------- */
@@ -186,7 +186,7 @@
 </aside>
 <div class="modal" id="modal-produto" role="dialog" aria-modal="true" aria-hidden="true"></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
-<a class="whats-flutuante" data-whats aria-label="Fale conosco no WhatsApp">${iconeWhats()}</a>`;
+${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fale conosco no WhatsApp">${iconeWhats()}</a>`}`;
     document.body.insertAdjacentHTML("beforeend", html);
 
     renderClienteCarrinho();
@@ -407,9 +407,16 @@
   };
 
   /* ---------- Modal de produto ---------- */
+  const CHAVE_VISTOS = "policoating_vistos";
+  const lerVistos = () => lerStorage(CHAVE_VISTOS, []).filter(buscarProduto);
+  function registrarVisto(id) {
+    gravarStorage(CHAVE_VISTOS, [id].concat(lerVistos().filter((x) => x !== id)).slice(0, 8));
+  }
+
   function abrirProduto(id) {
     const p = buscarProduto(id);
     if (!p) return;
+    registrarVisto(id);
     const modal = $("#modal-produto");
     let corSel = p.cores[0], embSel = p.embalagens[0];
     const cat = CATEGORIAS[p.categoria] || {};
@@ -571,6 +578,8 @@
     const cor = p.cores[+amostra.dataset.amostra];
     const img = $(".foto-produto", cartao);
     if (!cor || !img) return;
+    img.dataset.cor = cor.nome;
+    delete img.dataset.trocada;
     img.src = fotoProduto(p, cor, FOTO_CARTAO);
     img.alt = `${p.nome} — ${cor.nome}`;
     $$(".amostra", cartao).forEach((a) => a.classList.toggle("ativa", a === amostra));
@@ -668,5 +677,5 @@
   });
 
   /* API pública usada pelas páginas */
-  window.ColorWeg = { fotoProduto, imgProduto, lerFavoritos, alternarFavorito, gravarStorage, lerStorage, buscarProduto, $, $$, caixaSVG, renderProdutos, abrirProduto, adicionarAoCarrinho, linkWhatsApp, ehEscura, esc, observarRevelar, mostrarToast, abrirCarrinho };
+  window.ColorWeg = { lerVistos, iconeWhats, totalItens: () => totalItens(), itensCarrinho: () => carrinho.slice(), fotoProduto, imgProduto, lerFavoritos, alternarFavorito, gravarStorage, lerStorage, buscarProduto, $, $$, caixaSVG, renderProdutos, abrirProduto, adicionarAoCarrinho, linkWhatsApp, ehEscura, esc, observarRevelar, mostrarToast, abrirCarrinho };
 })();

@@ -10,6 +10,10 @@
   const CATEGORIAS = window.CATEGORIAS || {};
   const CHAVE_CARRINHO = "policoating_carrinho";
   const CHAVE_CLIENTE = "policoating_cliente";
+  const CHAVE_FAVORITOS = "policoating_favoritos";
+  const CHAVE_LGPD = "policoating_lgpd";
+  const CHAVE_VOLTAR = "policoating_voltar";
+  const Conta = window.Conta || null;
 
   /* ---------- Utilidades ---------- */
   const $ = (sel, ctx = document) => ctx.querySelector(sel);
@@ -160,8 +164,7 @@
   <div class="carrinho-rodape" id="carrinho-rodape">
     <div class="resumo"><span>Total de itens</span><strong id="carrinho-total">0</strong></div>
     <div class="campos">
-      <input type="text" id="cliente-nome" placeholder="Seu nome" autocomplete="name">
-      <input type="text" id="cliente-cidade" placeholder="Cidade / Estado" autocomplete="address-level2">
+      <div id="carrinho-cliente"></div>
       <textarea id="cliente-obs" rows="2" placeholder="Observações (opcional)"></textarea>
     </div>
     <button class="btn btn-whats btn-bloco" id="btn-finalizar">${iconeWhats()} Comprar pelo WhatsApp</button>
@@ -174,9 +177,7 @@
 <a class="whats-flutuante" data-whats aria-label="Fale conosco no WhatsApp">${iconeWhats()}</a>`;
     document.body.insertAdjacentHTML("beforeend", html);
 
-    const cliente = lerStorage(CHAVE_CLIENTE, {});
-    $("#cliente-nome").value = cliente.nome || "";
-    $("#cliente-cidade").value = cliente.cidade || "";
+    renderClienteCarrinho();
 
     $("#sobreposicao").addEventListener("click", fecharTudo);
     $("[data-fechar-carrinho]").addEventListener("click", fecharTudo);
@@ -214,6 +215,7 @@
     if (!lista) return;
     $("#carrinho-total").textContent = totalItens();
     $("#btn-finalizar").disabled = carrinho.length === 0;
+    renderClienteCarrinho();
 
     if (!carrinho.length) {
       lista.innerHTML = `<div class="carrinho-vazio"><div class="icone">📦</div>
@@ -259,15 +261,83 @@
     document.body.style.overflow = "";
   }
 
+  /* ---------- Dados do cliente no carrinho ---------- */
+  const logado = () => !!(Conta && Conta.usuario);
+
+  function renderClienteCarrinho() {
+    const box = $("#carrinho-cliente");
+    if (!box) return;
+    const btn = $("#btn-finalizar");
+    const textoBtn = (t) => (btn.innerHTML = `${iconeWhats()} ${t}`);
+
+    if (logado()) {
+      const p = Conta.perfil || {};
+      if (!Conta.perfilCompleto()) {
+        box.innerHTML = `<div class="cliente-box alerta">Complete seu cadastro (endereço e documento) para finalizar o pedido.
+          <a href="conta.html#dados">Completar cadastro →</a></div>`;
+        textoBtn("Completar cadastro");
+        return;
+      }
+      const titulo = p.tipo === "pj" ? p.razao_social : p.nome;
+      box.innerHTML = `<div class="cliente-box"><span>Pedido em nome de</span><strong>${esc(titulo)}</strong>
+        <small>${esc(p.cidade)}/${esc(p.uf)} · CEP ${esc(p.cep)}</small><a href="conta.html#dados">Alterar dados</a></div>`;
+      textoBtn("Comprar pelo WhatsApp");
+      return;
+    }
+    if (CFG.exigirLogin) {
+      box.innerHTML = `<div class="cliente-box alerta">Entre ou crie sua conta para enviar o pedido com seus dados de faturamento e entrega.</div>`;
+      textoBtn("Entrar para finalizar");
+      return;
+    }
+    if ($("#cliente-nome")) return; // mantém o que o cliente já digitou
+    const cliente = lerStorage(CHAVE_CLIENTE, {});
+    box.innerHTML = `<input type="text" id="cliente-nome" placeholder="Seu nome" autocomplete="name" value="${esc(cliente.nome || "")}">
+      <input type="text" id="cliente-cidade" placeholder="Cidade / Estado" autocomplete="address-level2" value="${esc(cliente.cidade || "")}">`;
+    textoBtn("Comprar pelo WhatsApp");
+  }
+
+  function gerarNumeroPedido() {
+    const d = new Date();
+    const data = String(d.getFullYear()).slice(2) + String(d.getMonth() + 1).padStart(2, "0") + String(d.getDate()).padStart(2, "0");
+    return "PC-" + data + "-" + Math.random().toString(36).slice(2, 6).toUpperCase();
+  }
+
+  function linhasCliente(p, email) {
+    const l = ["", "*Dados do cliente*"];
+    if (p.tipo === "pj") {
+      l.push(`Empresa: ${p.razao_social}${p.nome_fantasia ? " (" + p.nome_fantasia + ")" : ""}`);
+      l.push(`CNPJ: ${p.cnpj}${p.inscricao_estadual ? " | IE: " + p.inscricao_estadual : ""}`);
+      l.push(`Responsável: ${p.responsavel}`);
+    } else {
+      l.push(`Nome: ${p.nome}`);
+      l.push(`CPF: ${p.cpf}`);
+    }
+    l.push(`Telefone: ${p.telefone}`);
+    l.push(`E-mail: ${email}`);
+    l.push("");
+    l.push("*Endereço de entrega*");
+    l.push(`${p.logradouro}, ${p.numero}${p.complemento ? " - " + p.complemento : ""}`);
+    l.push(`${p.bairro ? p.bairro + " - " : ""}${p.cidade}/${p.uf} - CEP ${p.cep}`);
+    return l;
+  }
+
   function finalizarPedido() {
     if (!carrinho.length) return;
-    const nome = $("#cliente-nome").value.trim();
-    const cidade = $("#cliente-cidade").value.trim();
-    const obs = $("#cliente-obs").value.trim();
-    gravarStorage(CHAVE_CLIENTE, { nome, cidade });
+    if (!logado() && CFG.exigirLogin) {
+      try { sessionStorage.setItem(CHAVE_VOLTAR, location.pathname.split("/").pop() || "index.html"); } catch (e) { /* ignora */ }
+      location.href = "conta.html?voltar=carrinho";
+      return;
+    }
+    if (logado() && !Conta.perfilCompleto()) {
+      location.href = "conta.html#dados";
+      return;
+    }
 
+    const obs = $("#cliente-obs").value.trim();
+    const numero = gerarNumeroPedido();
     const linhas = [];
-    linhas.push(`Olá! Vim pelo site da *${CFG.empresa}* e gostaria de fazer um pedido:`);
+    linhas.push(`Olá! Vim pelo site da *${CFG.empresa}* e gostaria de fazer um pedido.`);
+    linhas.push(`*Pedido nº ${numero}*`);
     linhas.push("");
     carrinho.forEach((item, i) => {
       const p = buscarProduto(item.id);
@@ -276,14 +346,53 @@
     });
     linhas.push("");
     linhas.push(`Total de itens: ${totalItens()}`);
-    if (nome) linhas.push(`Nome: ${nome}`);
-    if (cidade) linhas.push(`Cidade: ${cidade}`);
-    if (obs) linhas.push(`Observações: ${obs}`);
+
+    if (logado()) {
+      linhas.push(...linhasCliente(Conta.perfil, Conta.usuario.email));
+    } else {
+      const nome = ($("#cliente-nome") || {}).value || "";
+      const cidade = ($("#cliente-cidade") || {}).value || "";
+      gravarStorage(CHAVE_CLIENTE, { nome: nome.trim(), cidade: cidade.trim() });
+      if (nome.trim()) linhas.push(`Nome: ${nome.trim()}`);
+      if (cidade.trim()) linhas.push(`Cidade: ${cidade.trim()}`);
+    }
+    if (obs) { linhas.push(""); linhas.push(`Observações: ${obs}`); }
     linhas.push("");
     linhas.push("Aguardo o orçamento. Obrigado!");
 
     window.open(linkWhatsApp(linhas.join("\n")), "_blank", "noopener");
+
+    if (logado()) {
+      const itens = carrinho.map((i) => ({ id: i.id, nome: buscarProduto(i.id).nome, cor: i.cor, embalagem: i.embalagem, qtd: i.qtd }));
+      Conta.registrarPedido({ numero, itens, observacoes: obs }).catch((e) => console.warn("Pedido não registrado:", e.message));
+      carrinho = [];
+      $("#cliente-obs").value = "";
+      salvarCarrinho();
+      fecharTudo();
+      mostrarToast(`Pedido <strong>${numero}</strong> enviado! Acompanhe em <a href="conta.html#pedidos" style="color:var(--destaque)">Minha conta</a>.`);
+    }
   }
+
+  /* ---------- Favoritos ---------- */
+  const lerFavoritos = () => lerStorage(CHAVE_FAVORITOS, []).filter(buscarProduto);
+  const ehFavorito = (id) => lerFavoritos().includes(id);
+  function alternarFavorito(id) {
+    let favs = lerFavoritos();
+    favs = favs.includes(id) ? favs.filter((f) => f !== id) : favs.concat(id);
+    gravarStorage(CHAVE_FAVORITOS, favs);
+    const ativo = favs.includes(id);
+    $$(`[data-fav="${CSS.escape(id)}"]`).forEach((b) => {
+      b.classList.toggle("ativo", ativo);
+      b.setAttribute("aria-pressed", ativo);
+      b.innerHTML = ativo ? "♥" : "♡";
+    });
+    mostrarToast(ativo ? "Adicionado aos favoritos ♥" : "Removido dos favoritos");
+    document.dispatchEvent(new CustomEvent("favoritos:alterados"));
+  }
+  const botaoFav = (id) => {
+    const a = ehFavorito(id);
+    return `<button class="btn-fav${a ? " ativo" : ""}" data-fav="${esc(id)}" aria-pressed="${a}" aria-label="Favoritar" title="Favoritar">${a ? "♥" : "♡"}</button>`;
+  };
 
   /* ---------- Modal de produto ---------- */
   function abrirProduto(id) {
@@ -298,7 +407,7 @@
 <div class="modal-corpo">
   <div class="modal-vitrine" id="modal-vitrine">${caixaSVG(corSel.hex)}</div>
   <div class="modal-info">
-    <span class="etiqueta" style="position:static">${esc(cat.nome || "")}</span>
+    <div class="modal-topo"><span class="etiqueta" style="position:static">${esc(cat.nome || "")}</span>${botaoFav(p.id)}</div>
     <h2>${esc(p.nome)}</h2>
     <p class="desc">${esc(p.descricao)}</p>
     <ul class="ficha">
@@ -315,6 +424,11 @@
     <div class="campo-titulo">Embalagem (caixa)</div>
     <div class="seletor-embalagem">
       ${p.embalagens.map((e, i) => `<button class="${i === 0 ? "ativo" : ""}" data-emb="${esc(e)}">${esc(e)}</button>`).join("")}
+    </div>
+    <div class="acoes-extra">
+      <button type="button" data-extra="amostra">🎨 Solicitar amostra</button>
+      <button type="button" data-extra="ficha">📄 Ficha técnica</button>
+      <button type="button" data-extra="link">🔗 Copiar link</button>
     </div>
     <div class="linha-compra">
       <div class="quantidade">
@@ -346,6 +460,23 @@
     $$("[data-q]", modal).forEach((b) =>
       b.addEventListener("click", () => (qtd.value = Math.max(1, (parseInt(qtd.value, 10) || 1) + +b.dataset.q)))
     );
+    $$("[data-extra]", modal).forEach((b) =>
+      b.addEventListener("click", () => {
+        const tipo = b.dataset.extra;
+        if (tipo === "link") {
+          const url = location.origin + location.pathname.replace(/[^/]*$/, "") + "produtos.html#produto=" + encodeURIComponent(p.id);
+          (navigator.clipboard ? navigator.clipboard.writeText(url) : Promise.reject()).then(
+            () => mostrarToast("Link do produto copiado!"),
+            () => prompt("Copie o link do produto:", url)
+          );
+          return;
+        }
+        const msg = tipo === "amostra"
+          ? `Olá! Gostaria de solicitar uma amostra (painel) do produto *${p.nome}* na cor *${corSel.nome}*.`
+          : `Olá! Gostaria de receber a ficha técnica (BT) e a FISPQ do produto *${p.nome}*.`;
+        window.open(linkWhatsApp(msg), "_blank", "noopener");
+      })
+    );
     $("#modal-add").addEventListener("click", () => {
       adicionarAoCarrinho(p.id, corSel.nome, embSel, qtd.value);
       fecharTudo();
@@ -374,6 +505,7 @@
 <article class="cartao-produto revelar" data-id="${esc(p.id)}">
   <div class="vitrine" data-abrir="${esc(p.id)}">
     <span class="etiqueta">${esc(cat.nome || "")}</span>
+    ${botaoFav(p.id)}
     ${caixaSVG(p.cores[0].hex)}
   </div>
   <div class="info">
@@ -398,6 +530,8 @@
   }
 
   document.addEventListener("click", (e) => {
+    const fav = e.target.closest("[data-fav]");
+    if (fav) { alternarFavorito(fav.dataset.fav); return; }
     const alvo = e.target.closest("[data-abrir]");
     if (alvo) abrirProduto(alvo.dataset.abrir);
   });
@@ -437,6 +571,24 @@
     return `<svg viewBox="0 0 32 32" width="20" height="20" aria-hidden="true" fill="currentColor"><path d="M16.04 3C8.86 3 3.03 8.82 3.03 16c0 2.29.6 4.53 1.74 6.5L3 29l6.68-1.75A12.94 12.94 0 0 0 16.04 29C23.2 29 29 23.18 29 16S23.2 3 16.04 3zm0 23.6c-1.97 0-3.9-.53-5.58-1.53l-.4-.24-3.96 1.04 1.06-3.86-.26-.4A10.56 10.56 0 0 1 5.44 16c0-5.85 4.76-10.6 10.6-10.6 5.84 0 10.57 4.75 10.57 10.6 0 5.84-4.74 10.6-10.57 10.6zm5.81-7.93c-.32-.16-1.9-.94-2.19-1.04-.3-.11-.51-.16-.73.16-.21.32-.83 1.04-1.02 1.26-.19.21-.37.24-.69.08-.32-.16-1.35-.5-2.57-1.59-.95-.85-1.59-1.9-1.78-2.22-.19-.32-.02-.49.14-.65.14-.14.32-.37.48-.56.16-.19.21-.32.32-.53.11-.21.05-.4-.03-.56-.08-.16-.73-1.75-1-2.4-.26-.63-.53-.54-.73-.55h-.62c-.21 0-.56.08-.85.4-.3.32-1.12 1.09-1.12 2.66s1.14 3.09 1.3 3.3c.16.21 2.25 3.43 5.44 4.81.76.33 1.35.52 1.81.67.76.24 1.46.21 2 .13.61-.09 1.9-.78 2.16-1.53.27-.75.27-1.39.19-1.53-.08-.13-.29-.21-.61-.37z"/></svg>`;
   }
 
+  /* ---------- Aviso LGPD ---------- */
+  function avisoLgpd() {
+    if (lerStorage(CHAVE_LGPD, false)) return;
+    document.body.insertAdjacentHTML("beforeend", `<div class="aviso-lgpd" role="region" aria-label="Aviso de privacidade">
+      <p>Usamos o armazenamento do seu navegador para manter o carrinho, os favoritos e o login. Saiba mais na
+      <a href="privacidade.html">Política de Privacidade</a>.</p><button class="btn btn-primario" type="button">Entendi</button></div>`);
+    $(".aviso-lgpd button").addEventListener("click", () => { gravarStorage(CHAVE_LGPD, true); $(".aviso-lgpd").remove(); });
+  }
+
+  /* ---------- Link "Entrar / Minha conta" no cabeçalho ---------- */
+  function atualizarCabecalhoConta() {
+    $$(".link-conta").forEach((a) => {
+      const t = $(".texto", a);
+      if (logado()) { t.textContent = Conta.nomeExibicao() || "Minha conta"; a.title = "Minha conta"; a.classList.add("logado"); }
+      else { t.textContent = "Entrar"; a.title = "Entrar ou criar conta"; a.classList.remove("logado"); }
+    });
+  }
+
   /* ---------- Inicialização ---------- */
   document.addEventListener("DOMContentLoaded", () => {
     montarEstruturaCarrinho();
@@ -445,9 +597,19 @@
     renderCarrinho();
     atualizarContador(false);
     observarRevelar();
+    avisoLgpd();
     if (location.hash.startsWith("#produto=")) abrirProduto(decodeURIComponent(location.hash.slice(9)));
+    if (Conta) {
+      Conta.aoMudar(() => { atualizarCabecalhoConta(); renderClienteCarrinho(); });
+      atualizarCabecalhoConta();
+      renderClienteCarrinho();
+    }
+    if (location.hash === "#carrinho" && carrinho.length) {
+      history.replaceState(null, "", location.pathname + location.search);
+      (window.ContaPronta || Promise.resolve()).then(abrirCarrinho);
+    }
   });
 
   /* API pública usada pelas páginas */
-  window.ColorWeg = { caixaSVG, renderProdutos, abrirProduto, adicionarAoCarrinho, linkWhatsApp, ehEscura, esc, observarRevelar, mostrarToast, abrirCarrinho };
+  window.ColorWeg = { lerFavoritos, alternarFavorito, gravarStorage, lerStorage, buscarProduto, $, $$, caixaSVG, renderProdutos, abrirProduto, adicionarAoCarrinho, linkWhatsApp, ehEscura, esc, observarRevelar, mostrarToast, abrirCarrinho };
 })();

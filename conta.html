@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Minha conta | Policoating</title>
+  <meta name="description" content="Área do cliente Policoating: cadastro de pessoa física ou empresa, histórico de pedidos e favoritos.">
+  <meta name="theme-color" content="#1558d6">
+  <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+  <!-- ===== Barra superior ===== -->
+  <div class="barra-topo">
+    <div class="container">
+      <span>📞 <a data-whats data-cfg="telefone">(16) 99270-8155</a></span>
+      <span class="ocultar-mobile">🕒 <span data-cfg="horario"></span></span>
+      <span class="ocultar-mobile">✉️ <a data-email data-cfg="email"></a></span>
+    </div>
+  </div>
+
+  <!-- ===== Cabeçalho ===== -->
+  <header class="cabecalho">
+    <div class="container">
+      <a href="index.html" class="logo" aria-label="Policoating - início">
+        <span class="logo-marca"><svg viewBox="0 0 64 64" aria-hidden="true"><path fill="#111418" fill-rule="evenodd" d="M22 6h24c11 0 17 7 15 17-2 11-11 18-23 18h-8l-4 17H12L22 6zm10 11-3.5 13H37c5 0 8-2.6 9-6.5 1-4-1-6.5-5.5-6.5H32z"/><path fill="#1558d6" d="M4 58 14 20h11l-4 14c8 0 14-2 18-7-3 9-10 14-21 14h-2l-4 17z"/></svg></span>
+        <span class="logo-texto"><strong>Poli<span>coating</span></strong><small>Tinta eletrostática em pó</small></span>
+      </a>
+      <nav>
+        <ul class="menu">
+          <li><a href="index.html">Início</a></li>
+          <li><a href="produtos.html">Produtos</a></li>
+          <li><a href="sobre.html">A Empresa</a></li>
+          <li><a href="recursos.html">Recursos</a></li>
+          <li><a href="index.html#contato">Contato</a></li>
+        </ul>
+      </nav>
+      <div class="acoes-topo">
+        <a href="conta.html" class="link-conta" title="Entrar ou criar conta">👤 <span class="texto">Entrar</span></a>
+        <button class="btn-carrinho" aria-label="Abrir carrinho">🛒 <span class="texto">Carrinho</span> <span class="contador">0</span></button>
+        <button class="btn-menu" aria-label="Abrir menu" aria-expanded="false"><span></span><span></span><span></span></button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="cabecalho-pagina">
+      <div class="container">
+        <div class="migalhas"><a href="index.html">Início</a> / Minha conta</div>
+        <h1>Área do cliente</h1>
+        <p>Cadastre-se como pessoa física ou empresa, acompanhe seus pedidos e envie orçamentos com seus dados já preenchidos.</p>
+      </div>
+    </section>
+
+    <section class="secao">
+      <div class="container conta">
+        <div class="aviso-demo" id="aviso-demo" hidden>
+          <strong>Modo demonstração:</strong> o código de verificação aparece nesta tela e os dados ficam salvos só neste navegador.
+          Para enviar o código por e-mail de verdade, configure o Supabase (veja o README).
+        </div>
+
+        <p class="carregando" id="carregando">Carregando…</p>
+
+        <!-- ===== Entrar / Criar conta ===== -->
+        <div class="conta-cartao" id="view-acesso" hidden>
+          <div class="abas" role="tablist">
+            <button type="button" role="tab" data-aba="entrar" class="ativo">Entrar</button>
+            <button type="button" role="tab" data-aba="criar">Criar conta</button>
+          </div>
+
+          <form id="form-email" novalidate>
+            <div id="bloco-tipo" hidden>
+              <div class="campo-titulo">Tipo de conta</div>
+              <div class="opcoes-tipo">
+                <label><input type="radio" name="tipo-cadastro" value="pj" checked><span><b>🏢 Empresa</b><small>Compra com CNPJ</small></span></label>
+                <label><input type="radio" name="tipo-cadastro" value="pf"><span><b>👤 Pessoa física</b><small>Compra com CPF</small></span></label>
+              </div>
+            </div>
+            <div class="grupo">
+              <label for="acesso-email">E-mail</label>
+              <input type="email" id="acesso-email" autocomplete="email" placeholder="voce@empresa.com.br" required>
+            </div>
+            <label class="aceite" id="bloco-aceite" hidden>
+              <input type="checkbox" id="aceite-cadastro"> Li e aceito a <a href="privacidade.html" target="_blank">Política de Privacidade</a>.
+            </label>
+            <button class="btn btn-primario btn-bloco" type="submit" id="btn-enviar-codigo">Enviar código de acesso</button>
+            <p class="nota">🔒 Sem senha: a cada acesso enviamos um código de verificação para o seu e-mail.</p>
+          </form>
+
+          <form id="form-codigo" novalidate hidden>
+            <p class="nota-codigo">Enviamos um código de verificação para <strong id="email-enviado"></strong>. Confira também a caixa de spam.</p>
+            <div class="codigo-demo" id="codigo-demo" hidden></div>
+            <div class="grupo">
+              <label for="codigo">Código de verificação</label>
+              <input type="text" id="codigo" inputmode="numeric" autocomplete="one-time-code" maxlength="10" placeholder="000000" class="campo-codigo">
+            </div>
+            <button class="btn btn-primario btn-bloco" type="submit" id="btn-verificar">Verificar e entrar</button>
+            <div class="links-codigo">
+              <button type="button" id="btn-reenviar">Reenviar código</button>
+              <button type="button" id="btn-trocar-email">Trocar e-mail</button>
+            </div>
+          </form>
+          <p class="erro" id="erro-acesso" role="alert"></p>
+        </div>
+
+        <!-- ===== Painel do cliente ===== -->
+        <div id="view-painel" hidden>
+          <div class="painel-topo">
+            <div>
+              <h2>Olá, <span id="ola-nome"></span>!</h2>
+              <p id="ola-info"></p>
+            </div>
+            <button type="button" class="btn btn-contorno-azul" id="btn-sair">Sair</button>
+          </div>
+          <div class="cliente-box alerta" id="alerta-cadastro" hidden>Complete seu cadastro para enviar pedidos com seus dados de faturamento e entrega.</div>
+
+          <div class="abas abas-painel" role="tablist">
+            <button type="button" role="tab" data-painel="pedidos">📦 Meus pedidos</button>
+            <button type="button" role="tab" data-painel="dados">👤 Meus dados</button>
+            <button type="button" role="tab" data-painel="favoritos">♥ Favoritos</button>
+          </div>
+
+          <div class="painel" id="painel-pedidos"></div>
+
+          <div class="painel" id="painel-dados" hidden>
+            <form id="form-dados" class="conta-cartao largo" novalidate>
+              <div class="campo-titulo">Tipo de cadastro</div>
+              <div class="opcoes-tipo">
+                <label><input type="radio" name="tipo" value="pj"><span><b>🏢 Empresa</b><small>CNPJ</small></span></label>
+                <label><input type="radio" name="tipo" value="pf"><span><b>👤 Pessoa física</b><small>CPF</small></span></label>
+              </div>
+
+              <fieldset data-tipo="pj">
+                <legend>Dados da empresa</legend>
+                <div class="grupo-duplo">
+                  <div class="grupo"><label for="f-cnpj">CNPJ *</label>
+                    <div class="campo-com-botao"><input id="f-cnpj" name="cnpj" inputmode="numeric" placeholder="00.000.000/0000-00"><button type="button" class="btn btn-contorno-azul" id="btn-cnpj">Buscar</button></div>
+                  </div>
+                  <div class="grupo"><label for="f-ie">Inscrição estadual</label><input id="f-ie" name="inscricao_estadual" placeholder="Número ou ISENTO"></div>
+                </div>
+                <div class="grupo"><label for="f-razao">Razão social *</label><input id="f-razao" name="razao_social" autocomplete="organization"></div>
+                <div class="grupo-duplo">
+                  <div class="grupo"><label for="f-fantasia">Nome fantasia</label><input id="f-fantasia" name="nome_fantasia"></div>
+                  <div class="grupo"><label for="f-resp">Nome do responsável *</label><input id="f-resp" name="responsavel" autocomplete="name"></div>
+                </div>
+              </fieldset>
+
+              <fieldset data-tipo="pf">
+                <legend>Dados pessoais</legend>
+                <div class="grupo-duplo">
+                  <div class="grupo"><label for="f-nome">Nome completo *</label><input id="f-nome" name="nome" autocomplete="name"></div>
+                  <div class="grupo"><label for="f-cpf">CPF *</label><input id="f-cpf" name="cpf" inputmode="numeric" placeholder="000.000.000-00"></div>
+                </div>
+              </fieldset>
+
+              <fieldset>
+                <legend>Contato</legend>
+                <div class="grupo-duplo">
+                  <div class="grupo"><label for="f-tel">Telefone / WhatsApp *</label><input id="f-tel" name="telefone" inputmode="tel" autocomplete="tel" placeholder="(00) 00000-0000"></div>
+                  <div class="grupo"><label for="f-email">E-mail</label><input id="f-email" type="email" readonly></div>
+                </div>
+              </fieldset>
+
+              <fieldset>
+                <legend>Endereço de entrega</legend>
+                <div class="grupo-duplo">
+                  <div class="grupo"><label for="f-cep">CEP *</label><input id="f-cep" name="cep" inputmode="numeric" autocomplete="postal-code" placeholder="00000-000"><small class="dica" id="dica-cep">Preenchemos o endereço automaticamente.</small></div>
+                  <div class="grupo"><label for="f-num">Número *</label><input id="f-num" name="numero"></div>
+                </div>
+                <div class="grupo"><label for="f-rua">Rua / Avenida *</label><input id="f-rua" name="logradouro" autocomplete="address-line1"></div>
+                <div class="grupo-duplo">
+                  <div class="grupo"><label for="f-comp">Complemento</label><input id="f-comp" name="complemento" autocomplete="address-line2"></div>
+                  <div class="grupo"><label for="f-bairro">Bairro</label><input id="f-bairro" name="bairro"></div>
+                </div>
+                <div class="grupo-duplo">
+                  <div class="grupo"><label for="f-cidade">Cidade *</label><input id="f-cidade" name="cidade" autocomplete="address-level2"></div>
+                  <div class="grupo"><label for="f-uf">Estado *</label><select id="f-uf" name="uf"></select></div>
+                </div>
+              </fieldset>
+
+              <label class="aceite" id="bloco-aceite-dados" hidden>
+                <input type="checkbox" id="aceite-dados"> Li e aceito a <a href="privacidade.html" target="_blank">Política de Privacidade</a>.
+              </label>
+              <p class="erro" id="erro-dados" role="alert"></p>
+              <button class="btn btn-primario btn-bloco" type="submit" id="btn-salvar">Salvar dados</button>
+            </form>
+          </div>
+
+          <div class="painel" id="painel-favoritos" hidden>
+            <div class="grade-produtos" id="lista-favoritos"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ===== Rodapé ===== -->
+  <footer class="rodape">
+    <div class="container rodape-grade">
+      <div>
+        <a href="index.html" class="logo logo-rodape"><span class="logo-marca"><svg viewBox="0 0 64 64" aria-hidden="true"><path fill="#ffffff" fill-rule="evenodd" d="M22 6h24c11 0 17 7 15 17-2 11-11 18-23 18h-8l-4 17H12L22 6zm10 11-3.5 13H37c5 0 8-2.6 9-6.5 1-4-1-6.5-5.5-6.5H32z"/><path fill="#4d8bff" d="M4 58 14 20h11l-4 14c8 0 14-2 18-7-3 9-10 14-21 14h-2l-4 17z"/></svg></span><span class="logo-texto"><strong>Poli<span>coating</span></strong><small>Tinta eletrostática em pó</small></span></a>
+        <p data-cfg="slogan"></p>
+        <div class="redes">
+          <a data-rede="instagram" aria-label="Instagram">IG</a>
+          <a data-rede="facebook" aria-label="Facebook">FB</a>
+          <a data-rede="linkedin" aria-label="LinkedIn">IN</a>
+          <a data-rede="youtube" aria-label="YouTube">YT</a>
+        </div>
+      </div>
+      <div>
+        <h4>Produtos</h4>
+        <ul>
+          <li><a href="produtos.html?categoria=poliester">Poliéster</a></li>
+          <li><a href="produtos.html?categoria=epoxi">Epóxi</a></li>
+          <li><a href="produtos.html?categoria=hibrida">Híbrida</a></li>
+          <li><a href="produtos.html?categoria=texturizada">Texturizadas</a></li>
+          <li><a href="produtos.html?categoria=metalica">Metálicas</a></li>
+          <li><a href="produtos.html?categoria=especiais">Especiais</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Institucional</h4>
+        <ul>
+          <li><a href="sobre.html">A Empresa</a></li>
+          <li><a href="sobre.html#historia">Nossa história</a></li>
+          <li><a href="sobre.html#processo">Como funciona</a></li>
+          <li><a href="recursos.html">Recursos</a></li>
+          <li><a href="conta.html">Área do cliente</a></li>
+          <li><a href="privacidade.html">Política de Privacidade</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Atendimento</h4>
+        <ul>
+          <li><a data-whats data-cfg="telefone"></a></li>
+          <li><a data-email data-cfg="email"></a></li>
+          <li data-cfg="endereco"></li>
+          <li data-cfg="horario"></li>
+        </ul>
+      </div>
+    </div>
+    <div class="container rodape-base">
+      <span>© <span data-ano>2026</span> <span data-cfg="empresa">Policoating</span>. Todos os direitos reservados.</span>
+      <span>Pedidos finalizados via WhatsApp com nossa equipe de vendas.</span>
+    </div>
+    <div class="rodape-faixa"></div>
+  </footer>
+
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/produtos.js"></script>
+  <script src="assets/js/auth.js"></script>
+  <script src="assets/js/main.js"></script>
+  <script src="assets/js/br.js"></script>
+  <script src="assets/js/conta.js"></script>
+</body>
+</html>

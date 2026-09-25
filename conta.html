@@ -58,8 +58,9 @@
     <section class="secao">
       <div class="container conta">
         <div class="aviso-demo" id="aviso-demo" hidden>
-          <strong>Modo demonstração:</strong> o código de verificação aparece nesta tela e os dados ficam salvos só neste navegador.
-          Para enviar o código por e-mail de verdade, configure o Supabase (veja o README).
+          <strong>⚠️ Modo demonstração — nenhum e-mail é enviado.</strong>
+          O código aparece nesta tela e os dados ficam salvos só neste navegador. Para o código chegar no Gmail
+          (ou em qualquer e-mail), é preciso ativar o Supabase no arquivo <code>config.js</code> — veja o passo a passo no README.
         </div>
 
         <p class="carregando" id="carregando">Carregando…</p>
@@ -107,90 +108,168 @@
         </div>
 
         <!-- ===== Painel do cliente ===== -->
-        <div id="view-painel" hidden>
-          <div class="painel-topo">
-            <div>
-              <h2>Olá, <span id="ola-nome"></span>!</h2>
-              <p id="ola-info"></p>
-            </div>
-            <button type="button" class="btn btn-contorno-azul" id="btn-sair">Sair</button>
-          </div>
-          <div class="cliente-box alerta" id="alerta-cadastro" hidden>Complete seu cadastro para enviar pedidos com seus dados de faturamento e entrega.</div>
-
-          <div class="abas abas-painel" role="tablist">
-            <button type="button" role="tab" data-painel="pedidos">📦 Meus pedidos</button>
-            <button type="button" role="tab" data-painel="dados">👤 Meus dados</button>
-            <button type="button" role="tab" data-painel="favoritos">♥ Favoritos</button>
-          </div>
-
-          <div class="painel" id="painel-pedidos"></div>
-
-          <div class="painel" id="painel-dados" hidden>
-            <form id="form-dados" class="conta-cartao largo" novalidate>
-              <div class="campo-titulo">Tipo de cadastro</div>
-              <div class="opcoes-tipo">
-                <label><input type="radio" name="tipo" value="pj"><span><b>🏢 Empresa</b><small>CNPJ</small></span></label>
-                <label><input type="radio" name="tipo" value="pf"><span><b>👤 Pessoa física</b><small>CPF</small></span></label>
+        <div class="painel-conta" id="view-painel" hidden>
+          <aside class="conta-lateral">
+            <div class="conta-perfil">
+              <div class="avatar" id="avatar" aria-hidden="true"></div>
+              <div class="conta-perfil-info">
+                <strong id="ola-nome"></strong>
+                <small id="ola-email"></small>
+                <span class="selo-tipo" id="selo-tipo"></span>
               </div>
+            </div>
+            <div class="progresso" id="progresso">
+              <div class="progresso-barra"><i id="progresso-valor"></i></div>
+              <small id="progresso-texto"></small>
+            </div>
+            <nav class="conta-menu" role="tablist" aria-label="Menu da conta">
+              <button type="button" role="tab" data-painel="resumo"><span>🏠</span> Visão geral</button>
+              <button type="button" role="tab" data-painel="pedidos"><span>📦</span> Meus pedidos <em class="badge" id="badge-pedidos"></em></button>
+              <button type="button" role="tab" data-painel="dados"><span>👤</span> Meus dados</button>
+              <button type="button" role="tab" data-painel="favoritos"><span>♥</span> Favoritos <em class="badge" id="badge-favoritos"></em></button>
+              <button type="button" role="tab" data-painel="privacidade"><span>🔒</span> Privacidade</button>
+              <button type="button" class="sair" id="btn-sair"><span>↩</span> Sair</button>
+            </nav>
+          </aside>
 
-              <fieldset data-tipo="pj">
-                <legend>Dados da empresa</legend>
-                <div class="grupo-duplo">
-                  <div class="grupo"><label for="f-cnpj">CNPJ *</label>
-                    <div class="campo-com-botao"><input id="f-cnpj" name="cnpj" inputmode="numeric" placeholder="00.000.000/0000-00"><button type="button" class="btn btn-contorno-azul" id="btn-cnpj">Buscar</button></div>
+          <div class="conta-conteudo">
+            <div class="cliente-box alerta" id="alerta-cadastro" hidden>
+              <strong>Complete seu cadastro</strong> para enviar pedidos com seus dados de faturamento e entrega.
+            </div>
+
+            <!-- Visão geral -->
+            <section class="painel" id="painel-resumo" hidden>
+              <h2 class="painel-titulo">Olá, <span id="ola-saudacao"></span>!</h2>
+              <p class="painel-sub" id="ola-info"></p>
+              <div class="grade-estatisticas">
+                <div class="estatistica"><span>📦</span><strong id="est-pedidos">0</strong><small>pedidos enviados</small></div>
+                <div class="estatistica"><span>🕒</span><strong id="est-ultimo">—</strong><small>último pedido</small></div>
+                <div class="estatistica"><span>♥</span><strong id="est-favoritos">0</strong><small>favoritos</small></div>
+              </div>
+              <div class="grade-cartoes">
+                <div class="cartao-info">
+                  <header><h3 id="resumo-titulo-dados">Dados cadastrais</h3><button type="button" data-ir="dados">Editar</button></header>
+                  <dl id="resumo-dados"></dl>
+                </div>
+                <div class="cartao-info">
+                  <header><h3>Endereço de entrega</h3><button type="button" data-ir="dados">Editar</button></header>
+                  <div id="resumo-endereco"></div>
+                </div>
+              </div>
+              <div class="cartao-info">
+                <header><h3>Último pedido</h3><button type="button" data-ir="pedidos">Ver todos</button></header>
+                <div id="resumo-ultimo"></div>
+              </div>
+            </section>
+
+            <!-- Pedidos -->
+            <section class="painel" id="painel-pedidos" hidden>
+              <h2 class="painel-titulo">Meus pedidos</h2>
+              <p class="painel-sub">Pedidos enviados ao nosso vendedor pelo WhatsApp.</p>
+              <div id="lista-pedidos"></div>
+            </section>
+
+            <!-- Dados -->
+            <section class="painel" id="painel-dados" hidden>
+              <h2 class="painel-titulo">Meus dados</h2>
+              <p class="painel-sub">Esses dados vão junto com seus pedidos para faturamento e entrega.</p>
+              <form id="form-dados" class="form-perfil" novalidate>
+                <div class="cartao-form">
+                <h3>Tipo de cadastro</h3>
+                <div class="opcoes-tipo">
+                  <label><input type="radio" name="tipo" value="pj"><span><b>🏢 Empresa</b><small>CNPJ</small></span></label>
+                  <label><input type="radio" name="tipo" value="pf"><span><b>👤 Pessoa física</b><small>CPF</small></span></label>
+                </div>
+                </div>
+
+                <fieldset data-tipo="pj" class="cartao-form">
+                  <legend>Dados da empresa</legend>
+                  <div class="grupo-duplo">
+                    <div class="grupo"><label for="f-cnpj">CNPJ *</label>
+                      <div class="campo-com-botao"><input id="f-cnpj" name="cnpj" inputmode="numeric" placeholder="00.000.000/0000-00"><button type="button" class="btn btn-contorno-azul" id="btn-cnpj">Buscar</button></div>
+                    </div>
+                    <div class="grupo"><label for="f-ie">Inscrição estadual</label><input id="f-ie" name="inscricao_estadual" placeholder="Número ou ISENTO"></div>
                   </div>
-                  <div class="grupo"><label for="f-ie">Inscrição estadual</label><input id="f-ie" name="inscricao_estadual" placeholder="Número ou ISENTO"></div>
-                </div>
-                <div class="grupo"><label for="f-razao">Razão social *</label><input id="f-razao" name="razao_social" autocomplete="organization"></div>
-                <div class="grupo-duplo">
-                  <div class="grupo"><label for="f-fantasia">Nome fantasia</label><input id="f-fantasia" name="nome_fantasia"></div>
-                  <div class="grupo"><label for="f-resp">Nome do responsável *</label><input id="f-resp" name="responsavel" autocomplete="name"></div>
-                </div>
-              </fieldset>
+                  <div class="grupo"><label for="f-razao">Razão social *</label><input id="f-razao" name="razao_social" autocomplete="organization"></div>
+                  <div class="grupo-duplo">
+                    <div class="grupo"><label for="f-fantasia">Nome fantasia</label><input id="f-fantasia" name="nome_fantasia"></div>
+                    <div class="grupo"><label for="f-resp">Nome do responsável *</label><input id="f-resp" name="responsavel" autocomplete="name"></div>
+                  </div>
+                </fieldset>
 
-              <fieldset data-tipo="pf">
-                <legend>Dados pessoais</legend>
-                <div class="grupo-duplo">
-                  <div class="grupo"><label for="f-nome">Nome completo *</label><input id="f-nome" name="nome" autocomplete="name"></div>
-                  <div class="grupo"><label for="f-cpf">CPF *</label><input id="f-cpf" name="cpf" inputmode="numeric" placeholder="000.000.000-00"></div>
-                </div>
-              </fieldset>
+                <fieldset data-tipo="pf" class="cartao-form">
+                  <legend>Dados pessoais</legend>
+                  <div class="grupo-duplo">
+                    <div class="grupo"><label for="f-nome">Nome completo *</label><input id="f-nome" name="nome" autocomplete="name"></div>
+                    <div class="grupo"><label for="f-cpf">CPF *</label><input id="f-cpf" name="cpf" inputmode="numeric" placeholder="000.000.000-00"></div>
+                  </div>
+                </fieldset>
 
-              <fieldset>
-                <legend>Contato</legend>
-                <div class="grupo-duplo">
-                  <div class="grupo"><label for="f-tel">Telefone / WhatsApp *</label><input id="f-tel" name="telefone" inputmode="tel" autocomplete="tel" placeholder="(00) 00000-0000"></div>
-                  <div class="grupo"><label for="f-email">E-mail</label><input id="f-email" type="email" readonly></div>
-                </div>
-              </fieldset>
+                <fieldset class="cartao-form">
+                  <legend>Contato</legend>
+                  <div class="grupo-duplo">
+                    <div class="grupo"><label for="f-tel">Telefone / WhatsApp *</label><input id="f-tel" name="telefone" inputmode="tel" autocomplete="tel" placeholder="(00) 00000-0000"></div>
+                    <div class="grupo"><label for="f-email">E-mail</label><input id="f-email" type="email" readonly></div>
+                  </div>
+                </fieldset>
 
-              <fieldset>
-                <legend>Endereço de entrega</legend>
-                <div class="grupo-duplo">
-                  <div class="grupo"><label for="f-cep">CEP *</label><input id="f-cep" name="cep" inputmode="numeric" autocomplete="postal-code" placeholder="00000-000"><small class="dica" id="dica-cep">Preenchemos o endereço automaticamente.</small></div>
-                  <div class="grupo"><label for="f-num">Número *</label><input id="f-num" name="numero"></div>
-                </div>
-                <div class="grupo"><label for="f-rua">Rua / Avenida *</label><input id="f-rua" name="logradouro" autocomplete="address-line1"></div>
-                <div class="grupo-duplo">
-                  <div class="grupo"><label for="f-comp">Complemento</label><input id="f-comp" name="complemento" autocomplete="address-line2"></div>
-                  <div class="grupo"><label for="f-bairro">Bairro</label><input id="f-bairro" name="bairro"></div>
-                </div>
-                <div class="grupo-duplo">
-                  <div class="grupo"><label for="f-cidade">Cidade *</label><input id="f-cidade" name="cidade" autocomplete="address-level2"></div>
-                  <div class="grupo"><label for="f-uf">Estado *</label><select id="f-uf" name="uf"></select></div>
-                </div>
-              </fieldset>
+                <fieldset class="cartao-form">
+                  <legend>Endereço de entrega</legend>
+                  <div class="grupo-duplo">
+                    <div class="grupo"><label for="f-cep">CEP *</label><input id="f-cep" name="cep" inputmode="numeric" autocomplete="postal-code" placeholder="00000-000"><small class="dica" id="dica-cep">Preenchemos o endereço automaticamente.</small></div>
+                    <div class="grupo"><label for="f-num">Número *</label><input id="f-num" name="numero"></div>
+                  </div>
+                  <div class="grupo"><label for="f-rua">Rua / Avenida *</label><input id="f-rua" name="logradouro" autocomplete="address-line1"></div>
+                  <div class="grupo-duplo">
+                    <div class="grupo"><label for="f-comp">Complemento</label><input id="f-comp" name="complemento" autocomplete="address-line2"></div>
+                    <div class="grupo"><label for="f-bairro">Bairro</label><input id="f-bairro" name="bairro"></div>
+                  </div>
+                  <div class="grupo-duplo">
+                    <div class="grupo"><label for="f-cidade">Cidade *</label><input id="f-cidade" name="cidade" autocomplete="address-level2"></div>
+                    <div class="grupo"><label for="f-uf">Estado *</label><select id="f-uf" name="uf"></select></div>
+                  </div>
+                </fieldset>
 
-              <label class="aceite" id="bloco-aceite-dados" hidden>
-                <input type="checkbox" id="aceite-dados"> Li e aceito a <a href="privacidade.html" target="_blank">Política de Privacidade</a>.
-              </label>
-              <p class="erro" id="erro-dados" role="alert"></p>
-              <button class="btn btn-primario btn-bloco" type="submit" id="btn-salvar">Salvar dados</button>
-            </form>
-          </div>
+                <label class="aceite" id="bloco-aceite-dados" hidden>
+                  <input type="checkbox" id="aceite-dados"> Li e aceito a <a href="privacidade.html" target="_blank">Política de Privacidade</a>.
+                </label>
+                <p class="erro" id="erro-dados" role="alert"></p>
+                <div class="acoes-form">
+                  <button class="btn btn-contorno-azul" type="button" id="btn-cancelar">Cancelar</button>
+                  <button class="btn btn-primario" type="submit" id="btn-salvar">Salvar dados</button>
+                </div>
+              </form>
+            </section>
 
-          <div class="painel" id="painel-favoritos" hidden>
-            <div class="grade-produtos" id="lista-favoritos"></div>
+            <!-- Favoritos -->
+            <section class="painel" id="painel-favoritos" hidden>
+              <h2 class="painel-titulo">Favoritos</h2>
+              <p class="painel-sub">Produtos que você salvou para comprar depois.</p>
+              <div class="grade-produtos" id="lista-favoritos"></div>
+            </section>
+
+            <!-- Privacidade -->
+            <section class="painel" id="painel-privacidade" hidden>
+              <h2 class="painel-titulo">Privacidade e segurança</h2>
+              <p class="painel-sub">Seus direitos conforme a LGPD.</p>
+              <div class="grade-cartoes">
+                <div class="cartao-info">
+                  <header><h3>🔑 Acesso à conta</h3></header>
+                  <p>Você entra sem senha, com um código enviado para <strong id="priv-email"></strong>.</p>
+                  <p class="dica" id="priv-aceite"></p>
+                </div>
+                <div class="cartao-info">
+                  <header><h3>📥 Baixar meus dados</h3></header>
+                  <p>Receba uma cópia do seu cadastro, pedidos e favoritos em arquivo.</p>
+                  <button type="button" class="btn btn-contorno-azul" id="btn-baixar">Baixar arquivo (.json)</button>
+                </div>
+                <div class="cartao-info perigo">
+                  <header><h3>🗑️ Excluir conta</h3></header>
+                  <p>Solicite a exclusão definitiva da sua conta e dos seus dados.</p>
+                  <button type="button" class="btn btn-perigo" id="btn-excluir">Solicitar exclusão</button>
+                </div>
+              </div>
+            </section>
           </div>
         </div>
       </div>

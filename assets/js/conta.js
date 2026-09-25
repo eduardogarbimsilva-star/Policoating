@@ -142,63 +142,192 @@
 
   function aposEntrar() {
     if (voltarAoCarrinhoSePreciso()) return;
-    abrirPainel(Conta.perfilCompleto() ? (location.hash.slice(1) || "pedidos") : "dados");
+    abrirPainel(Conta.perfilCompleto() ? (location.hash.slice(1) || "resumo") : "dados");
   }
 
   /* ---------- Painel ---------- */
+  const PAINEIS = ["resumo", "pedidos", "dados", "favoritos", "privacidade"];
+  let pedidosCache = null;
+
+  async function carregarPedidos(forcar) {
+    if (!pedidosCache || forcar) pedidosCache = await Conta.listarPedidos();
+    return pedidosCache;
+  }
+
+  function iniciais(nome) {
+    const partes = String(nome || "").trim().split(/\s+/).filter(Boolean);
+    if (!partes.length) return "?";
+    return (partes[0][0] + (partes.length > 1 ? partes[partes.length - 1][0] : "")).toUpperCase();
+  }
+
+  // Campos obrigatórios preenchidos -> % do cadastro
+  function progressoCadastro(p) {
+    const base = ["telefone", "cep", "logradouro", "numero", "cidade", "uf"];
+    const campos = (p.tipo === "pj" ? ["razao_social", "cnpj", "responsavel"] : ["nome", "cpf"]).concat(base);
+    if (!p.tipo) return 0;
+    return Math.round((campos.filter((c) => p[c]).length / campos.length) * 100);
+  }
+
+  function atualizarLateral() {
+    const p = Conta.perfil || {};
+    const titulo = p.tipo === "pj" ? (p.nome_fantasia || p.razao_social) : p.nome;
+    $("#avatar").textContent = iniciais(p.tipo === "pj" ? (p.nome_fantasia || p.razao_social || p.responsavel) : p.nome || Conta.usuario.email);
+    $("#ola-nome").textContent = titulo || "Complete seu cadastro";
+    $("#ola-email").textContent = Conta.usuario.email;
+    const selo = $("#selo-tipo");
+    selo.hidden = !p.tipo;
+    selo.textContent = p.tipo === "pj" ? "🏢 Empresa" : "👤 Pessoa física";
+    const pct = progressoCadastro(p);
+    $("#progresso-valor").style.width = pct + "%";
+    $("#progresso-texto").textContent = pct === 100 ? "✓ Cadastro completo" : `Cadastro ${pct}% completo`;
+    $("#progresso").classList.toggle("completo", pct === 100);
+    $("#alerta-cadastro").hidden = Conta.perfilCompleto();
+    const favs = CW.lerFavoritos().length;
+    $("#badge-favoritos").textContent = favs || "";
+    if (pedidosCache) $("#badge-pedidos").textContent = pedidosCache.length || "";
+  }
+
   function abrirPainel(aba) {
     mostrar("painel");
-    const p = Conta.perfil || {};
-    $("#ola-nome").textContent = Conta.nomeExibicao() || "cliente";
-    $("#ola-info").textContent = [p.tipo === "pj" ? p.razao_social : null, Conta.usuario.email].filter(Boolean).join(" · ");
-    $("#alerta-cadastro").hidden = Conta.perfilCompleto();
-    trocarPainel(["pedidos", "dados", "favoritos"].includes(aba) ? aba : "pedidos");
+    atualizarLateral();
+    carregarPedidos().then(atualizarLateral).catch(() => {});
+    trocarPainel(PAINEIS.includes(aba) ? aba : "resumo");
   }
 
   function trocarPainel(aba) {
-    $$(".abas-painel [data-painel]").forEach((b) => b.classList.toggle("ativo", b.dataset.painel === aba));
+    $$(".conta-menu [data-painel]").forEach((b) => {
+      const ativo = b.dataset.painel === aba;
+      b.classList.toggle("ativo", ativo);
+      b.setAttribute("aria-selected", ativo);
+    });
     $$(".painel").forEach((el) => (el.hidden = el.id !== "painel-" + aba));
     history.replaceState(null, "", location.pathname + location.search + "#" + aba);
+    if (aba === "resumo") renderResumo();
     if (aba === "pedidos") renderPedidos();
     if (aba === "dados") preencherDados();
     if (aba === "favoritos") renderFavoritos();
+    if (aba === "privacidade") renderPrivacidade();
+    if (window.innerWidth < 860) $(".conta-conteudo").scrollIntoView({ block: "start" });
   }
-  $$(".abas-painel [data-painel]").forEach((b) => b.addEventListener("click", () => trocarPainel(b.dataset.painel)));
+  $$(".conta-menu [data-painel]").forEach((b) => b.addEventListener("click", () => trocarPainel(b.dataset.painel)));
+  document.addEventListener("click", (e) => {
+    const ir = e.target.closest("[data-ir]");
+    if (ir) trocarPainel(ir.dataset.ir);
+  });
 
   $("#btn-sair").addEventListener("click", async () => {
     await Conta.sair();
     location.href = "conta.html";
   });
 
+  const dataCurta = (iso) => new Date(iso).toLocaleDateString("pt-BR");
+  const dataHora = (iso) => new Date(iso).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
+
+  /* ---------- Visão geral ---------- */
+  function linhaDl(rotulo, valor) { return valor ? `<dt>${esc(rotulo)}</dt><dd>${esc(valor)}</dd>` : ""; }
+
+  function htmlEndereco(p) {
+    if (!p.logradouro) return `<p class="vazio-mini">Nenhum endereço cadastrado.</p>`;
+    return `<address>${esc(p.logradouro)}, ${esc(p.numero)}${p.complemento ? " – " + esc(p.complemento) : ""}<br>
+      ${p.bairro ? esc(p.bairro) + " · " : ""}${esc(p.cidade)}/${esc(p.uf)}<br>CEP ${esc(p.cep)}</address>`;
+  }
+
+  function cartaoPedido(p, i, compacto) {
+    const itens = p.itens || [];
+    const total = itens.reduce((s, it) => s + (+it.qtd || 0), 0);
+    const lista = itens.map((it) => {
+      const prod = CW.buscarProduto(it.id);
+      const cor = prod && (prod.cores.find((c) => c.nome === it.cor) || prod.cores[0]);
+      return `<li>${cor ? `<i class="bolinha" style="background:${cor.hex}"></i>` : ""}<span>${esc(it.nome)}<small>${esc(it.cor)} · ${esc(it.embalagem)}</small></span><strong>${it.qtd}×</strong></li>`;
+    }).join("");
+    return `<article class="pedido">
+      <header>
+        <div><strong>Pedido ${esc(p.numero)}</strong><small>${dataHora(p.criado_em)} · ${total} ${total === 1 ? "item" : "itens"}</small></div>
+        <span class="status">✓ Enviado ao vendedor</span>
+      </header>
+      <ul>${lista}</ul>
+      ${p.observacoes ? `<p class="obs">📝 ${esc(p.observacoes)}</p>` : ""}
+      ${compacto ? "" : `<footer>
+        <button type="button" class="btn btn-primario" data-repetir="${i}">↻ Repetir pedido</button>
+        <button type="button" class="btn btn-contorno-azul" data-falar="${i}">💬 Falar sobre este pedido</button>
+      </footer>`}
+    </article>`;
+  }
+
+  async function renderResumo() {
+    const p = Conta.perfil || {};
+    $("#ola-saudacao").textContent = Conta.nomeExibicao() || "cliente";
+    $("#ola-info").textContent = "Membro desde " + (p.criado_em ? dataCurta(p.criado_em) : dataCurta(p.aceite_privacidade_em || Date.now()));
+    $("#resumo-titulo-dados").textContent = p.tipo === "pj" ? "Dados da empresa" : "Dados pessoais";
+    $("#resumo-dados").innerHTML = p.tipo === "pj"
+      ? linhaDl("Razão social", p.razao_social) + linhaDl("Nome fantasia", p.nome_fantasia) + linhaDl("CNPJ", p.cnpj) +
+        linhaDl("Inscrição estadual", p.inscricao_estadual) + linhaDl("Responsável", p.responsavel) + linhaDl("Telefone", p.telefone)
+      : linhaDl("Nome", p.nome) + linhaDl("CPF", p.cpf) + linhaDl("Telefone", p.telefone);
+    if (!$("#resumo-dados").innerHTML) $("#resumo-dados").innerHTML = `<p class="vazio-mini">Cadastro ainda não preenchido.</p>`;
+    $("#resumo-endereco").innerHTML = htmlEndereco(p);
+    $("#est-favoritos").textContent = CW.lerFavoritos().length;
+
+    let pedidos = [];
+    try { pedidos = await carregarPedidos(); } catch (e) { /* mostra vazio */ }
+    atualizarLateral();
+    $("#est-pedidos").textContent = pedidos.length;
+    $("#est-ultimo").textContent = pedidos.length ? dataCurta(pedidos[0].criado_em) : "—";
+    $("#resumo-ultimo").innerHTML = pedidos.length
+      ? cartaoPedido(pedidos[0], 0, true)
+      : `<p class="vazio-mini">Você ainda não enviou pedidos. <a href="produtos.html">Ver produtos →</a></p>`;
+  }
+
   /* ---------- Meus pedidos ---------- */
   async function renderPedidos() {
-    const box = $("#painel-pedidos");
+    const box = $("#lista-pedidos");
     box.innerHTML = `<p class="carregando">Carregando pedidos…</p>`;
     let pedidos = [];
-    try { pedidos = await Conta.listarPedidos(); }
+    try { pedidos = await carregarPedidos(true); }
     catch (err) { box.innerHTML = `<p class="erro">${esc(err.message)}</p>`; return; }
+    atualizarLateral();
     if (!pedidos.length) {
-      box.innerHTML = `<div class="vazio conta-cartao largo"><p style="font-size:2.4rem">📦</p><p>Você ainda não enviou pedidos.</p>
+      box.innerHTML = `<div class="vazio cartao-info"><p style="font-size:2.4rem">📦</p><p>Você ainda não enviou pedidos.</p>
         <p><a class="btn btn-primario" href="produtos.html" style="margin-top:12px">Ver produtos</a></p></div>`;
       return;
     }
-    box.innerHTML = pedidos.map((p, i) => {
-      const data = new Date(p.criado_em).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
-      const itens = (p.itens || []).map((it) => `<li><span>${esc(it.nome)}<small>${esc(it.cor)} · ${esc(it.embalagem)}</small></span><strong>${it.qtd}x</strong></li>`).join("");
-      return `<article class="pedido">
-        <header><div><strong>Pedido ${esc(p.numero)}</strong><small>${data}</small></div><span class="status">Enviado ao vendedor</span></header>
-        <ul>${itens}</ul>
-        ${p.observacoes ? `<p class="obs">Obs.: ${esc(p.observacoes)}</p>` : ""}
-        <button type="button" class="btn btn-contorno-azul" data-repetir="${i}">↻ Repetir pedido</button>
-      </article>`;
-    }).join("");
+    box.innerHTML = pedidos.map((p, i) => cartaoPedido(p, i, false)).join("");
     $$("[data-repetir]", box).forEach((b) => b.addEventListener("click", () => {
       (pedidos[+b.dataset.repetir].itens || []).forEach((it) => {
         if (CW.buscarProduto(it.id)) CW.adicionarAoCarrinho(it.id, it.cor, it.embalagem, it.qtd);
       });
       CW.abrirCarrinho();
     }));
+    $$("[data-falar]", box).forEach((b) => b.addEventListener("click", () => {
+      const num = pedidos[+b.dataset.falar].numero;
+      window.open(CW.linkWhatsApp(`Olá! Gostaria de falar sobre o meu pedido nº *${num}*.`), "_blank", "noopener");
+    }));
   }
+
+  /* ---------- Privacidade ---------- */
+  function renderPrivacidade() {
+    const p = Conta.perfil || {};
+    $("#priv-email").textContent = Conta.usuario.email;
+    $("#priv-aceite").textContent = p.aceite_privacidade_em ? "Política de Privacidade aceita em " + dataHora(p.aceite_privacidade_em) + "." : "";
+  }
+
+  $("#btn-baixar").addEventListener("click", async () => {
+    let pedidos = [];
+    try { pedidos = await carregarPedidos(true); } catch (e) { /* segue sem pedidos */ }
+    const dados = { exportado_em: new Date().toISOString(), email: Conta.usuario.email, cadastro: Conta.perfil, pedidos, favoritos: CW.lerFavoritos() };
+    const url = URL.createObjectURL(new Blob([JSON.stringify(dados, null, 2)], { type: "application/json" }));
+    const a = Object.assign(document.createElement("a"), { href: url, download: "meus-dados-policoating.json" });
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  });
+
+  $("#btn-excluir").addEventListener("click", () => {
+    if (!confirm("Deseja solicitar a exclusão da sua conta e dos seus dados? Nossa equipe confirmará pelo WhatsApp.")) return;
+    const p = Conta.perfil || {};
+    const doc = p.tipo === "pj" ? "CNPJ " + (p.cnpj || "") : "CPF " + (p.cpf || "");
+    window.open(CW.linkWhatsApp(`Olá! Solicito a exclusão da minha conta no site e dos meus dados (LGPD).\nE-mail: ${Conta.usuario.email}\n${doc}`), "_blank", "noopener");
+  });
 
   /* ---------- Meus dados ---------- */
   const form = $("#form-dados");
@@ -276,6 +405,11 @@
     }
   });
 
+  $("#btn-cancelar").addEventListener("click", () => {
+    preencherDados();
+    if (Conta.perfilCompleto()) trocarPainel("resumo");
+  });
+
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     erro("#erro-dados");
@@ -320,7 +454,7 @@
       sess.del(CHAVE_TIPO);
       CW.mostrarToast("Dados salvos com sucesso ✓");
       if (voltarAoCarrinhoSePreciso()) return;
-      abrirPainel("dados");
+      abrirPainel("resumo");
     } catch (err) {
       erro("#erro-dados", err.message);
     } finally {
@@ -338,7 +472,11 @@
     }
     CW.renderProdutos(box, favs);
   }
-  document.addEventListener("favoritos:alterados", () => { if (!$("#painel-favoritos").hidden) renderFavoritos(); });
+  document.addEventListener("favoritos:alterados", () => {
+    if ($("#view-painel").hidden) return;
+    atualizarLateral();
+    if (!$("#painel-favoritos").hidden) renderFavoritos();
+  });
 
   /* ---------- Início ---------- */
   document.addEventListener("DOMContentLoaded", async () => {

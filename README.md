@@ -203,6 +203,16 @@ A chave da Anthropic **nunca** fica no site: ela fica guardada no Supabase, dent
 
 A função só aceita chamadas do endereço do site (lista `ORIGENS_PERMITIDAS`) e limita 30 mensagens a cada 10 minutos por visitante.
 
+### Vídeos
+
+- `assets/video/fundo-topo.webm`: vídeo sem som que roda no fundo do primeiro slide.
+- `assets/video/processo-policoating.webm`: vídeo do processo (aplicação, cura, qualidade, acabamentos), na
+  seção "Como funciona" e na página Pintura a pó. Toca sozinho, sem som, quando aparece na tela.
+
+Os dois foram montados a partir das imagens de `assets/img/marca/`. Para usar um vídeo próprio, substitua o arquivo
+mantendo o mesmo nome (formato `.webm`), ou liste um `.mp4`/YouTube em `videos` no `midia.js`.
+Quem prefere menos movimento (configuração do sistema) vê a foto parada no lugar do vídeo.
+
 ## Tipos de tinta e guia de escolha
 
 As informações do carrossel **"Conheça os tipos de tinta"** (ideal para, uso, cura, notas de resistência e

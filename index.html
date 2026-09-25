@@ -27,7 +27,7 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Barlow:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/style.css?v=ff174665">
+  <link rel="stylesheet" href="assets/css/style.css?v=8199efc5">
 </head>
 <body>
   <a class="pular" href="#conteudo">Pular para o conteúdo</a>
@@ -94,7 +94,7 @@
     <!-- ===== Slides ===== -->
     <section class="slider" data-slider aria-roledescription="carrossel" aria-label="Destaques Policoating" tabindex="0">
       <div class="slides">
-        <article class="slide" data-arte="linha" data-foto="assets/img/marca/aplicacao-pistola.jpg">
+        <article class="slide" data-arte="linha" data-foto="assets/img/marca/aplicacao-pistola.jpg" data-video="assets/video/fundo-topo.webm">
           <div class="container slide-grade">
             <div class="slide-texto">
               <span class="sobretitulo">Tinta eletrostática em pó</span>
@@ -122,7 +122,7 @@
             <div class="slide-arte"></div>
           </div>
         </article>
-        <article class="slide" data-arte="ficha" data-foto="assets/img/marca/controle-espessura.jpg">
+        <article class="slide" data-arte="ficha" data-foto="assets/img/marca/inspecao-qualidade.jpg">
           <div class="container slide-grade">
             <div class="slide-texto">
               <span class="sobretitulo">Linha industrial</span>
@@ -164,6 +164,23 @@
         <div class="revelar"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19c0-8 5-13 14-14 0 9-5 14-13 14"/><path d="M5 19l7-7"/></svg></span><span><strong>Sustentável</strong>e eficiente</span></div>
         <div class="revelar"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16M6 17v-4M10 17v-7M14 17v-5M18 17V8"/><path d="M5 9l5-4 4 3 5-5"/></svg></span><span><strong>Desempenho</strong>que gera resultados</span></div>
       </div>
+    </section>
+
+    <!-- ===== Faixa de imagens rolando ===== -->
+    <section class="faixa-imagens" aria-label="Imagens da Policoating">
+      <div class="faixa-linha"><div class="faixa-trilho" data-faixa>
+            <a class="faixa-item" href="galeria.html"><img src="assets/img/marca/aplicacao-pistola.jpg" alt="Aplicação eletrostática" loading="lazy" width="480" height="270"><span>Aplicação eletrostática</span></a>
+            <a class="faixa-item" href="galeria.html"><img src="assets/img/marca/placas-acabamentos.jpg" alt="Acabamentos" loading="lazy" width="480" height="270"><span>Acabamentos</span></a>
+            <a class="faixa-item" href="galeria.html"><img src="assets/img/marca/estufa-cura.jpg" alt="Cura na estufa" loading="lazy" width="480" height="270"><span>Cura na estufa</span></a>
+            <a class="faixa-item" href="galeria.html"><img src="assets/img/marca/pecas-pintadas.jpg" alt="Rodas e quadros" loading="lazy" width="480" height="270"><span>Rodas e quadros</span></a>
+            <a class="faixa-item" href="galeria.html"><img src="assets/img/marca/potes-cores.jpg" alt="Cores RAL" loading="lazy" width="480" height="270"><span>Cores RAL</span></a>
+      </div></div>
+      <div class="faixa-linha reversa"><div class="faixa-trilho" data-faixa>
+            <a class="faixa-item" href="galeria.html"><img src="assets/img/marca/aplicacao-roda.jpg" alt="Rodas automotivas" loading="lazy" width="480" height="270"><span>Rodas automotivas</span></a>
+            <a class="faixa-item" href="galeria.html"><img src="assets/img/marca/inspecao-qualidade.jpg" alt="Controle de espessura" loading="lazy" width="480" height="270"><span>Controle de espessura</span></a>
+            <a class="faixa-item" href="galeria.html"><img src="assets/img/marca/controle-espessura.jpg" alt="Medição de camada" loading="lazy" width="480" height="270"><span>Medição de camada</span></a>
+            <a class="faixa-item" href="galeria.html"><img src="assets/img/marca/caixa-policoating.jpg" alt="Embalagem" loading="lazy" width="480" height="270"><span>Embalagem</span></a>
+      </div></div>
     </section>
 
     <!-- ===== Tipos de tinta (carrossel) ===== -->
@@ -216,9 +233,15 @@
           <h2>Da peça crua ao acabamento perfeito</h2>
           <p>A pintura eletrostática a pó em quatro etapas: limpa, sem solventes e com alto aproveitamento.</p>
         </div>
+        <div class="video-marca revelar" data-video-marca>
+          <video muted loop playsinline preload="metadata" poster="assets/video/processo-policoating-capa.jpg" aria-label="Vídeo: processo de pintura a pó Policoating">
+            <source src="assets/video/processo-policoating.webm" type="video/webm">
+          </video>
+          <button type="button" class="vm-som"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg><span>Assistir do início</span></button>
+        </div>
         <div class="passos-cards">
           <article class="passo-card revelar">
-            <div class="passo-img"><img src="https://images.pexels.com/photos/29385994/pexels-photo-29385994.jpeg?auto=compress&amp;cs=tinysrgb&amp;w=700" alt="Preparação mecânica de peça metálica" loading="lazy" data-foto-real data-reserva="assets/img/marca/controle-espessura.jpg"></div>
+            <div class="passo-img"><img src="https://images.pexels.com/photos/29385994/pexels-photo-29385994.jpeg?auto=compress&amp;cs=tinysrgb&amp;w=700" alt="Preparação mecânica de peça metálica" loading="lazy" data-foto-real data-reserva="assets/img/marca/placas-acabamentos.jpg"></div>
             <div class="passo-txt"><span>01</span><h3>Preparação</h3><p>Jateamento, desengraxe e pré-tratamento deixam o metal limpo e pronto para a tinta aderir.</p></div>
           </article>
           <article class="passo-card revelar">
@@ -226,11 +249,11 @@
             <div class="passo-txt"><span>02</span><h3>Aplicação eletrostática</h3><p>A pistola carrega o pó, que é atraído pela peça aterrada dentro da cabine.</p></div>
           </article>
           <article class="passo-card revelar">
-            <div class="passo-img passo-dado"><strong>160–200 °C</strong><small>10 a 20 min na temperatura da peça</small></div>
+            <div class="passo-img"><img src="assets/img/marca/estufa-cura.jpg" alt="Peças penduradas dentro da estufa de cura" loading="lazy"><em class="passo-selo">160–200 °C</em></div>
             <div class="passo-txt"><span>03</span><h3>Cura na estufa</h3><p>No calor, o pó derrete, se nivela e endurece, formando uma película contínua.</p></div>
           </article>
           <article class="passo-card revelar">
-            <div class="passo-img"><img src="assets/img/marca/controle-espessura.jpg" alt="Medição da espessura da camada com medidor digital" loading="lazy"></div>
+            <div class="passo-img"><img src="assets/img/marca/inspecao-qualidade.jpg" alt="Inspetor medindo a espessura da camada em peça azul" loading="lazy"><em class="passo-selo">60–120 µm</em></div>
             <div class="passo-txt"><span>04</span><h3>Controle de qualidade</h3><p>Espessura, aderência e brilho conferidos antes da entrega.</p></div>
           </article>
         </div>
@@ -239,6 +262,17 @@
           <h3>Vídeos da Policoating</h3>
           <div class="grade-videos"></div>
         </div>
+      </div>
+    </section>
+
+    <!-- ===== Faixa com efeito de profundidade ===== -->
+    <section class="faixa-parallax" data-parallax>
+      <div class="fp-fundo" style="background-image:url('assets/img/marca/estufa-cura.jpg')"></div>
+      <div class="container fp-conteudo">
+        <div class="fp-dado revelar"><strong>1</strong><span>demão com camada uniforme</span></div>
+        <div class="fp-dado revelar"><strong>0</strong><span>solventes na aplicação</span></div>
+        <div class="fp-dado revelar"><strong>160–200 °C</strong><span>cura rápida na estufa</span></div>
+        <div class="fp-dado revelar"><strong>RAL</strong><span>e cores sob medida</span></div>
       </div>
     </section>
 
@@ -322,11 +356,11 @@
           <div class="pilula-card"><h3>Sustentabilidade</h3><p>Tinta em pó não usa solventes e o pó que não adere à peça é recuperado. Menos emissões e menos desperdício na sua linha de pintura.</p><a href="aplicacao.html#vantagens" class="btn btn-contorno-escuro">Veja mais sobre o assunto</a></div>
         </article>
         <article class="pilula">
-          <div class="pilula-foto"><img src="assets/img/marca/controle-espessura.jpg" alt="Controle de espessura da camada" loading="lazy"></div>
+          <div class="pilula-foto"><img src="assets/img/marca/inspecao-qualidade.jpg" alt="Controle de espessura da camada" loading="lazy"></div>
           <div class="pilula-card"><h3>Qualidade controlada</h3><p>Cada lote é conferido em cor, brilho, cura e aderência, com boletim técnico e FISPQ disponíveis para todos os produtos.</p><a href="recursos.html#documentos" class="btn btn-contorno-escuro">Fichas técnicas</a></div>
         </article>
         <article class="pilula">
-          <div class="pilula-foto"><img src="assets/img/marca/aplicacao-pistola.jpg" alt="Aplicação eletrostática" loading="lazy"></div>
+          <div class="pilula-foto"><img src="assets/img/marca/aplicacao-roda.jpg" alt="Aplicação de tinta em pó em roda" loading="lazy"></div>
           <div class="pilula-card"><h3>Suporte técnico</h3><p>Ajudamos a escolher o pó, ajustar a aplicação e a cura e resolver problemas na linha de pintura.</p><a class="btn btn-contorno-escuro" data-whats="Olá! Preciso de suporte técnico com a pintura a pó.">Falar com um técnico</a></div>
         </article>
         <div class="pilula-setas"><button type="button" class="ant" aria-label="Anterior">‹</button><button type="button" class="prox" aria-label="Próximo">›</button></div>
@@ -433,12 +467,12 @@
   <script src="assets/js/config.js?v=4d17b3e1"></script>
   <script src="assets/js/produtos.js?v=02717c64"></script>
   <script src="assets/js/icones.js?v=fbc0a612"></script>
-  <script src="assets/js/midia.js?v=61107729"></script>
+  <script src="assets/js/midia.js?v=d2c7fda0"></script>
   <script src="assets/js/fotos-reais.js?v=cd443528"></script>
   <script src="assets/js/fotos.js?v=b90ec185"></script>
   <script src="assets/js/auth.js?v=60eb010b"></script>
   <script src="assets/js/main.js?v=13d5a90c"></script>
-  <script src="assets/js/animacoes.js?v=05321407"></script>
+  <script src="assets/js/animacoes.js?v=5343ea01"></script>
   <script src="assets/js/secoes.js?v=0885b063"></script>
   <script src="assets/js/assistente.js?v=53cb04a4"></script>
   <script>

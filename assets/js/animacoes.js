@@ -101,10 +101,24 @@
     slides.forEach((s, i) => {
       const arte = $(".slide-arte", s);
       const foto = (MIDIA.slides || [])[i] || s.dataset.foto;
-      if (foto) {
-        // foto de fundo em tela cheia; a ilustração não é usada
+      if (foto || s.dataset.video) {
+        // foto (com zoom lento) ou vídeo de fundo em tela cheia; a ilustração não é usada
         s.classList.add("com-foto");
-        s.style.backgroundImage = `url("${foto}")`;
+        const fundo = document.createElement("div");
+        fundo.className = "slide-fundo";
+        if (foto) fundo.style.backgroundImage = `url("${foto}")`;
+        s.prepend(fundo);
+        if (s.dataset.video && !menosMovimento) {
+          const v = document.createElement("video");
+          Object.assign(v, { muted: true, loop: true, playsInline: true, autoplay: true, preload: "auto" });
+          v.className = "slide-video";
+          v.setAttribute("muted", ""); v.setAttribute("playsinline", ""); v.setAttribute("aria-hidden", "true");
+          if (foto) v.poster = foto;
+          v.src = s.dataset.video;
+          v.addEventListener("error", () => v.remove());
+          fundo.appendChild(v);
+          v.play().catch(() => {});
+        }
         if (arte) arte.remove();
       } else if (arte && ARTES[s.dataset.arte]) {
         arte.innerHTML = ARTES[s.dataset.arte]();
@@ -387,7 +401,7 @@
     $(".grade-videos", raiz).innerHTML = lista.map((v) => {
       const midia = v.youtube
         ? `<iframe src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(v.youtube)}" title="${esc(v.titulo || "Vídeo")}" loading="lazy" allow="accelerometer; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`
-        : `<video controls preload="none" ${v.capa ? `poster="${esc(v.capa)}"` : ""}><source src="${esc(v.arquivo)}" type="video/mp4"></video>`;
+        : `<video controls preload="none" playsinline ${v.capa ? `poster="${esc(v.capa)}"` : ""}><source src="${esc(v.arquivo)}"></video>`;
       return `<figure class="video-card"><div class="video-quadro">${midia}</div><figcaption>${esc(v.titulo || "")}</figcaption></figure>`;
     }).join("");
   }
@@ -400,7 +414,81 @@
     });
   }
 
+  /* Faixa de imagens rolando sem parar (duplica o conteúdo para o laço ficar contínuo) */
+  function iniciarFaixas() {
+    $$("[data-faixa]").forEach((trilho) => {
+      if (trilho.dataset.pronta) return;
+      trilho.dataset.pronta = "1";
+      const originais = Array.from(trilho.children);
+      const copiar = (el) => { const c = el.cloneNode(true); c.setAttribute("aria-hidden", "true"); c.tabIndex = -1; trilho.appendChild(c); };
+      // repete até cobrir telas largas; depois duplica tudo para o laço de -50% ficar contínuo
+      const vezes = Math.max(1, Math.ceil((Math.max(screen.width, innerWidth) * 1.1) / Math.max(trilho.scrollWidth, 1)));
+      for (let v = 1; v < vezes; v++) originais.forEach(copiar);
+      Array.from(trilho.children).forEach(copiar);
+    });
+  }
+
+  /* Parallax: a imagem de fundo anda mais devagar que a página */
+  function iniciarParallax() {
+    const alvos = $$("[data-parallax]");
+    if (!alvos.length || menosMovimento) return;
+    let pedido = 0;
+    const atualizar = () => {
+      pedido = 0;
+      const vh = innerHeight;
+      alvos.forEach((el) => {
+        const r = el.getBoundingClientRect();
+        if (r.bottom < 0 || r.top > vh) return;
+        const p = (r.top + r.height / 2 - vh / 2) / vh;       // -1 … 1
+        el.style.setProperty("--desloc", (p * -80).toFixed(1) + "px");
+      });
+    };
+    addEventListener("scroll", () => { if (!pedido) pedido = requestAnimationFrame(atualizar); }, { passive: true });
+    addEventListener("resize", atualizar);
+    atualizar();
+  }
+
+  /* Barra fina no topo mostrando quanto da página já foi lido */
+  function iniciarProgresso() {
+    const barra = document.createElement("div");
+    barra.className = "progresso-leitura";
+    barra.setAttribute("aria-hidden", "true");
+    document.body.appendChild(barra);
+    let pedido = 0;
+    const atualizar = () => {
+      pedido = 0;
+      const max = document.documentElement.scrollHeight - innerHeight;
+      barra.style.transform = `scaleX(${max > 0 ? Math.min(scrollY / max, 1) : 0})`;
+    };
+    addEventListener("scroll", () => { if (!pedido) pedido = requestAnimationFrame(atualizar); }, { passive: true });
+    atualizar();
+  }
+
+  /* Vídeo da marca: toca sem som quando aparece na tela e pausa quando sai */
+  function iniciarVideoMarca() {
+    $$("[data-video-marca]").forEach((caixa) => {
+      const v = $("video", caixa), botao = $(".vm-som", caixa);
+      if (!v) return;
+      v.addEventListener("error", () => caixa.classList.add("sem-video"), true);
+      // "Assistir do início": mostra os controles e recomeça o vídeo
+      if (botao) botao.addEventListener("click", () => {
+        botao.hidden = true;
+        v.controls = true;
+        v.currentTime = 0;
+        v.play().catch(() => {});
+      });
+      if (menosMovimento || !("IntersectionObserver" in window)) { v.controls = true; return; }
+      new IntersectionObserver((ents) => ents.forEach((en) => {
+        if (en.isIntersecting) v.play().catch(() => {}); else v.pause();
+      }), { threshold: 0.35 }).observe(caixa);
+    });
+  }
+
   document.addEventListener("DOMContentLoaded", () => {
+    iniciarFaixas();
+    iniciarParallax();
+    iniciarProgresso();
+    iniciarVideoMarca();
     iniciarCenas();
     iniciarCabecalho();
     $$("[data-slider]").forEach(iniciarSlider);

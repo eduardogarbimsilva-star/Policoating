@@ -19,6 +19,11 @@ window.MIDIA = {
   // categoria: "ambientes" (Fotos reais), "cores", "acabamentos" ou "aplicacoes"
   // Ex.: { src: "assets/img/galeria/portao-preto.jpg", titulo: "Portão em RAL 9005 fosco", categoria: "ambientes" }
   galeria: [
+    { src: "assets/img/marca/estufa-cura.jpg", titulo: "Cura na estufa", descricao: "Peças no transportador dentro da estufa", categoria: "ambientes" },
+    { src: "assets/img/marca/aplicacao-roda.jpg", titulo: "Aplicação em roda", descricao: "Cobertura uniforme em cabine de pintura", categoria: "ambientes" },
+    { src: "assets/img/marca/inspecao-qualidade.jpg", titulo: "Controle de qualidade", descricao: "Medição da espessura da camada", categoria: "ambientes" },
+    { src: "assets/img/marca/placas-acabamentos.jpg", titulo: "Acabamentos", descricao: "Fosco, brilhante, metálico e texturizado", categoria: "ambientes" },
+    { src: "assets/img/marca/pecas-pintadas.jpg", titulo: "Peças pintadas", descricao: "Rodas, quadros e perfis", categoria: "ambientes" },
     { src: "assets/img/marca/aplicacao-pistola.jpg", titulo: "Aplicação eletrostática", descricao: "Pistola Policoating em cabine de pintura a pó", categoria: "ambientes" },
     { src: "assets/img/marca/potes-cores.jpg", titulo: "Cartela de cores Policoating", descricao: "Tinta em pó em várias cores e efeitos", categoria: "ambientes" },
     { src: "assets/img/marca/aplicacoes-metalicas.jpg", titulo: "Aplicações em ferragens", descricao: "Portões, grades, pergolados e esquadrias", categoria: "ambientes" },

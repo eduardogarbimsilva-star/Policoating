@@ -27,7 +27,7 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Barlow:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/style.css?v=1ad3650a">
+  <link rel="stylesheet" href="assets/css/style.css?v=ff174665">
 </head>
 <body>
   <a class="pular" href="#conteudo">Pular para o conteúdo</a>
@@ -94,7 +94,7 @@
     <!-- ===== Slides ===== -->
     <section class="slider" data-slider aria-roledescription="carrossel" aria-label="Destaques Policoating" tabindex="0">
       <div class="slides">
-        <article class="slide" data-arte="linha" data-imagem="assets/img/marca/banner-policoating.jpg" data-imagem-alt="Policoating: pistola de pintura eletrostática, pó colorido e peças metálicas pintadas">
+        <article class="slide" data-arte="linha" data-foto="assets/img/marca/aplicacao-pistola.jpg">
           <div class="container slide-grade">
             <div class="slide-texto">
               <span class="sobretitulo">Tinta eletrostática em pó</span>
@@ -108,7 +108,7 @@
             <div class="slide-arte"></div>
           </div>
         </article>
-        <article class="slide" data-arte="cartela" data-imagem="assets/img/marca/potes-cores.jpg" data-imagem-alt="Amostras de tinta em pó Policoating em várias cores">
+        <article class="slide" data-arte="cartela" data-foto="assets/img/marca/potes-cores.jpg">
           <div class="container slide-grade">
             <div class="slide-texto">
               <span class="sobretitulo">Cores RAL e sob medida</span>
@@ -122,7 +122,7 @@
             <div class="slide-arte"></div>
           </div>
         </article>
-        <article class="slide" data-arte="ficha">
+        <article class="slide" data-arte="ficha" data-foto="assets/img/marca/controle-espessura.jpg">
           <div class="container slide-grade">
             <div class="slide-texto">
               <span class="sobretitulo">Linha industrial</span>
@@ -136,7 +136,7 @@
             <div class="slide-arte"></div>
           </div>
         </article>
-        <article class="slide" data-arte="caixas" data-imagem="assets/img/marca/caixa-policoating.jpg" data-imagem-alt="Caixa de tinta em pó Policoating">
+        <article class="slide" data-arte="caixas" data-foto="assets/img/marca/caixa-policoating.jpg">
           <div class="container slide-grade">
             <div class="slide-texto">
               <span class="sobretitulo">Atendimento para todo o Brasil</span>
@@ -216,14 +216,23 @@
           <h2>Da peça crua ao acabamento perfeito</h2>
           <p>A pintura eletrostática a pó em quatro etapas: limpa, sem solventes e com alto aproveitamento.</p>
         </div>
-        <div class="processo-real revelar">
-          <figure class="foto-real"><img src="assets/img/marca/aplicacao-pistola.jpg" alt="Aplicador com pistola eletrostática Policoating pintando um quadro de moto" width="1264" height="843" loading="lazy"></figure>
-          <ol class="passos-real">
-            <li><strong>Preparação</strong><span>Jateamento, desengraxe e pré-tratamento deixam o metal limpo e pronto para a tinta aderir.</span></li>
-            <li><strong>Aplicação eletrostática</strong><span>A pistola carrega o pó, que é atraído pela peça aterrada dentro da cabine.</span></li>
-            <li><strong>Cura na estufa</strong><span>Entre 160 °C e 200 °C, o pó derrete, se nivela e endurece.</span></li>
-            <li><strong>Controle de qualidade</strong><span>Espessura, aderência e brilho conferidos antes da entrega.</span></li>
-          </ol>
+        <div class="passos-cards">
+          <article class="passo-card revelar">
+            <div class="passo-img"><img src="https://images.pexels.com/photos/29385994/pexels-photo-29385994.jpeg?auto=compress&amp;cs=tinysrgb&amp;w=700" alt="Preparação mecânica de peça metálica" loading="lazy" data-foto-real data-reserva="assets/img/marca/controle-espessura.jpg"></div>
+            <div class="passo-txt"><span>01</span><h3>Preparação</h3><p>Jateamento, desengraxe e pré-tratamento deixam o metal limpo e pronto para a tinta aderir.</p></div>
+          </article>
+          <article class="passo-card revelar">
+            <div class="passo-img"><img src="assets/img/marca/aplicacao-pistola.jpg" alt="Aplicação com pistola eletrostática Policoating" loading="lazy"></div>
+            <div class="passo-txt"><span>02</span><h3>Aplicação eletrostática</h3><p>A pistola carrega o pó, que é atraído pela peça aterrada dentro da cabine.</p></div>
+          </article>
+          <article class="passo-card revelar">
+            <div class="passo-img passo-dado"><strong>160–200 °C</strong><small>10 a 20 min na temperatura da peça</small></div>
+            <div class="passo-txt"><span>03</span><h3>Cura na estufa</h3><p>No calor, o pó derrete, se nivela e endurece, formando uma película contínua.</p></div>
+          </article>
+          <article class="passo-card revelar">
+            <div class="passo-img"><img src="assets/img/marca/controle-espessura.jpg" alt="Medição da espessura da camada com medidor digital" loading="lazy"></div>
+            <div class="passo-txt"><span>04</span><h3>Controle de qualidade</h3><p>Espessura, aderência e brilho conferidos antes da entrega.</p></div>
+          </article>
         </div>
         <div class="centro" style="margin-top:28px"><a href="aplicacao.html#equipamentos" class="btn btn-primario">Ver máquinas e etapas em detalhe</a></div>
         <div class="videos-reais" data-videos-reais hidden>
@@ -302,6 +311,56 @@
     </section>
 
     <!-- ===== Contato ===== -->
+    <!-- ===== Destaques institucionais (estilo WEG) ===== -->
+    <section class="secao secao-weg">
+      <div class="container">
+        <div class="secao-titulo revelar"><span class="rotulo">Policoating</span><h2>Compromisso em cada camada</h2></div>
+      </div>
+      <div class="pilula-slider revelar" data-pilulas>
+        <article class="pilula ativa">
+          <div class="pilula-foto"><img src="https://images.pexels.com/photos/227416/pexels-photo-227416.jpeg?auto=compress&amp;cs=tinysrgb&amp;w=1100" alt="Lago cercado por floresta" loading="lazy" data-foto-real data-reserva="assets/img/marca/potes-cores.jpg"></div>
+          <div class="pilula-card"><h3>Sustentabilidade</h3><p>Tinta em pó não usa solventes e o pó que não adere à peça é recuperado. Menos emissões e menos desperdício na sua linha de pintura.</p><a href="aplicacao.html#vantagens" class="btn btn-contorno-escuro">Veja mais sobre o assunto</a></div>
+        </article>
+        <article class="pilula">
+          <div class="pilula-foto"><img src="assets/img/marca/controle-espessura.jpg" alt="Controle de espessura da camada" loading="lazy"></div>
+          <div class="pilula-card"><h3>Qualidade controlada</h3><p>Cada lote é conferido em cor, brilho, cura e aderência, com boletim técnico e FISPQ disponíveis para todos os produtos.</p><a href="recursos.html#documentos" class="btn btn-contorno-escuro">Fichas técnicas</a></div>
+        </article>
+        <article class="pilula">
+          <div class="pilula-foto"><img src="assets/img/marca/aplicacao-pistola.jpg" alt="Aplicação eletrostática" loading="lazy"></div>
+          <div class="pilula-card"><h3>Suporte técnico</h3><p>Ajudamos a escolher o pó, ajustar a aplicação e a cura e resolver problemas na linha de pintura.</p><a class="btn btn-contorno-escuro" data-whats="Olá! Preciso de suporte técnico com a pintura a pó.">Falar com um técnico</a></div>
+        </article>
+        <div class="pilula-setas"><button type="button" class="ant" aria-label="Anterior">‹</button><button type="button" class="prox" aria-label="Próximo">›</button></div>
+      </div>
+    </section>
+
+    <!-- ===== Conteúdo técnico (estilo lista de notícias) ===== -->
+    <section class="secao secao-weg secao-conteudo">
+      <div class="container conteudo-grade">
+        <h2 class="titulo-fino revelar">Conteúdo técnico</h2>
+        <div class="lista-conteudo revelar">
+          <a href="aplicacao.html#equipamentos"><span>Guia</span><strong>Quais máquinas são usadas em cada etapa da pintura a pó</strong></a>
+          <a href="aplicacao.html#onde-usar"><span>Escolha</span><strong>Poliéster, epóxi ou híbrida: qual linha usar em cada ambiente</strong></a>
+          <a href="aplicacao.html#limitacoes"><span>Atenção</span><strong>Quando a tinta em pó não é a melhor escolha</strong></a>
+          <a href="recursos.html#calculadora"><span>Ferramenta</span><strong>Calcule quantos quilos e caixas de tinta você precisa</strong></a>
+          <div class="centro-dir"><a href="aplicacao.html" class="btn btn-contorno-ciano">Ver tudo</a></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Newsletter ===== -->
+    <section class="secao-weg faixa-news">
+      <div class="container">
+        <form class="news-caixa revelar" data-newsletter novalidate>
+          <div class="news-titulo"><small>Receba nossa</small><strong>Newsletter</strong></div>
+          <div class="news-campos">
+            <div class="news-linha"><input type="email" name="email" placeholder="Digite seu e-mail" aria-label="Seu e-mail" required autocomplete="email"><button type="submit">Quero receber</button></div>
+            <p class="news-aviso">Ao se cadastrar, você concorda com nossa <a href="privacidade.html">Política de Privacidade</a>.</p>
+            <p class="news-status" role="status" aria-live="polite"></p>
+          </div>
+        </form>
+      </div>
+    </section>
+
     <section class="secao secao-alt" id="contato">
       <div class="container">
         <div class="secao-titulo revelar">
@@ -375,12 +434,12 @@
   <script src="assets/js/produtos.js?v=02717c64"></script>
   <script src="assets/js/icones.js?v=fbc0a612"></script>
   <script src="assets/js/midia.js?v=61107729"></script>
-  <script src="assets/js/fotos-reais.js?v=ad824240"></script>
+  <script src="assets/js/fotos-reais.js?v=cd443528"></script>
   <script src="assets/js/fotos.js?v=b90ec185"></script>
-  <script src="assets/js/auth.js?v=e8f238fd"></script>
+  <script src="assets/js/auth.js?v=60eb010b"></script>
   <script src="assets/js/main.js?v=13d5a90c"></script>
-  <script src="assets/js/animacoes.js?v=88b9f595"></script>
-  <script src="assets/js/secoes.js?v=0d0446cb"></script>
+  <script src="assets/js/animacoes.js?v=05321407"></script>
+  <script src="assets/js/secoes.js?v=0885b063"></script>
   <script src="assets/js/assistente.js?v=53cb04a4"></script>
   <script>
     document.addEventListener("DOMContentLoaded", function () {

@@ -210,6 +210,20 @@
       return registro;
     },
 
+    /** Cadastra o e-mail na newsletter (tabela "newsletter" do Supabase) */
+    async inscreverNewsletter(email) {
+      email = normalizarEmail(email);
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error("Informe um e-mail válido.");
+      if (!USAR_SUPABASE) throw new Error("sem-servidor");
+      let error;
+      try {
+        const sb = await supabase();
+        ({ error } = await sb.from("newsletter").insert({ email }));
+      } catch (e) { throw new Error("sem-servidor"); }
+      if (error && error.code !== "23505") throw new Error("sem-servidor"); // 23505 = já cadastrado
+      return true;
+    },
+
     async listarPedidos() {
       if (!usuarioAtual) return [];
       if (USAR_SUPABASE) {

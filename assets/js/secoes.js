@@ -279,7 +279,53 @@
     });
   }
 
+  /* ---------- Destaques em cápsula (estilo WEG) ---------- */
+  function iniciarPilulas(raiz) {
+    const itens = $$(".pilula", raiz);
+    if (itens.length < 2) return;
+    let atual = 0, timer = 0;
+    const ir = (n) => {
+      itens[atual].classList.remove("ativa");
+      atual = (n + itens.length) % itens.length;
+      itens[atual].classList.add("ativa");
+    };
+    const auto = () => { clearInterval(timer); if (!menosMovimento) timer = setInterval(() => ir(atual + 1), 8000); };
+    $(".ant", raiz).addEventListener("click", () => { ir(atual - 1); auto(); });
+    $(".prox", raiz).addEventListener("click", () => { ir(atual + 1); auto(); });
+    auto();
+  }
+
+  /* ---------- Newsletter ---------- */
+  function iniciarNewsletter(form) {
+    const status = $(".news-status", form), CFG = window.SITE_CONFIG || {};
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const email = form.email.value.trim();
+      const botao = $("button", form);
+      botao.disabled = true;
+      status.className = "news-status";
+      try {
+        if (!window.Conta) throw new Error("sem-servidor");
+        await window.Conta.inscreverNewsletter(email);
+        status.textContent = "Pronto! Você vai receber nossas novidades.";
+        status.classList.add("ok");
+        form.reset();
+      } catch (err) {
+        if (err.message === "sem-servidor") {
+          // sem o cadastro online, abre o e-mail já preenchido
+          location.href = `mailto:${CFG.email || "contato@policoating.com.br"}?subject=${encodeURIComponent("Quero receber a newsletter")}&body=${encodeURIComponent("Meu e-mail: " + email)}`;
+          status.textContent = "Abrimos seu e-mail para concluir o cadastro.";
+        } else {
+          status.textContent = err.message;
+          status.classList.add("erro");
+        }
+      } finally { botao.disabled = false; }
+    });
+  }
+
   document.addEventListener("DOMContentLoaded", () => {
+    $$("[data-pilulas]").forEach(iniciarPilulas);
+    $$("[data-newsletter]").forEach(iniciarNewsletter);
     $$("[data-inspiracao]").forEach(iniciarInspiracao);
     $$("[data-carrossel-tipos]").forEach(iniciarCarrosselTipos);
     $$("[data-ambientes]").forEach(iniciarAmbientes);

@@ -71,3 +71,21 @@ create policy "cliente registra os proprios pedidos" on public.pedidos
 -- Permissões para usuários logados (o site usa a chave pública "anon")
 grant select, insert, update on public.clientes to authenticated;
 grant select, insert on public.pedidos to authenticated;
+
+-- ===========================================================
+-- PARTE C — Newsletter (rode depois das partes A e B)
+-- Qualquer visitante pode se cadastrar; ninguém consegue ler a lista pelo site.
+-- Para ver os e-mails: Supabase → Table Editor → newsletter.
+-- ===========================================================
+create table if not exists public.newsletter (
+  email     text primary key check (email ~* '^[^@\s]+@[^@\s]+\.[^@\s]+$' and length(email) <= 254),
+  criado_em timestamptz not null default now()
+);
+
+alter table public.newsletter enable row level security;
+
+drop policy if exists "visitante se cadastra na newsletter" on public.newsletter;
+create policy "visitante se cadastra na newsletter" on public.newsletter
+  for insert to anon, authenticated with check (true);
+
+grant insert on public.newsletter to anon, authenticated;

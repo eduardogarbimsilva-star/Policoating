@@ -53,6 +53,7 @@
   document.addEventListener("error", (e) => {
     const img = e.target;
     if (!(img instanceof HTMLImageElement) || !img.hasAttribute("data-foto-real")) return;
+    if (img.dataset.reserva && img.src.indexOf(img.dataset.reserva) < 0) { img.src = img.dataset.reserva; return; }
     const card = img.closest("[data-card-real]");
     const pai = card ? card.parentElement : null;
     if (card) card.remove(); else img.remove();

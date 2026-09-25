@@ -70,6 +70,13 @@ e os dados ficam só no navegador de quem testa. **Não publique para clientes r
 
 Os cadastros e pedidos podem ser consultados pela equipe em **Table Editor → clientes / pedidos** no painel do Supabase.
 
+### Newsletter
+
+O bloco "Receba nossa Newsletter" da página inicial grava o e-mail na tabela `newsletter` do Supabase
+(PARTE C do [`supabase/setup.sql`](supabase/setup.sql): cole só essa parte no SQL Editor e clique em **Run**).
+Para ver a lista: **Table Editor → newsletter**. Enquanto a tabela não existir, o botão abre o e-mail do cliente
+já preenchido para `contato@...`.
+
 ## Como funciona o pedido
 
 1. O cliente abre um produto, escolhe **cor**, **embalagem** e **quantidade** e adiciona ao carrinho.

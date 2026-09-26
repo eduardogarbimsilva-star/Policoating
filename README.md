@@ -44,25 +44,15 @@ e os dados ficam só no navegador de quem testa. **Não publique para clientes r
 2. Em **SQL Editor → New query**, cole o conteúdo de [`supabase/setup.sql`](supabase/setup.sql) e clique em **Run**.
    Isso cria as tabelas `clientes` e `pedidos` com segurança por usuário (cada cliente só vê os próprios dados).
 3. Em **Authentication → Sign In / Providers → Email**, deixe **Email** habilitado.
-4. Em **Authentication → Emails → Templates**, edite os dois modelos para enviar o **código** (e não um link).
-   Cada um tem o seu texto: o Supabase usa o **Confirm signup** para quem está **criando a conta** e o
-   **Magic Link** para quem **já tem conta** e está entrando.
+4. Em **Authentication → Emails → Templates**, troque os dois modelos pelos e-mails prontos da pasta
+   [`supabase/emails`](supabase/emails) (visual da marca, com código em destaque, aviso de segurança e contato):
+   - **Confirm signup** (quem está criando a conta): assunto `Confirme seu cadastro na Policoating`, corpo com
+     todo o conteúdo de [`confirmar-cadastro.html`](supabase/emails/confirmar-cadastro.html).
+   - **Magic Link** (quem já tem conta e está entrando): assunto `Seu código de acesso Policoating`, corpo com
+     todo o conteúdo de [`codigo-acesso.html`](supabase/emails/codigo-acesso.html).
 
-   **Confirm signup** — assunto: `Confirme seu cadastro na Policoating`
-   ```html
-   <h2>Bem-vindo(a) à Policoating!</h2>
-   <p>Recebemos o seu cadastro. Para confirmar o e-mail e criar a sua conta, digite este código no site:</p>
-   <p style="font-size:28px;font-weight:bold;letter-spacing:6px">{{ .Token }}</p>
-   <p>O código expira em alguns minutos. Se você não pediu um cadastro, ignore este e-mail.</p>
-   ```
-
-   **Magic Link** — assunto: `Seu código de acesso Policoating`
-   ```html
-   <h2>Seu código de acesso</h2>
-   <p>Use o código abaixo para entrar na sua conta Policoating:</p>
-   <p style="font-size:28px;font-weight:bold;letter-spacing:6px">{{ .Token }}</p>
-   <p>O código expira em alguns minutos. Se não foi você, ignore este e-mail.</p>
-   ```
+   Abra o arquivo no GitHub, clique em **Raw**, copie tudo (Ctrl+A, Ctrl+C) e cole no campo **Message body**
+   do Supabase. Os modelos usam `{{ .Token }}` (o código), `{{ .Email }}` e `{{ .SiteURL }}`.
 
    **Tamanho do código:** o Supabase manda 8 dígitos nos projetos novos (dá para mudar de 6 a 10 em
    **Authentication → Sign In / Providers → Email → Email OTP Length**). O site usa `tamanhoCodigo` do

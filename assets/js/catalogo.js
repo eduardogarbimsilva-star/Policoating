@@ -121,6 +121,15 @@
 
   /* ---------- Painel da empresa ---------- */
   const lerDemo = () => ler(CHAVE_DEMO) || {};
+  const CHAVE_EQUIPE_DEMO = "policoating_demo_equipe";
+  function equipeDemo() {
+    let eq = ler(CHAVE_EQUIPE_DEMO);
+    if (!Array.isArray(eq) || !eq.length) {
+      eq = [{ email: String(window.Conta.usuario.email).toLowerCase(), papel: "admin" }];
+      gravar(CHAVE_EQUIPE_DEMO, eq);
+    }
+    return eq;
+  }
   async function cliente() {
     if (!window.Conta || !window.Conta.cliente) throw new Error("Login indisponível.");
     return window.Conta.cliente();
@@ -130,15 +139,22 @@
   const Admin = {
     online: ONLINE,
 
-    /** true se o e-mail logado está na lista de administradores */
-    async ehAdmin() {
-      if (!window.Conta || !window.Conta.usuario) return false;
-      if (!ONLINE) return true;             // demonstração: qualquer conta logada testa o painel
+    /** Cargo de quem está logado: "admin", "vendedor" ou null (sem acesso) */
+    async meuPapel() {
+      if (!window.Conta || !window.Conta.usuario) return null;
+      if (!ONLINE) {                        // demonstração: a primeira conta logada é administradora
+        const eq = equipeDemo(), eu = window.Conta.usuario.email.toLowerCase(), m = eq.find((x) => x.email === eu);
+        return m ? m.papel : null;
+      }
       const sb = await cliente();
-      const { data, error } = await sb.rpc("eh_admin");
-      if (error) return false;
-      return data === true;
+      const { data, error } = await sb.rpc("meu_papel");
+      if (error) {                          // banco ainda sem a PARTE G: usa a regra antiga (só administradores)
+        const r = await sb.rpc("eh_admin");
+        return r.data === true ? "admin" : null;
+      }
+      return data === "admin" || data === "vendedor" ? data : null;
     },
+    async ehAdmin() { return (await this.meuPapel()) === "admin"; },
 
     /** Todos os produtos do painel, inclusive ocultos: [{ id, dados, ativo, ordem }] */
     async listar() {
@@ -222,52 +238,55 @@
       return d;
     },
 
-    /** Equipe: e-mails que podem usar o painel */
-    async listarAdmins() {
-      if (!ONLINE) return (ler("policoating_demo_admins") || [window.Conta.usuario.email]).map((email) => ({ email }));
+    /** Equipe: e-mails com acesso e o cargo de cada um */
+    async listarEquipe() {
+      if (!ONLINE) return equipeDemo();
       const sb = await cliente();
-      const { data, error } = await sb.from("admins").select("email").order("email");
-      if (error) throw erro(error);
-      return data || [];
+      let r = await sb.from("admins").select("email, papel").order("email");
+      if (r.error) r = await sb.from("admins").select("email").order("email");   // sem a coluna papel ainda
+      if (r.error) throw erro(r.error);
+      return (r.data || []).map((x) => ({ email: x.email, papel: x.papel || "admin" }));
     },
-    async adicionarAdmin(email) {
+    async salvarMembro(email, papel) {
       email = String(email || "").trim().toLowerCase();
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error("E-mail inválido.");
-      if (!ONLINE) { const l = (ler("policoating_demo_admins") || [window.Conta.usuario.email]); if (!l.includes(email)) l.push(email); gravar("policoating_demo_admins", l); return; }
+      if (!["admin", "vendedor"].includes(papel)) throw new Error("Escolha o cargo.");
+      if (email === String(window.Conta.usuario.email).toLowerCase() && papel !== "admin") throw new Error("Você não pode tirar o seu próprio cargo de administrador.");
+      if (!ONLINE) { const eq = equipeDemo().filter((x) => x.email !== email); eq.push({ email, papel }); gravar(CHAVE_EQUIPE_DEMO, eq); return; }
       const sb = await cliente();
-      const { error } = await sb.from("admins").insert({ email });
-      if (error && error.code !== "23505") throw erro(error);
+      const { error } = await sb.from("admins").upsert({ email, papel });
+      if (error) throw erro(error);
     },
-    async removerAdmin(email) {
+    async removerMembro(email) {
       if (String(email).toLowerCase() === String(window.Conta.usuario.email).toLowerCase()) throw new Error("Você não pode remover o seu próprio acesso.");
-      if (!ONLINE) { gravar("policoating_demo_admins", (ler("policoating_demo_admins") || []).filter((e) => e !== email)); return; }
+      if (!ONLINE) { gravar(CHAVE_EQUIPE_DEMO, equipeDemo().filter((x) => x.email !== email)); return; }
       const sb = await cliente();
       const { error } = await sb.from("admins").delete().eq("email", email);
       if (error) throw erro(error);
     },
 
-    /** Todos os pedidos do site, com os dados do cliente (mais recentes primeiro) */
-    async listarPedidos() {
+    /** Pedidos feitos pelo site, com os dados do cliente (mais recentes primeiro).
+        Com "termo" em formato de código (PC-...), busca também direto no banco, em todo o histórico. */
+    async listarPedidos(termo) {
       if (!ONLINE) {
-        const todos = ler("policoating_demo_pedidos") || {}, perfis = ler("policoating_demo_perfis") || {}, status = ler("policoating_demo_status") || {};
-        return Object.entries(todos).flatMap(([email, lista]) => lista.map((p) => Object.assign({}, p, { status: status[p.numero] || "novo", cliente: perfis[email] || { email } })))
+        const todos = ler("policoating_demo_pedidos") || {}, perfis = ler("policoating_demo_perfis") || {};
+        return Object.entries(todos).flatMap(([email, lista]) => lista.map((p) => Object.assign({}, p, { cliente: perfis[email] || { email } })))
           .sort((a, b) => String(b.criado_em).localeCompare(String(a.criado_em)));
       }
       const sb = await cliente();
-      const { data: pedidos, error } = await sb.from("pedidos").select("*").order("criado_em", { ascending: false }).limit(500);
+      const { data, error } = await sb.from("pedidos").select("*").order("criado_em", { ascending: false }).limit(1000);
       if (error) throw erro(error);
-      const ids = [...new Set((pedidos || []).map((p) => p.cliente_id))];
+      let pedidos = data || [];
+      const codigo = String(termo || "").trim().toUpperCase();
+      if (/^PC-/.test(codigo) && !pedidos.some((p) => p.numero.includes(codigo))) {
+        const r = await sb.from("pedidos").select("*").ilike("numero", `%${codigo.replace(/[%_]/g, "")}%`).limit(50);
+        pedidos = (r.data || []).concat(pedidos);
+      }
+      const ids = [...new Set(pedidos.map((p) => p.cliente_id))];
       let clientes = [];
       if (ids.length) { const r = await sb.from("clientes").select("*").in("id", ids); clientes = r.data || []; }
       const porId = Object.fromEntries(clientes.map((c) => [c.id, c]));
-      return (pedidos || []).map((p) => Object.assign({}, p, { status: p.status || "novo", cliente: porId[p.cliente_id] || {} }));
-    },
-
-    async mudarStatus(numero, status) {
-      if (!ONLINE) { const st = ler("policoating_demo_status") || {}; st[numero] = status; gravar("policoating_demo_status", st); return; }
-      const sb = await cliente();
-      const { error } = await sb.from("pedidos").update({ status }).eq("numero", numero);
-      if (error) throw erro(error);
+      return pedidos.map((p) => Object.assign({}, p, { cliente: porId[p.cliente_id] || {} }));
     },
 
     /** Envia um PDF (ficha técnica) e retorna o endereço público */

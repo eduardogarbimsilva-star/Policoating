@@ -210,7 +210,11 @@
     $("#ola-nome").textContent = titulo || "Complete seu cadastro";
     $("#ola-email").textContent = Conta.usuario.email;
     // atalho para o painel da empresa, só para e-mails administradores
-    if (window.Catalogo) window.Catalogo.Admin.ehAdmin().then((sim) => { $("#link-admin").hidden = !sim || !Conta.usuario; }).catch(() => {});
+    if (window.Catalogo) window.Catalogo.Admin.meuPapel().then((papel) => {
+      const l = $("#link-admin");
+      l.hidden = !papel || !Conta.usuario;
+      if (papel === "vendedor") l.lastChild.textContent = " Área do vendedor";
+    }).catch(() => {});
     const selo = $("#selo-tipo");
     selo.hidden = !p.tipo;
     selo.textContent = p.tipo === "pj" ? "Empresa" : "Pessoa física";
@@ -281,7 +285,7 @@
     return `<article class="pedido">
       <header>
         <div><strong>Pedido ${esc(p.numero)}</strong><small>${dataHora(p.criado_em)} · ${total} ${total === 1 ? "produto" : "produtos"}${kg ? ` · ${kg.toLocaleString("pt-BR")} kg` : ""}</small></div>
-        <span class="status status-${esc(p.status || "novo")}">${esc(CW.STATUS_PEDIDO[p.status] || "Enviado ao vendedor")}</span>
+        <span class="status">Enviado ao vendedor</span>
       </header>
       <ul>${lista}</ul>
       ${p.observacoes ? `<p class="obs">${window.Icone("nota")}${esc(p.observacoes)}</p>` : ""}

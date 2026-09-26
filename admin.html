@@ -23,7 +23,7 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Barlow:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/style.css?v=a1698086">
+  <link rel="stylesheet" href="assets/css/style.css?v=d910e919">
 </head>
 <body>
   <a class="pular" href="#conteudo">Pular para o conteúdo</a>
@@ -102,16 +102,17 @@
 
         <div class="admin-aviso" id="admin-entrar" hidden>
           <h2>Entre com a conta da empresa</h2>
-          <p>O painel é liberado apenas para os e-mails cadastrados como administradores.</p>
+          <p>O painel é liberado apenas para os e-mails cadastrados na equipe (administradores e vendedores).</p>
           <a href="conta.html" class="btn btn-primario">Entrar</a>
         </div>
 
         <div class="admin-aviso" id="admin-negado" hidden>
           <h2>Sem acesso ao painel</h2>
-          <p>A conta <strong id="admin-email"></strong> não está na lista de administradores. Peça para liberar este e-mail no Supabase (veja o README).</p>
+          <p>A conta <strong id="admin-email"></strong> não está na equipe. Peça a um administrador para liberar este e-mail na aba Equipe.</p>
         </div>
 
         <div id="admin-painel" hidden>
+          <p class="selo-acesso">Você está como <b id="selo-papel"></b></p>
           <div class="admin-demo" id="admin-demo" hidden>
             <strong>Modo demonstração:</strong> as alterações ficam salvas só neste navegador. Com o Supabase configurado, elas valem para todos os visitantes.
           </div>
@@ -145,15 +146,23 @@
 
           <!-- Pedidos -->
           <div class="admin-aba" data-conteudo="pedidos" hidden>
+            <div class="busca-pedidos">
+              <label for="pedidos-busca">Buscar pedido</label>
+              <div class="busca-pedidos-linha">
+                <input type="search" id="pedidos-busca" placeholder="Código do pedido (ex.: PC-260926-AB12) ou nome do cliente" autocomplete="off">
+                <select id="pedidos-periodo" aria-label="Período">
+                  <option value="0">Todo o período</option><option value="7">Últimos 7 dias</option><option value="30">Últimos 30 dias</option><option value="90">Últimos 90 dias</option><option value="365">Último ano</option>
+                </select>
+              </div>
+              <small>Também encontra por empresa, CNPJ/CPF, telefone, cidade, produto ou cor.</small>
+            </div>
             <div class="admin-barra">
-              <label class="busca"><input type="search" id="pedidos-busca" placeholder="Buscar por número, cliente, cidade ou produto..." aria-label="Buscar pedido"></label>
-              <select id="pedidos-status" aria-label="Filtrar por status"><option value="">Todos os status</option></select>
+              <div class="pedidos-resumo" id="pedidos-resumo"></div>
               <div class="admin-acoes">
                 <button type="button" class="btn btn-contorno-azul" id="pedidos-atualizar">Atualizar</button>
                 <button type="button" class="btn btn-primario" id="pedidos-csv"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg> Exportar planilha</button>
               </div>
             </div>
-            <div class="pedidos-resumo" id="pedidos-resumo"></div>
             <div class="admin-pedidos" id="admin-pedidos"></div>
             <p class="form-erro" id="pedidos-erro" role="alert"></p>
           </div>
@@ -210,10 +219,15 @@
 
           <!-- Equipe -->
           <div class="admin-aba" data-conteudo="equipe" hidden>
-            <p class="dica">Pessoas com acesso a este painel. Elas entram no site com o próprio e-mail (código de acesso) e veem o botão "Painel da empresa" em Minha conta.</p>
+            <div class="cargos-info">
+              <div><b class="cargo cargo-admin">Administrador</b><span>Tudo: produtos, pedidos, contato e links, galeria e equipe.</span></div>
+              <div><b class="cargo cargo-vendedor">Vendedor</b><span>Só a busca de pedidos (código ou nome do cliente), chamar o cliente e exportar planilha.</span></div>
+            </div>
+            <p class="dica">A pessoa entra no site com o próprio e-mail (código de acesso) e vê o botão "Painel da empresa" no menu da conta.</p>
             <form class="admin-barra" id="form-equipe" novalidate>
               <label class="busca" style="flex:1"><input type="email" id="equipe-email" placeholder="email@empresa.com.br" aria-label="E-mail para liberar"></label>
-              <button type="submit" class="btn btn-primario">Liberar acesso</button>
+              <select id="equipe-cargo" aria-label="Cargo"><option value="vendedor">Vendedor</option><option value="admin">Administrador</option></select>
+              <button type="submit" class="btn btn-primario">Adicionar à equipe</button>
             </form>
             <ul class="admin-equipe" id="admin-equipe"></ul>
             <p class="form-erro" id="equipe-erro" role="alert"></p>
@@ -335,16 +349,16 @@
 
   <script src="assets/js/config.js?v=383a138e"></script>
   <script src="assets/js/produtos.js?v=33acf86a"></script>
-  <script src="assets/js/catalogo.js?v=560e3abf"></script>
+  <script src="assets/js/catalogo.js?v=5b7488d6"></script>
   <script src="assets/js/icones.js?v=0989d2a0"></script>
   <script src="assets/js/midia.js?v=781286f8"></script>
   <script src="assets/js/fotos-reais.js?v=cd443528"></script>
   <script src="assets/js/fotos.js?v=48f81340"></script>
-  <script src="assets/js/auth.js?v=9c0988b4"></script>
-  <script src="assets/js/main.js?v=4258ff04"></script>
+  <script src="assets/js/auth.js?v=5cf48974"></script>
+  <script src="assets/js/main.js?v=5e45c3d3"></script>
   <script src="assets/js/animacoes.js?v=d458c529"></script>
   <script src="assets/js/secoes.js?v=79232704"></script>
   <script src="assets/js/assistente.js?v=ed48da65"></script>
-  <script src="assets/js/admin.js?v=2c68e3dd"></script>
+  <script src="assets/js/admin.js?v=4633e5a3"></script>
 </body>
 </html>

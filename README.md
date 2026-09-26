@@ -134,7 +134,14 @@ Os ícones do rodapé (Instagram, Facebook, LinkedIn, YouTube) só aparecem quan
 ### Painel da empresa: cadastrar, editar, ocultar e excluir produtos
 
 Página [`admin.html`](admin.html), com link em **Minha conta → Painel da empresa**. Só aparece para e-mails
-liberados como administradores; clientes comuns não veem nem acessam.
+da equipe; clientes comuns não veem nem acessam.
+
+**Cargos da equipe:**
+- **Administrador:** tudo (produtos, pedidos, contato e links, galeria e equipe).
+- **Vendedor:** só a **Área do vendedor**, com a busca de pedidos, o botão para chamar o cliente e a planilha.
+
+O primeiro administrador é liberado pelo SQL (PARTE D); os demais são adicionados no site, na aba **Equipe**,
+escolhendo o cargo. Nada é pago ou enviado pelo site: o pedido vai para o WhatsApp e o atendimento segue por lá.
 
 **Ativar (uma vez), no Supabase → SQL Editor:**
 1. Cole a **PARTE D** do [`supabase/setup.sql`](supabase/setup.sql) e clique em **Run**.
@@ -147,16 +154,17 @@ liberados como administradores; clientes comuns não veem nem acessam.
 **Abas do painel:**
 - **Produtos:** veja abaixo.
 - **Pedidos:** todos os pedidos enviados pelo site, com os dados do cliente, total em kg e observações.
-  Mude o status (Recebido, Em atendimento, Aguardando pagamento, Enviado, Concluído, Cancelado); o cliente acompanha em
-  Minha conta. Busca, filtro por status, botão para chamar o cliente no WhatsApp e **Exportar planilha** (CSV/Excel).
+  Digite o **código do pedido** (ex.: PC-260926-AB12) ou o **nome do cliente** para achar compras passadas ou
+  pedidos atrasados. Também busca por empresa, CNPJ/CPF, telefone, cidade, produto ou cor, com filtro de período.
+  Botões para copiar o código, chamar o cliente no WhatsApp e **Exportar planilha** (CSV/Excel).
   Precisa da **PARTE F** do `setup.sql`.
 - **Contato e links:** WhatsApp dos pedidos, telefone, e-mail, horário, endereço, slogan, redes sociais
   (Instagram, Facebook, WhatsApp Business, YouTube, TikTok, LinkedIn) e lojas (Mercado Livre, Shopee, AliExpress,
   Amazon, Magalu). Cada link só aparece no site depois de preenchido.
 - **Galeria:** enviar, ordenar, legendar e remover as fotos da galeria.
-- **Equipe:** liberar ou remover o acesso de outros e-mails ao painel.
+- **Equipe:** adicionar pessoas como Administrador ou Vendedor, mudar o cargo ou remover o acesso.
 
-Para as abas Contato, Galeria e Equipe, rode também a **PARTE E** do `setup.sql` (depois da PARTE D).
+Para as abas Contato, Galeria e Equipe, rode também a **PARTE E** e depois a **PARTE F** do `setup.sql`.
 
 **Produtos no painel:**
 - **Novo produto:** nome, linha, acabamento, descrição, rendimento, cura, embalagens, preço opcional, destaque na

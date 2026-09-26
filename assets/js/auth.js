@@ -239,8 +239,7 @@
         if (error) throw traduzirErro(error);
         return data || [];
       }
-      const status = ler("policoating_demo_status", {});
-      return (ler(K.pedidos, {})[usuarioAtual.email] || []).slice(0, 50).map((p) => Object.assign({ status: status[p.numero] || "novo" }, p));
+      return (ler(K.pedidos, {})[usuarioAtual.email] || []).slice(0, 50);
     }
   };
 

@@ -212,25 +212,61 @@ update storage.buckets
  where id = 'produtos';
 
 -- ===========================================================
--- PARTE F — Painel: pedidos e status (rode depois das PARTES D e E)
--- A empresa vê todos os pedidos e muda o status; o cliente acompanha em Minha conta.
+-- PARTE F — Equipe com cargos (Administrador / Vendedor) e busca de pedidos
+-- (rode depois das PARTES D e E; pode rodar de novo sem problema)
+--   Administrador: tudo no painel.
+--   Vendedor: só vê e busca os pedidos feitos pelo site.
 -- ===========================================================
-alter table public.pedidos add column if not exists status text not null default 'novo';
-alter table public.pedidos drop constraint if exists pedidos_status_valido;
-alter table public.pedidos add constraint pedidos_status_valido
-  check (status in ('novo', 'em_atendimento', 'aguardando_pagamento', 'enviado', 'concluido', 'cancelado'));
 
+-- Cargo de cada pessoa da equipe (quem já estava cadastrado vira Administrador)
+alter table public.admins add column if not exists papel text not null default 'admin';
+alter table public.admins drop constraint if exists admins_papel_valido;
+alter table public.admins add constraint admins_papel_valido check (papel in ('admin', 'vendedor'));
+
+-- Administrador = cargo "admin"
+create or replace function public.eh_admin()
+returns boolean language sql stable security definer set search_path = public
+as $$
+  select exists (select 1 from public.admins where lower(email) = lower(auth.jwt() ->> 'email') and papel = 'admin');
+$$;
+
+-- Equipe = administradores e vendedores
+create or replace function public.eh_equipe()
+returns boolean language sql stable security definer set search_path = public
+as $$
+  select exists (select 1 from public.admins where lower(email) = lower(auth.jwt() ->> 'email'));
+$$;
+
+-- Cargo de quem está logado (o site usa para mostrar o painel certo)
+create or replace function public.meu_papel()
+returns text language sql stable security definer set search_path = public
+as $$
+  select papel from public.admins where lower(email) = lower(auth.jwt() ->> 'email') limit 1;
+$$;
+
+revoke all on function public.eh_equipe() from public;
+revoke all on function public.meu_papel() from public;
+grant execute on function public.eh_admin(), public.eh_equipe(), public.meu_papel() to anon, authenticated;
+
+-- Administradores mudam o cargo dos outros (não o próprio, para ninguém se trancar fora)
+drop policy if exists "admin muda cargo" on public.admins;
+create policy "admin muda cargo" on public.admins
+  for update to authenticated
+  using (public.eh_admin() and lower(email) <> lower(auth.jwt() ->> 'email'))
+  with check (public.eh_admin());
+grant update (email, papel) on public.admins to authenticated;
+
+-- Pedidos e clientes: toda a equipe pode ver e buscar (ninguém altera pedidos pelo site)
 drop policy if exists "admin ve pedidos" on public.pedidos;
-create policy "admin ve pedidos" on public.pedidos
-  for select to authenticated using (public.eh_admin());
-
-drop policy if exists "admin atualiza pedidos" on public.pedidos;
-create policy "admin atualiza pedidos" on public.pedidos
-  for update to authenticated using (public.eh_admin()) with check (public.eh_admin());
-
--- só o campo status pode ser alterado (e só por administradores, pela regra acima)
-grant update (status) on public.pedidos to authenticated;
+drop policy if exists "equipe ve pedidos" on public.pedidos;
+create policy "equipe ve pedidos" on public.pedidos
+  for select to authenticated using (public.eh_equipe());
 
 drop policy if exists "admin ve clientes" on public.clientes;
-create policy "admin ve clientes" on public.clientes
-  for select to authenticated using (public.eh_admin());
+drop policy if exists "equipe ve clientes" on public.clientes;
+create policy "equipe ve clientes" on public.clientes
+  for select to authenticated using (public.eh_equipe());
+
+-- Sem status de pedido (nada é pago ou enviado pelo site): remove o que a versão anterior criou
+drop policy if exists "admin atualiza pedidos" on public.pedidos;
+alter table public.pedidos drop column if exists status;

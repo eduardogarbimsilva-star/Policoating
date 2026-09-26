@@ -14,9 +14,19 @@
 
     await window.ContaPronta;
     if (!window.Conta.usuario) return mostrar("admin-entrar");
-    if (!(await A.ehAdmin())) { $("#admin-email").textContent = window.Conta.usuario.email; return mostrar("admin-negado"); }
+    const papel = await A.meuPapel();
+    if (!papel) { $("#admin-email").textContent = window.Conta.usuario.email; return mostrar("admin-negado"); }
     mostrar("admin-painel");
     $("#admin-demo").hidden = A.online;
+    const ehAdmin = papel === "admin";
+    // vendedor: só a busca de pedidos
+    if (!ehAdmin) {
+      document.title = "Área do vendedor | Policoating";
+      $(".cabecalho-pagina h1").textContent = "Área do vendedor";
+      $(".cabecalho-pagina p").textContent = "Encontre qualquer pedido feito pelo site pelo código ou pelo nome do cliente.";
+      $$(".admin-abas [data-aba]").forEach((b) => { if (b.dataset.aba !== "pedidos") b.remove(); });
+    }
+    $("#selo-papel").textContent = ehAdmin ? "Administrador" : "Vendedor";
 
     const filtro = $("#admin-filtro"), selCat = $("[name=categoria]");
     const opcoes = Object.entries(CATS).map(([k, c]) => `<option value="${esc(k)}">${esc(c.nome)}</option>`).join("");
@@ -212,7 +222,7 @@
       finally { botao.disabled = false; }
     });
 
-    carregar();
+    if (ehAdmin) carregar();
 
     /* ---------- Abas ---------- */
     const abas = $$(".admin-abas [data-aba]");
@@ -226,34 +236,34 @@
     };
     abas.forEach((b) => b.addEventListener("click", () => abrirAba(b.dataset.aba)));
 
-    /* ---------- Pedidos ---------- */
-    const ST = CW.STATUS_PEDIDO;
-    $("#pedidos-status").insertAdjacentHTML("beforeend", Object.entries(ST).map(([k, v]) => `<option value="${k}">${esc(v)}</option>`).join(""));
-    let pedidos = [];
+    /* ---------- Pedidos (administradores e vendedores) ---------- */
+    let pedidos = [], pedidosCarregados = false, espera = 0;
     const nomeCliente = (c) => (c.tipo === "pj" ? (c.nome_fantasia || c.razao_social) : c.nome) || c.email || "Cliente";
     const kgPedido = (p) => (p.itens || []).reduce((s, it) => s + CW.kgDoItem({ embalagem: it.embalagem, qtd: +it.qtd || 0 }), 0);
     const dataBR = (d) => (d ? new Date(d).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }) : "");
     async function carregarPedidos() {
       $("#pedidos-erro").textContent = "";
-      try { pedidos = await A.listarPedidos(); }
-      catch (e) { pedidos = []; $("#pedidos-erro").textContent = e.message + " (rode a PARTE F do setup.sql no Supabase)"; }
+      try { pedidos = await A.listarPedidos($("#pedidos-busca").value); pedidosCarregados = true; }
+      catch (e) { pedidos = []; $("#pedidos-erro").textContent = e.message + " (rode as PARTES F e G do setup.sql no Supabase)"; }
       desenharPedidos();
     }
     function filtrados() {
-      const termo = slug($("#pedidos-busca").value || ""), st = $("#pedidos-status").value;
-      return pedidos.filter((p) => (!st || p.status === st) && (!termo || slug([p.numero, nomeCliente(p.cliente), p.cliente.cidade, p.cliente.email,
+      const termo = slug($("#pedidos-busca").value || ""), dias = +$("#pedidos-periodo").value;
+      const limite = dias ? Date.now() - dias * 864e5 : 0;
+      return pedidos.filter((p) => (!limite || new Date(p.criado_em).getTime() >= limite) && (!termo || slug([p.numero, nomeCliente(p.cliente), p.cliente.razao_social,
+        p.cliente.responsavel, p.cliente.cidade, p.cliente.email, p.cliente.telefone, p.cliente.cnpj, p.cliente.cpf,
         (p.itens || []).map((i) => i.nome + " " + i.cor).join(" ")].join(" ")).includes(termo)));
     }
     function desenharPedidos() {
-      const lista = filtrados();
-      const conta = (k) => pedidos.filter((p) => p.status === k).length;
-      $("#pedidos-resumo").innerHTML = pedidos.length ? `<span><strong>${pedidos.length}</strong> pedidos</span><span><strong>${conta("novo")}</strong> novos</span><span><strong>${conta("em_atendimento")}</strong> em atendimento</span><span><strong>${pedidos.reduce((s, p) => s + kgPedido(p), 0).toLocaleString("pt-BR")}</strong> kg no total</span>` : "";
-      $("#admin-pedidos").innerHTML = lista.length ? lista.map((p, i) => {
+      const lista = filtrados(), termo = $("#pedidos-busca").value.trim();
+      $("#pedidos-resumo").innerHTML = pedidos.length
+        ? `<span><strong>${lista.length}</strong> ${lista.length === 1 ? "pedido encontrado" : "pedidos encontrados"}</span><span><strong>${lista.reduce((s, p) => s + kgPedido(p), 0).toLocaleString("pt-BR")}</strong> kg</span>` : "";
+      $("#admin-pedidos").innerHTML = lista.length ? lista.map((p) => {
         const c = p.cliente || {}, tel = String(c.telefone || "").replace(/\D/g, "");
-        return `<article class="adm-pedido status-${esc(p.status)}" data-numero="${esc(p.numero)}">
+        return `<article class="adm-pedido" data-numero="${esc(p.numero)}">
           <header>
             <div><strong>${esc(p.numero)}</strong><small>${esc(dataBR(p.criado_em))}</small></div>
-            <select data-status aria-label="Status do pedido">${Object.entries(ST).map(([k, v]) => `<option value="${k}" ${k === p.status ? "selected" : ""}>${esc(v)}</option>`).join("")}</select>
+            <button type="button" class="btn-copiar" data-copiar="${esc(p.numero)}" title="Copiar código">${window.Icone ? window.Icone("link") : ""}Copiar código</button>
           </header>
           <div class="adm-pedido-corpo">
             <div class="adm-cliente">
@@ -270,29 +280,27 @@
             ${tel ? `<a class="btn btn-whats" target="_blank" rel="noopener" href="https://wa.me/${tel.length <= 11 ? "55" + tel : tel}?text=${encodeURIComponent(`Olá, ${nomeCliente(c)}! Aqui é da Policoating, sobre o seu pedido ${p.numero}.`)}">Chamar cliente</a>` : ""}
           </footer>
         </article>`;
-      }).join("") : `<p class="dica">${pedidos.length ? "Nenhum pedido com esse filtro." : "Nenhum pedido ainda. Os pedidos enviados pelo site por clientes logados aparecem aqui."}</p>`;
+      }).join("") : `<p class="dica">${!pedidosCarregados ? "Carregando..." : pedidos.length ? `Nenhum pedido encontrado para "${esc(termo)}". Confira o código (ex.: PC-260926-AB12) ou tente só parte do nome.` : "Nenhum pedido ainda. Os pedidos enviados pelo site aparecem aqui."}</p>`;
     }
-    $("#pedidos-busca").addEventListener("input", desenharPedidos);
-    $("#pedidos-status").addEventListener("change", desenharPedidos);
+    $("#pedidos-busca").addEventListener("input", () => {
+      desenharPedidos();
+      // código completo que não está na lista: procura no histórico inteiro
+      clearTimeout(espera);
+      if (/^pc-\S{6,}/i.test($("#pedidos-busca").value.trim()) && !filtrados().length) espera = setTimeout(carregarPedidos, 500);
+    });
+    $("#pedidos-periodo").addEventListener("change", desenharPedidos);
     $("#pedidos-atualizar").addEventListener("click", carregarPedidos);
-    $("#admin-pedidos").addEventListener("change", async (e) => {
-      const sel = e.target.closest("[data-status]"); if (!sel) return;
-      const art = sel.closest("[data-numero]"), numero = art.dataset.numero;
-      try {
-        await A.mudarStatus(numero, sel.value);
-        const p = pedidos.find((x) => x.numero === numero); if (p) p.status = sel.value;
-        art.className = "adm-pedido status-" + sel.value;
-        CW.mostrarToast(`Pedido ${numero}: ${ST[sel.value]}`);
-        desenharPedidos();
-      } catch (err) { $("#pedidos-erro").textContent = err.message; }
+    $("#admin-pedidos").addEventListener("click", (e) => {
+      const b = e.target.closest("[data-copiar]"); if (!b) return;
+      (navigator.clipboard ? navigator.clipboard.writeText(b.dataset.copiar) : Promise.reject()).then(() => CW.mostrarToast("Código copiado."), () => {});
     });
     $("#pedidos-csv").addEventListener("click", () => {
       const lista = filtrados();
       const cel = (v) => `"${String(v == null ? "" : v).replace(/"/g, '""')}"`;
-      const linhas = [["Pedido", "Data", "Status", "Cliente", "Documento", "E-mail", "Telefone", "Cidade", "UF", "Produto", "Cor", "Quantidade", "Kg", "Observações"]];
+      const linhas = [["Pedido", "Data", "Cliente", "Documento", "E-mail", "Telefone", "Cidade", "UF", "Produto", "Cor", "Quantidade", "Kg", "Observações"]];
       lista.forEach((p) => (p.itens || []).forEach((it) => {
         const c = p.cliente || {};
-        linhas.push([p.numero, dataBR(p.criado_em), ST[p.status] || p.status, nomeCliente(c), c.cnpj || c.cpf || "", c.email || "", c.telefone || "", c.cidade || "", c.uf || "",
+        linhas.push([p.numero, dataBR(p.criado_em), nomeCliente(c), c.cnpj || c.cpf || "", c.email || "", c.telefone || "", c.cidade || "", c.uf || "",
           it.nome, it.cor, CW.descreverQtd({ embalagem: it.embalagem, qtd: +it.qtd || 0 }), CW.kgDoItem({ embalagem: it.embalagem, qtd: +it.qtd || 0 }), p.observacoes || ""]);
       }));
       const csv = "\ufeff" + linhas.map((l) => l.map(cel).join(";")).join("\r\n");
@@ -301,6 +309,7 @@
       a.download = `pedidos-policoating-${new Date().toISOString().slice(0, 10)}.csv`;
       document.body.appendChild(a); a.click(); a.remove();
     });
+    if (!ehAdmin) abrirAba("pedidos");
 
     /* ---------- Contato e links ---------- */
     const formCfg = $("#form-config");
@@ -377,24 +386,39 @@
       finally { e.target.disabled = false; }
     });
 
-    /* ---------- Equipe ---------- */
+    /* ---------- Equipe (só administradores) ---------- */
+    const CARGOS = { admin: "Administrador", vendedor: "Vendedor" };
     async function carregarEquipe() {
       let lista = [];
-      try { lista = await A.listarAdmins(); } catch (e) { $("#equipe-erro").textContent = e.message; }
-      const eu = String(window.Conta.usuario.email).toLowerCase();
-      const icone = window.Icone ? window.Icone("usuario") : "";
-      $("#admin-equipe").innerHTML = lista.map((a) => `<li><span>${icone}${esc(a.email)}${a.email.toLowerCase() === eu ? " <em>(você)</em>" : ""}</span>
-        ${a.email.toLowerCase() === eu ? "" : `<button type="button" class="perigo" data-remover-admin="${esc(a.email)}">Remover acesso</button>`}</li>`).join("");
+      try { lista = await A.listarEquipe(); } catch (e) { $("#equipe-erro").textContent = e.message; }
+      const eu = String(window.Conta.usuario.email).toLowerCase(), icone = window.Icone ? window.Icone("usuario") : "";
+      $("#admin-equipe").innerHTML = lista.map((m) => {
+        const souEu = m.email.toLowerCase() === eu;
+        return `<li data-email="${esc(m.email)}"><span>${icone}${esc(m.email)}${souEu ? " <em>(você)</em>" : ""}</span>
+          <div class="equipe-acoes">${souEu ? `<b class="cargo cargo-${m.papel}">${CARGOS[m.papel]}</b>`
+            : `<select data-cargo aria-label="Cargo de ${esc(m.email)}">${Object.entries(CARGOS).map(([k, v]) => `<option value="${k}" ${k === m.papel ? "selected" : ""}>${v}</option>`).join("")}</select>
+               <button type="button" class="perigo" data-remover-membro>Remover</button>`}</div></li>`;
+      }).join("");
     }
     $("#form-equipe").addEventListener("submit", async (e) => {
       e.preventDefault();
-      try { await A.adicionarAdmin($("#equipe-email").value); $("#equipe-email").value = ""; $("#equipe-erro").textContent = ""; CW.mostrarToast("Acesso liberado."); carregarEquipe(); }
-      catch (err) { $("#equipe-erro").textContent = err.message; }
+      try {
+        await A.salvarMembro($("#equipe-email").value, $("#equipe-cargo").value);
+        CW.mostrarToast(`${CARGOS[$("#equipe-cargo").value]} adicionado.`);
+        $("#equipe-email").value = ""; $("#equipe-erro").textContent = ""; carregarEquipe();
+      } catch (err) { $("#equipe-erro").textContent = err.message; }
+    });
+    $("#admin-equipe").addEventListener("change", async (e) => {
+      const sel = e.target.closest("[data-cargo]"); if (!sel) return;
+      const email = sel.closest("[data-email]").dataset.email;
+      try { await A.salvarMembro(email, sel.value); CW.mostrarToast(`${email} agora é ${CARGOS[sel.value]}.`); }
+      catch (err) { $("#equipe-erro").textContent = err.message; carregarEquipe(); }
     });
     $("#admin-equipe").addEventListener("click", async (e) => {
-      const b = e.target.closest("[data-remover-admin]"); if (!b) return;
-      if (!confirm(`Remover o acesso de ${b.dataset.removerAdmin} ao painel?`)) return;
-      try { await A.removerAdmin(b.dataset.removerAdmin); carregarEquipe(); CW.mostrarToast("Acesso removido."); }
+      const b = e.target.closest("[data-remover-membro]"); if (!b) return;
+      const email = b.closest("[data-email]").dataset.email;
+      if (!confirm(`Remover o acesso de ${email}?`)) return;
+      try { await A.removerMembro(email); carregarEquipe(); CW.mostrarToast("Acesso removido."); }
       catch (err) { $("#equipe-erro").textContent = err.message; }
     });
   });

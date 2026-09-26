@@ -1927,15 +1927,9 @@ main { overflow-x: clip; }
 .pedidos-resumo strong { color: var(--texto); font-size: 1.05rem; margin-right: 4px; }
 .admin-pedidos { display: grid; gap: 14px; }
 .adm-pedido { border: 1px solid var(--borda); border-left: 5px solid #1558d6; border-radius: 6px; background: #fff; }
-.adm-pedido.status-em_atendimento { border-left-color: #f7a600; }
-.adm-pedido.status-aguardando_pagamento { border-left-color: #8e44ad; }
-.adm-pedido.status-enviado { border-left-color: #0aa2c0; }
-.adm-pedido.status-concluido { border-left-color: #2e9d57; }
-.adm-pedido.status-cancelado { border-left-color: #9aa3ad; opacity: .75; }
 .adm-pedido header, .adm-pedido footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; }
 .adm-pedido header { border-bottom: 1px solid var(--borda); }
 .adm-pedido header small { display: block; color: var(--texto-suave); font-size: .8rem; }
-.adm-pedido select { padding: 7px 10px; border: 1px solid var(--borda); border-radius: 6px; font: inherit; font-size: .88rem; background: #fff; }
 .adm-pedido-corpo { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 18px; padding: 14px 16px; }
 .adm-cliente { display: grid; gap: 3px; }
 .adm-cliente small { color: var(--texto-suave); font-size: .84rem; }
@@ -1944,9 +1938,24 @@ main { overflow-x: clip; }
 .adm-pedido .obs { grid-column: 1 / -1; margin: 0; padding: 8px 12px; background: var(--fundo-alt); border-radius: 4px; font-size: .86rem; }
 .adm-pedido footer { border-top: 1px solid var(--borda); background: var(--fundo-alt); }
 .adm-pedido footer .btn { padding: 8px 14px; font-size: .85rem; }
-.status.status-em_atendimento { background: #fff4d6; color: #8a5a00; }
-.status.status-aguardando_pagamento { background: #f3e8fb; color: #6b2d8a; }
-.status.status-enviado { background: #dff5fa; color: #06728a; }
-.status.status-concluido { background: #e3f5ea; color: #1d6b3b; }
-.status.status-cancelado { background: #eceff2; color: #5d6773; }
 @media (max-width: 700px) { .adm-pedido-corpo { grid-template-columns: 1fr; } }
+
+/* Painel: busca de pedidos e cargos da equipe */
+.busca-pedidos { display: grid; gap: 8px; margin-bottom: 14px; padding: 18px; border: 1px solid var(--borda); border-radius: 8px; background: var(--fundo-alt); }
+.busca-pedidos label { font-weight: 700; }
+.busca-pedidos small { color: var(--texto-suave); font-size: .82rem; }
+.busca-pedidos-linha { display: flex; flex-wrap: wrap; gap: 10px; }
+.busca-pedidos-linha input { flex: 1 1 280px; min-width: 0; padding: 13px 16px; border: 2px solid var(--azul); border-radius: 6px; font: inherit; font-size: 1rem; background: #fff; }
+.busca-pedidos-linha select { flex: 0 1 200px; padding: 11px 12px; border: 1px solid var(--borda); border-radius: 6px; font: inherit; background: #fff; }
+.btn-copiar { display: inline-flex; align-items: center; gap: 4px; margin-left: 6px; padding: 3px 8px; border: 1px solid var(--borda); border-radius: 4px; background: #fff; font: inherit; font-size: .75rem; color: var(--azul); cursor: pointer; }
+.btn-copiar:hover { border-color: var(--azul); }
+.cargo { display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: .75rem; font-weight: 700; letter-spacing: .02em; }
+.cargo-admin { background: #e5edfb; color: #0d3f9e; }
+.cargo-vendedor { background: #e3f5ea; color: #1d6b3b; }
+.cargos-info { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; margin-bottom: 12px; }
+.cargos-info div { display: grid; gap: 6px; justify-items: start; padding: 12px 14px; border: 1px solid var(--borda); border-radius: 6px; background: #fff; font-size: .88rem; color: var(--texto-suave); }
+.equipe-acoes { display: inline-flex; align-items: center; gap: 8px; }
+.equipe-acoes select { padding: 7px 10px; border: 1px solid var(--borda); border-radius: 6px; font: inherit; font-size: .88rem; background: #fff; }
+.selo-acesso { margin: 0 0 12px; font-size: .88rem; color: var(--texto-suave); }
+.selo-acesso b { color: var(--texto); }
+@media (max-width: 600px) { .admin-equipe li { flex-wrap: wrap; } }

@@ -145,9 +145,6 @@
     ? `${i.qtd} kg (quantidade sob medida)`
     : `${i.qtd} × ${i.embalagem}${kgDaEmbalagem(i.embalagem) ? ` (${kgDoItem(i).toLocaleString("pt-BR")} kg)` : ""}`);
   const totalItens = () => carrinho.reduce((s, i) => s + (ehSobMedida(i.embalagem) ? 1 : i.qtd), 0);
-  // etapas do pedido (definidas no painel da empresa; o cliente acompanha em Minha conta)
-  const STATUS_PEDIDO = { novo: "Recebido", em_atendimento: "Em atendimento", aguardando_pagamento: "Aguardando pagamento",
-    enviado: "Enviado", concluido: "Concluído", cancelado: "Cancelado" };
   const totalKg = () => carrinho.reduce((s, i) => s + kgDoItem(i), 0);
 
   function salvarCarrinho() {
@@ -768,7 +765,11 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
       <a href="conta.html#dados">${ic("usuario")}Meus dados</a>
       <a href="admin.html" class="mc-admin" hidden>${ic("industria")}Painel da empresa</a>
       <button type="button" data-sair>${ic("sair")}Sair</button>`;
-    if (window.Catalogo) window.Catalogo.Admin.ehAdmin().then((sim) => { const x = $(".mc-admin", menu); if (x) x.hidden = !sim; }).catch(() => {});
+    if (window.Catalogo) window.Catalogo.Admin.meuPapel().then((papel) => {
+      const x = $(".mc-admin", menu); if (!x) return;
+      x.hidden = !papel;
+      if (papel === "vendedor") x.lastChild.textContent = "Área do vendedor";
+    }).catch(() => {});
   }
 
   /* ---------- Inicialização ---------- */
@@ -793,5 +794,5 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
   });
 
   /* API pública usada pelas páginas */
-  window.ColorWeg = { STATUS_PEDIDO, descreverQtd, kgDoItem, embalagemPadrao, lerVistos, iconeWhats, totalItens: () => totalItens(), itensCarrinho: () => carrinho.slice(), fotoProduto, imgProduto, lerFavoritos, alternarFavorito, gravarStorage, lerStorage, buscarProduto, $, $$, caixaSVG, renderProdutos, abrirProduto, adicionarAoCarrinho, linkWhatsApp, ehEscura, esc, observarRevelar, mostrarToast, abrirCarrinho };
+  window.ColorWeg = { descreverQtd, kgDoItem, embalagemPadrao, lerVistos, iconeWhats, totalItens: () => totalItens(), itensCarrinho: () => carrinho.slice(), fotoProduto, imgProduto, lerFavoritos, alternarFavorito, gravarStorage, lerStorage, buscarProduto, $, $$, caixaSVG, renderProdutos, abrirProduto, adicionarAoCarrinho, linkWhatsApp, ehEscura, esc, observarRevelar, mostrarToast, abrirCarrinho };
 })();

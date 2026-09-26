@@ -24,6 +24,8 @@ window.SITE_CONFIG = {
     // Nunca coloque aqui a chave secreta (sb_secret_... / service_role).
     anonKey: "sb_publishable_K5qH5wJJ4mLbQAInGiUqZw_i2AFC1y9"
   },
+  // Quantos dígitos tem o código que chega no e-mail (Supabase: Authentication → Email → "Email OTP Length").
+  tamanhoCodigo: 8,
 
   // Assistente de compras. Funciona sem configuração (entende os pedidos no próprio site).
   // Para usar IA de verdade (Claude), publique a função supabase/functions/assistente e

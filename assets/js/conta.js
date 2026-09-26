@@ -74,7 +74,17 @@
   }
 
   const CHAVE_EMAIL = "policoating_ultimo_email";
-  const TAMANHO_CODIGO = Number((window.SITE_CONFIG || {}).tamanhoCodigo) || 6;
+  // Tamanho do código do e-mail: o Supabase manda 8 dígitos nos projetos novos (6 a 10, conforme
+  // Authentication → Sign In / Providers → Email → "Email OTP Length"). Vale o que estiver em
+  // config.js (tamanhoCodigo); sem isso, o último tamanho que funcionou neste navegador; senão 8.
+  const CHAVE_TAMANHO = "policoating_tamanho_codigo";
+  const tamanhoPadrao = () => {
+    const cfg = Number((window.SITE_CONFIG || {}).tamanhoCodigo);
+    if (cfg >= 6 && cfg <= 10) return cfg;
+    let salvo = 0; try { salvo = Number(localStorage.getItem(CHAVE_TAMANHO)); } catch (e) { /* ignora */ }
+    return salvo >= 6 && salvo <= 10 ? salvo : 8;
+  };
+  let TAMANHO_CODIGO = tamanhoPadrao(), codigoDemo = false;
   function etapa(n) { [1, 2, 3].forEach((i) => $("#passo-" + i).classList.toggle("ativo", i <= n)); }
   function desenharCasas() {
     const v = $("#codigo").value, n = Math.max(TAMANHO_CODIGO, v.length);
@@ -87,6 +97,8 @@
     emailAtual = email.trim().toLowerCase();
     try { localStorage.setItem(CHAVE_EMAIL, emailAtual); } catch (e) { /* ignora */ }
     etapa(2);
+    $(".nota-codigo").innerHTML = (modo === "criar" ? "Enviamos o código para confirmar o seu cadastro em " : "Enviamos o seu código de acesso para ")
+      + '<strong id="email-enviado"></strong>. Confira também a caixa de spam.';
     $("#email-enviado").textContent = emailAtual;
     $("#form-email").hidden = true;
     $(".abas", $("#view-acesso")).hidden = true;
@@ -94,6 +106,9 @@
     const demo = $("#codigo-demo");
     demo.hidden = !r.codigoDemo;
     if (r.codigoDemo) demo.innerHTML = `Modo demonstração — seu código é <strong>${r.codigoDemo}</strong>`;
+    codigoDemo = !!r.codigoDemo;
+    TAMANHO_CODIGO = r.codigoDemo ? String(r.codigoDemo).length : tamanhoPadrao();
+    $("#codigo-dica").textContent = `Digite ou cole o código de ${TAMANHO_CODIGO} dígitos. Ele é conferido sozinho.`;
     $("#codigo").value = "";
     desenharCasas();
     $("#codigo").focus();
@@ -119,8 +134,9 @@
   $("#codigo").addEventListener("input", (e) => {
     e.target.value = e.target.value.replace(/\D/g, "").slice(0, 10);
     desenharCasas();
-    // completou o código: confere sozinho
-    if (e.target.value.length === TAMANHO_CODIGO && !$("#btn-verificar").disabled) $("#form-codigo").requestSubmit();
+    // completou o código (ou colou o código inteiro): confere sozinho
+    const n = e.target.value.length, colou = /^insertFromPaste|^insertReplacementText/.test(e.inputType || "") || e.inputType === undefined;
+    if ((n === TAMANHO_CODIGO || (colou && n >= 6)) && !$("#btn-verificar").disabled) $("#form-codigo").requestSubmit();
   });
   ["focus", "blur", "keyup", "click"].forEach((ev) => $("#codigo").addEventListener(ev, () => $("#codigo-casas").classList.toggle("foco", document.activeElement === $("#codigo"))));
 
@@ -131,6 +147,7 @@
     ocupado(btn, true, "Verificando…");
     try {
       await Conta.verificarCodigo(emailAtual, $("#codigo").value);
+      if (!codigoDemo) try { localStorage.setItem(CHAVE_TAMANHO, String($("#codigo").value.length)); } catch (e2) { /* ignora */ }
       clearInterval(timerReenvio);
       etapa(3);
       aposEntrar();

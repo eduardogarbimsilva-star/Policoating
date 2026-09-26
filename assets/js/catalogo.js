@@ -156,6 +156,19 @@
     },
     async ehAdmin() { return (await this.meuPapel()) === "admin"; },
 
+    /** Pode excluir pedidos? Administradores sempre; os demais só com a permissão dada por um administrador. */
+    async podeExcluirPedidos() {
+      const papel = await this.meuPapel();
+      if (!papel) return false;
+      if (papel === "admin") return true;
+      if (!ONLINE) {
+        const eu = window.Conta.usuario.email.toLowerCase(), m = equipeDemo().find((x) => x.email === eu);
+        return !!(m && m.pode_excluir);
+      }
+      const { data, error } = await (await cliente()).rpc("pode_excluir_pedidos");
+      return !error && data === true;
+    },
+
     /** Todos os produtos do painel, inclusive ocultos: [{ id, dados, ativo, ordem }] */
     async listar() {
       if (!ONLINE) return Object.values(lerDemo()).sort((a, b) => a.ordem - b.ordem);
@@ -242,20 +255,37 @@
     async listarEquipe() {
       if (!ONLINE) return equipeDemo();
       const sb = await cliente();
-      let r = await sb.from("admins").select("email, papel").order("email");
-      if (r.error) r = await sb.from("admins").select("email").order("email");   // sem a coluna papel ainda
+      let r = await sb.from("admins").select("email, papel, pode_excluir").order("email");
+      if (r.error) r = await sb.from("admins").select("email, papel").order("email");   // sem a PARTE G ainda
+      if (r.error) r = await sb.from("admins").select("email").order("email");          // sem a PARTE F ainda
       if (r.error) throw erro(r.error);
-      return (r.data || []).map((x) => ({ email: x.email, papel: x.papel || "admin" }));
+      return (r.data || []).map((x) => ({ email: x.email, papel: x.papel || "admin", pode_excluir: !!x.pode_excluir }));
     },
     async salvarMembro(email, papel) {
       email = String(email || "").trim().toLowerCase();
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error("E-mail inválido.");
       if (!["admin", "vendedor"].includes(papel)) throw new Error("Escolha o cargo.");
       if (email === String(window.Conta.usuario.email).toLowerCase() && papel !== "admin") throw new Error("Você não pode tirar o seu próprio cargo de administrador.");
-      if (!ONLINE) { const eq = equipeDemo().filter((x) => x.email !== email); eq.push({ email, papel }); gravar(CHAVE_EQUIPE_DEMO, eq); return; }
+      if (!ONLINE) {
+        const eq = equipeDemo(), m = eq.find((x) => x.email === email);
+        if (m) m.papel = papel; else eq.push({ email, papel, pode_excluir: false });
+        gravar(CHAVE_EQUIPE_DEMO, eq); return;
+      }
       const sb = await cliente();
       const { error } = await sb.from("admins").upsert({ email, papel });
       if (error) throw erro(error);
+    },
+    /** Dá ou tira de um membro a permissão de excluir pedidos (só administradores) */
+    async permitirExcluir(email, sim) {
+      email = String(email || "").trim().toLowerCase();
+      if (!ONLINE) {
+        const eq = equipeDemo(), m = eq.find((x) => x.email === email);
+        if (m) { m.pode_excluir = !!sim; gravar(CHAVE_EQUIPE_DEMO, eq); }
+        return;
+      }
+      const sb = await cliente();
+      const { error } = await sb.from("admins").update({ pode_excluir: !!sim }).eq("email", email);
+      if (error) throw erro(/pode_excluir/.test(error.message) ? { message: "Rode a PARTE G do setup.sql no Supabase para usar esta permissão." } : error);
     },
     async removerMembro(email) {
       if (String(email).toLowerCase() === String(window.Conta.usuario.email).toLowerCase()) throw new Error("Você não pode remover o seu próprio acesso.");
@@ -287,6 +317,20 @@
       if (ids.length) { const r = await sb.from("clientes").select("*").in("id", ids); clientes = r.data || []; }
       const porId = Object.fromEntries(clientes.map((c) => [c.id, c]));
       return pedidos.map((p) => Object.assign({}, p, { cliente: porId[p.cliente_id] || {} }));
+    },
+
+    /** Exclui um pedido (quem tem a permissão). Some também de "Minha conta" do cliente. */
+    async excluirPedido(numero) {
+      if (!(await this.podeExcluirPedidos())) throw new Error("Você não tem permissão para excluir pedidos. Peça a um administrador.");
+      if (!ONLINE) {
+        const todos = ler("policoating_demo_pedidos") || {};
+        Object.keys(todos).forEach((k) => { todos[k] = todos[k].filter((p) => p.numero !== numero); });
+        gravar("policoating_demo_pedidos", todos); return;
+      }
+      const sb = await cliente();
+      const { data, error } = await sb.from("pedidos").delete().eq("numero", numero).select("numero");
+      if (error) throw erro(error);
+      if (!data || !data.length) throw new Error("O pedido não foi excluído (sem permissão no banco — rode a PARTE G do setup.sql).");
     },
 
     /** Envia um PDF (ficha técnica) e retorna o endereço público */

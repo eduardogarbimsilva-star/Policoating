@@ -139,6 +139,9 @@ da equipe; clientes comuns não veem nem acessam.
 **Cargos da equipe:**
 - **Administrador:** tudo (produtos, pedidos, contato e links, galeria e equipe).
 - **Vendedor:** só a **Área do vendedor**, com a busca de pedidos, o botão para chamar o cliente e a planilha.
+- **Excluir pedidos:** administradores sempre podem. Vendedores só quando um administrador marca
+  **Pode excluir pedidos** na aba Equipe (e pode desmarcar a qualquer momento). O pedido excluído some do painel e
+  de Minha conta do cliente. Precisa da **PARTE G** do `setup.sql`.
 
 O primeiro administrador é liberado pelo SQL (PARTE D); os demais são adicionados no site, na aba **Equipe**,
 escolhendo o cargo. Nada é pago ou enviado pelo site: o pedido vai para o WhatsApp e o atendimento segue por lá.
@@ -164,7 +167,7 @@ escolhendo o cargo. Nada é pago ou enviado pelo site: o pedido vai para o Whats
 - **Galeria:** enviar, ordenar, legendar e remover as fotos da galeria.
 - **Equipe:** adicionar pessoas como Administrador ou Vendedor, mudar o cargo ou remover o acesso.
 
-Para as abas Contato, Galeria e Equipe, rode também a **PARTE E** e depois a **PARTE F** do `setup.sql`.
+Para as abas Contato, Galeria e Equipe, rode também as **PARTES E, F e G** do `setup.sql`, nessa ordem.
 
 **Produtos no painel:**
 - **Novo produto:** nome, linha, acabamento, descrição, rendimento, cura, embalagens, preço opcional, destaque na

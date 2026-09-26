@@ -26,7 +26,8 @@
       $(".cabecalho-pagina p").textContent = "Encontre qualquer pedido feito pelo site pelo código ou pelo nome do cliente.";
       $$(".admin-abas [data-aba]").forEach((b) => { if (b.dataset.aba !== "pedidos") b.remove(); });
     }
-    $("#selo-papel").textContent = ehAdmin ? "Administrador" : "Vendedor";
+    const podeExcluir = await A.podeExcluirPedidos();
+    $("#selo-papel").textContent = (ehAdmin ? "Administrador" : "Vendedor") + (!ehAdmin && podeExcluir ? " (pode excluir pedidos)" : "");
 
     const filtro = $("#admin-filtro"), selCat = $("[name=categoria]");
     const opcoes = Object.entries(CATS).map(([k, c]) => `<option value="${esc(k)}">${esc(c.nome)}</option>`).join("");
@@ -277,7 +278,8 @@
           </div>
           <footer>
             <span>Total: <strong>${kgPedido(p).toLocaleString("pt-BR")} kg</strong></span>
-            ${tel ? `<a class="btn btn-whats" target="_blank" rel="noopener" href="https://wa.me/${tel.length <= 11 ? "55" + tel : tel}?text=${encodeURIComponent(`Olá, ${nomeCliente(c)}! Aqui é da Policoating, sobre o seu pedido ${p.numero}.`)}">Chamar cliente</a>` : ""}
+            <span class="adm-pedido-botoes">${podeExcluir ? `<button type="button" class="btn-excluir-pedido" data-excluir-pedido="${esc(p.numero)}">Excluir pedido</button>` : ""}
+            ${tel ? `<a class="btn btn-whats" target="_blank" rel="noopener" href="https://wa.me/${tel.length <= 11 ? "55" + tel : tel}?text=${encodeURIComponent(`Olá, ${nomeCliente(c)}! Aqui é da Policoating, sobre o seu pedido ${p.numero}.`)}">Chamar cliente</a>` : ""}</span>
           </footer>
         </article>`;
       }).join("") : `<p class="dica">${!pedidosCarregados ? "Carregando..." : pedidos.length ? `Nenhum pedido encontrado para "${esc(termo)}". Confira o código (ex.: PC-260926-AB12) ou tente só parte do nome.` : "Nenhum pedido ainda. Os pedidos enviados pelo site aparecem aqui."}</p>`;
@@ -290,7 +292,16 @@
     });
     $("#pedidos-periodo").addEventListener("change", desenharPedidos);
     $("#pedidos-atualizar").addEventListener("click", carregarPedidos);
-    $("#admin-pedidos").addEventListener("click", (e) => {
+    $("#admin-pedidos").addEventListener("click", async (e) => {
+      const x = e.target.closest("[data-excluir-pedido]");
+      if (x) {
+        const num = x.dataset.excluirPedido;
+        if (!confirm(`Excluir o pedido ${num}?\n\nEle some do painel e do histórico do cliente. Isso não pode ser desfeito.`)) return;
+        x.disabled = true;
+        try { await A.excluirPedido(num); pedidos = pedidos.filter((p) => p.numero !== num); desenharPedidos(); CW.mostrarToast(`Pedido ${num} excluído.`); }
+        catch (err) { x.disabled = false; $("#pedidos-erro").textContent = err.message; }
+        return;
+      }
       const b = e.target.closest("[data-copiar]"); if (!b) return;
       (navigator.clipboard ? navigator.clipboard.writeText(b.dataset.copiar) : Promise.reject()).then(() => CW.mostrarToast("Código copiado."), () => {});
     });
@@ -396,7 +407,8 @@
         const souEu = m.email.toLowerCase() === eu;
         return `<li data-email="${esc(m.email)}"><span>${icone}${esc(m.email)}${souEu ? " <em>(você)</em>" : ""}</span>
           <div class="equipe-acoes">${souEu ? `<b class="cargo cargo-${m.papel}">${CARGOS[m.papel]}</b>`
-            : `<select data-cargo aria-label="Cargo de ${esc(m.email)}">${Object.entries(CARGOS).map(([k, v]) => `<option value="${k}" ${k === m.papel ? "selected" : ""}>${v}</option>`).join("")}</select>
+            : `${m.papel === "admin" ? "" : `<label class="check-excluir"><input type="checkbox" data-pode-excluir ${m.pode_excluir ? "checked" : ""}> Pode excluir pedidos</label>`}
+               <select data-cargo aria-label="Cargo de ${esc(m.email)}">${Object.entries(CARGOS).map(([k, v]) => `<option value="${k}" ${k === m.papel ? "selected" : ""}>${v}</option>`).join("")}</select>
                <button type="button" class="perigo" data-remover-membro>Remover</button>`}</div></li>`;
       }).join("");
     }
@@ -409,9 +421,16 @@
       } catch (err) { $("#equipe-erro").textContent = err.message; }
     });
     $("#admin-equipe").addEventListener("change", async (e) => {
+      const chk = e.target.closest("[data-pode-excluir]");
+      if (chk) {
+        const email = chk.closest("[data-email]").dataset.email;
+        try { await A.permitirExcluir(email, chk.checked); CW.mostrarToast(chk.checked ? `${email} agora pode excluir pedidos.` : `${email} não pode mais excluir pedidos.`); }
+        catch (err) { chk.checked = !chk.checked; $("#equipe-erro").textContent = err.message; }
+        return;
+      }
       const sel = e.target.closest("[data-cargo]"); if (!sel) return;
       const email = sel.closest("[data-email]").dataset.email;
-      try { await A.salvarMembro(email, sel.value); CW.mostrarToast(`${email} agora é ${CARGOS[sel.value]}.`); }
+      try { await A.salvarMembro(email, sel.value); CW.mostrarToast(`${email} agora é ${CARGOS[sel.value]}.`); carregarEquipe(); }
       catch (err) { $("#equipe-erro").textContent = err.message; carregarEquipe(); }
     });
     $("#admin-equipe").addEventListener("click", async (e) => {

@@ -1959,3 +1959,7 @@ main { overflow-x: clip; }
 .selo-acesso { margin: 0 0 12px; font-size: .88rem; color: var(--texto-suave); }
 .selo-acesso b { color: var(--texto); }
 @media (max-width: 600px) { .admin-equipe li { flex-wrap: wrap; } }
+.adm-pedido-botoes { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.btn-excluir-pedido { padding: 8px 12px; border: 1px solid #e3b3b3; border-radius: 6px; background: #fff; color: #b3261e; font: inherit; font-size: .85rem; cursor: pointer; }
+.btn-excluir-pedido:hover { background: #fdecea; }
+.check-excluir { display: inline-flex; align-items: center; gap: 6px; font-size: .85rem; color: var(--texto-suave); cursor: pointer; }

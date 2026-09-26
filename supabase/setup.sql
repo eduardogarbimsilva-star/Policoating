@@ -270,3 +270,30 @@ create policy "equipe ve clientes" on public.clientes
 -- Sem status de pedido (nada é pago ou enviado pelo site): remove o que a versão anterior criou
 drop policy if exists "admin atualiza pedidos" on public.pedidos;
 alter table public.pedidos drop column if exists status;
+
+-- ===========================================================
+-- PARTE G — Permissão para excluir pedidos
+-- (rode depois da PARTE F; pode rodar de novo sem problema)
+--   Administradores sempre podem excluir.
+--   Vendedores só quando um administrador marcar "Pode excluir pedidos" na aba Equipe.
+-- ===========================================================
+
+alter table public.admins add column if not exists pode_excluir boolean not null default false;
+
+create or replace function public.pode_excluir_pedidos()
+returns boolean language sql stable security definer set search_path = public
+as $$
+  select exists (select 1 from public.admins
+                 where lower(email) = lower(auth.jwt() ->> 'email') and (papel = 'admin' or pode_excluir));
+$$;
+
+revoke all on function public.pode_excluir_pedidos() from public;
+grant execute on function public.pode_excluir_pedidos() to anon, authenticated;
+
+-- só administradores dão ou tiram a permissão (política "admin muda cargo" da PARTE F)
+grant update (pode_excluir) on public.admins to authenticated;
+
+drop policy if exists "equipe exclui pedidos" on public.pedidos;
+create policy "equipe exclui pedidos" on public.pedidos
+  for delete to authenticated using (public.pode_excluir_pedidos());
+grant delete on public.pedidos to authenticated;

@@ -87,7 +87,21 @@
 
     /* ---------- Formulário ---------- */
     const modal = $("#admin-modal"), form = $("#admin-form"), listaCores = $("#lista-cores");
-    let editando = null, idManual = false;
+    let editando = null, idManual = false, fichaAtual = "";
+    function mostrarFicha(url) {
+      fichaAtual = url || "";
+      const a = $("#ficha-link");
+      a.hidden = !fichaAtual; if (fichaAtual) a.href = fichaAtual;
+      $("#ficha-remover").hidden = !fichaAtual;
+    }
+    $("#ficha-remover").addEventListener("click", () => mostrarFicha(""));
+    $("#ficha-arquivo").addEventListener("change", async (e) => {
+      const arq = e.target.files[0]; if (!arq) return;
+      const id = form.id.value.trim();
+      if (!/^[a-z0-9-]{2,60}$/.test(id)) { erro("Preencha o código (id) do produto antes de enviar o PDF."); e.target.value = ""; return; }
+      try { mostrarFicha(await A.enviarPdf(arq, id)); erro(""); } catch (err) { erro(err.message); }
+      e.target.value = "";
+    });
 
     function linhaCor(c = { nome: "", hex: "#1558d6" }) {
       const div = document.createElement("div");
@@ -138,6 +152,7 @@
       form.destaque.checked = !!p.destaque;
       form.ativo.checked = r ? r.ativo : true;
       form.id.readOnly = !!editando;
+      mostrarFicha(p.ficha);
       idManual = !!r;
       listaCores.innerHTML = "";
       (p.cores.length ? p.cores : [undefined]).forEach((c) => linhaCor(c));
@@ -178,6 +193,7 @@
         destaque: form.destaque.checked,
       };
       if (form.densidade.value) dados.densidade = Number(form.densidade.value);
+      if (fichaAtual) dados.ficha = fichaAtual;
       if (form.preco.value) dados.preco = Number(form.preco.value);
       if (!dados.nome) return erro("Informe o nome do produto.");
       if (!/^[a-z0-9-]{2,60}$/.test(dados.id)) return erro("Código (id) inválido: use letras minúsculas, números e hífen.");
@@ -197,5 +213,112 @@
     });
 
     carregar();
+
+    /* ---------- Abas ---------- */
+    const abas = $$(".admin-abas [data-aba]");
+    const abrirAba = (nome) => {
+      abas.forEach((b) => { const on = b.dataset.aba === nome; b.classList.toggle("ativo", on); b.setAttribute("aria-selected", on); });
+      $$(".admin-aba").forEach((c) => (c.hidden = c.dataset.conteudo !== nome));
+      if (nome === "contato") carregarConfig();
+      if (nome === "galeria") carregarGaleria();
+      if (nome === "equipe") carregarEquipe();
+    };
+    abas.forEach((b) => b.addEventListener("click", () => abrirAba(b.dataset.aba)));
+
+    /* ---------- Contato e links ---------- */
+    const formCfg = $("#form-config");
+    let cfgAtual = null;
+    async function carregarConfig() {
+      try { cfgAtual = await A.lerConfig(); } catch (e) { $("#cfg-erro").textContent = e.message; return; }
+      $$("input[name]", formCfg).forEach((i) => {
+        const [grupo, chave] = i.name.split(".");
+        i.value = (chave ? (cfgAtual[grupo] || {})[chave] : cfgAtual[grupo]) || "";
+      });
+    }
+    formCfg.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const d = { redes: {}, lojas: {}, galeria: cfgAtual ? cfgAtual.galeria : undefined };
+      const ruins = [];
+      $$("input[name]", formCfg).forEach((i) => {
+        const [grupo, chave] = i.name.split("."), v = i.value.trim();
+        if (chave) { if (v && !/^https:\/\//.test(v)) ruins.push(i.previousSibling.textContent.trim()); d[grupo][chave] = v; }
+        else d[grupo] = v;
+      });
+      if (ruins.length) { $("#cfg-erro").textContent = "Estes links precisam começar com https:// → " + ruins.join(", "); return; }
+      const b = $("button[type=submit]", formCfg); b.disabled = true;
+      try { await A.salvarConfig(d); $("#cfg-erro").textContent = ""; CW.mostrarToast("Contato e links salvos. O site já usa os novos dados."); document.dispatchEvent(new CustomEvent("config-atualizada")); }
+      catch (err) { $("#cfg-erro").textContent = err.message; }
+      finally { b.disabled = false; }
+    });
+
+    /* ---------- Galeria ---------- */
+    let fotosGaleria = [];
+    async function carregarGaleria() {
+      try { fotosGaleria = (await A.lerConfig()).galeria.slice(); } catch (e) { $("#galeria-erro").textContent = e.message; return; }
+      desenharGaleria();
+    }
+    function desenharGaleria() {
+      $("#admin-galeria").innerHTML = fotosGaleria.length ? fotosGaleria.map((g, i) => `
+        <figure class="admin-foto" data-i="${i}">
+          <img src="${esc(g.src)}" alt="">
+          <input class="g-titulo" value="${esc(g.titulo)}" placeholder="Título" maxlength="80" aria-label="Título">
+          <input class="g-desc" value="${esc(g.descricao)}" placeholder="Descrição" maxlength="140" aria-label="Descrição">
+          <div class="admin-foto-acoes">
+            <button type="button" data-mover="-1" aria-label="Mover para a esquerda" ${i ? "" : "disabled"}>‹</button>
+            <button type="button" data-mover="1" aria-label="Mover para a direita" ${i < fotosGaleria.length - 1 ? "" : "disabled"}>›</button>
+            <button type="button" data-remover class="perigo">Remover</button>
+          </div>
+        </figure>`).join("") : `<p class="dica">Nenhuma foto. Envie fotos para montar a galeria.</p>`;
+    }
+    const lerCamposGaleria = () => $$(".admin-foto", $("#admin-galeria")).forEach((f) => {
+      const g = fotosGaleria[+f.dataset.i]; g.titulo = $(".g-titulo", f).value.trim(); g.descricao = $(".g-desc", f).value.trim();
+    });
+    $("#admin-galeria").addEventListener("click", (e) => {
+      const f = e.target.closest(".admin-foto"); if (!f) return;
+      lerCamposGaleria();
+      const i = +f.dataset.i;
+      const mover = e.target.closest("[data-mover]");
+      if (mover) { const j = i + Number(mover.dataset.mover); [fotosGaleria[i], fotosGaleria[j]] = [fotosGaleria[j], fotosGaleria[i]]; desenharGaleria(); }
+      if (e.target.closest("[data-remover]")) { fotosGaleria.splice(i, 1); desenharGaleria(); }
+    });
+    $("#galeria-arquivos").addEventListener("change", async (e) => {
+      lerCamposGaleria();
+      const arquivos = Array.from(e.target.files); e.target.value = "";
+      for (const arq of arquivos) {
+        try { fotosGaleria.push({ src: await A.enviarFoto(arq, "galeria"), titulo: arq.name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " "), descricao: "" }); desenharGaleria(); }
+        catch (err) { $("#galeria-erro").textContent = err.message; }
+      }
+    });
+    $("#btn-salvar-galeria").addEventListener("click", async (e) => {
+      lerCamposGaleria();
+      e.target.disabled = true;
+      try {
+        const cfg = await A.lerConfig();
+        await A.salvarConfig(Object.assign(cfg, { galeria: fotosGaleria }));
+        $("#galeria-erro").textContent = ""; CW.mostrarToast("Galeria salva.");
+      } catch (err) { $("#galeria-erro").textContent = err.message; }
+      finally { e.target.disabled = false; }
+    });
+
+    /* ---------- Equipe ---------- */
+    async function carregarEquipe() {
+      let lista = [];
+      try { lista = await A.listarAdmins(); } catch (e) { $("#equipe-erro").textContent = e.message; }
+      const eu = String(window.Conta.usuario.email).toLowerCase();
+      const icone = window.Icone ? window.Icone("usuario") : "";
+      $("#admin-equipe").innerHTML = lista.map((a) => `<li><span>${icone}${esc(a.email)}${a.email.toLowerCase() === eu ? " <em>(você)</em>" : ""}</span>
+        ${a.email.toLowerCase() === eu ? "" : `<button type="button" class="perigo" data-remover-admin="${esc(a.email)}">Remover acesso</button>`}</li>`).join("");
+    }
+    $("#form-equipe").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      try { await A.adicionarAdmin($("#equipe-email").value); $("#equipe-email").value = ""; $("#equipe-erro").textContent = ""; CW.mostrarToast("Acesso liberado."); carregarEquipe(); }
+      catch (err) { $("#equipe-erro").textContent = err.message; }
+    });
+    $("#admin-equipe").addEventListener("click", async (e) => {
+      const b = e.target.closest("[data-remover-admin]"); if (!b) return;
+      if (!confirm(`Remover o acesso de ${b.dataset.removerAdmin} ao painel?`)) return;
+      try { await A.removerAdmin(b.dataset.removerAdmin); carregarEquipe(); CW.mostrarToast("Acesso removido."); }
+      catch (err) { $("#equipe-erro").textContent = err.message; }
+    });
   });
 })();

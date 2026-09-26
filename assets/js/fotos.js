@@ -201,13 +201,103 @@
     return `assets/img/produtos/${produto.id}--${slug(cor.nome)}.jpg`;
   }
 
-  /** URL da foto de uma cor de produto: foto real (se houver) ou imagem gerada */
+  /* ---------- Foto real pintada na cor escolhida ----------
+     Uma foto real de peça de aço branca (armário) é "pintada" digitalmente em cada cor,
+     mantendo sombras e reflexos. Vale para acabamentos lisos (brilhante, acetinado, fosco). */
+  const BASE_REAL = { arquivo: "assets/img/marca/peca-armario.jpg", recorte: [0, 20, 680, 790],
+    contorno: [[24, 96], [505, 30], [660, 60], [664, 810], [24, 810]] };
+  let base = null;                                   // { w, h, pixels, peso, luz }
+  const cachePintada = new Map();
+  (function carregarBase() {
+    const img = new Image();
+    img.onload = () => {
+      try {
+        const [rx, ry, rw, rh] = BASE_REAL.recorte;
+        const c = document.createElement("canvas"); c.width = rw; c.height = rh;
+        const x = c.getContext("2d");
+        x.drawImage(img, -rx, -ry);
+        const pixels = x.getImageData(0, 0, rw, rh);
+        x.clearRect(0, 0, rw, rh); x.beginPath();              // contorno da peça
+        BASE_REAL.contorno.forEach(([px, py], i) => (i ? x.lineTo(px - rx, py - ry) : x.moveTo(px - rx, py - ry)));
+        x.closePath(); x.fillStyle = "#fff"; x.fill();
+        const forma = x.getImageData(0, 0, rw, rh).data;
+        const n = rw * rh, peso = new Float32Array(n), luz = new Float32Array(n), d = pixels.data;
+        for (let i = 0; i < n; i++) {
+          const R = d[i * 4], G = d[i * 4 + 1], B = d[i * 4 + 2], mx = Math.max(R, G, B), mn = Math.min(R, G, B);
+          const L = (R * 0.3 + G * 0.59 + B * 0.11) / 255, S = mx ? (mx - mn) / mx : 0;
+          luz[i] = L;
+          // dentro do contorno, tinta = pixel pouco saturado e não muito escuro (a maçaneta fica preta)
+          peso[i] = (forma[i * 4 + 3] / 255) * Math.min(1, Math.max(0, (L - 0.22) / 0.12)) * Math.min(1, Math.max(0, (0.24 - S) / 0.1));
+        }
+        base = { w: rw, h: rh, pixels, peso, luz };
+        document.dispatchEvent(new CustomEvent("fotos-reais-prontas"));
+      } catch (e) { /* sem canvas: fica a imagem gerada */ }
+    };
+    img.src = BASE_REAL.arquivo;
+  })();
+
+  function fotoPintada(hex, acabamento, opcoes) {
+    const fx = tipoAcabamento(acabamento);
+    const w = (opcoes && opcoes.largura) || 600, h = (opcoes && opcoes.altura) || 480;
+    const chave = [hex, fx, w, h].join("|");
+    if (cachePintada.has(chave)) return cachePintada.get(chave);
+    const brilhoMax = { brilhante: 0.65, acetinado: 0.38, fosco: 0.14 }[fx];
+    const contraste = { brilhante: 1.12, acetinado: 1.04, fosco: 0.94 }[fx];
+    const cr = parseInt(hex.slice(1, 3), 16), cg = parseInt(hex.slice(3, 5), 16), cb = parseInt(hex.slice(5, 7), 16);
+    const img = new ImageData(new Uint8ClampedArray(base.pixels.data), base.w, base.h), d = img.data;
+    for (let i = 0, n = base.w * base.h; i < n; i++) {
+      const a = base.peso[i]; if (a <= 0) continue;
+      const L = base.luz[i];
+      const sombra = Math.min(1.2, Math.pow(L / 0.86, contraste));          // relevo e sombras da peça
+      const reflexo = Math.max(0, (L - 0.9) / 0.1) * brilhoMax;             // pontos de luz
+      const pr = cr * sombra + (255 - cr * sombra) * reflexo, pg = cg * sombra + (255 - cg * sombra) * reflexo, pb = cb * sombra + (255 - cb * sombra) * reflexo;
+      d[i * 4] += (pr - d[i * 4]) * a; d[i * 4 + 1] += (pg - d[i * 4 + 1]) * a; d[i * 4 + 2] += (pb - d[i * 4 + 2]) * a;
+    }
+    const c1 = document.createElement("canvas"); c1.width = base.w; c1.height = base.h; c1.getContext("2d").putImageData(img, 0, 0);
+    const c2 = document.createElement("canvas"); c2.width = w; c2.height = h;
+    const x2 = c2.getContext("2d");
+    // fundo: a própria foto ampliada e desfocada; na frente, a peça inteira
+    const cobre = Math.max(w / base.w, h / base.h);
+    if (!base.fundo) { base.fundo = document.createElement("canvas"); base.fundo.width = base.w; base.fundo.height = base.h; base.fundo.getContext("2d").putImageData(base.pixels, 0, 0); }
+    x2.filter = "blur(16px) brightness(.72) saturate(.6)";
+    x2.drawImage(base.fundo, (w - base.w * cobre) / 2, (h - base.h * cobre) / 2, base.w * cobre, base.h * cobre);
+    x2.filter = "none";
+    // peça por cima, com as laterais esmaecendo no fundo (sem "moldura")
+    const cabe = Math.min(w / base.w, h / base.h), dw = Math.round(base.w * cabe), dh = Math.round(base.h * cabe);
+    const c3 = document.createElement("canvas"); c3.width = dw; c3.height = dh;
+    const x3 = c3.getContext("2d");
+    x3.drawImage(c1, 0, 0, dw, dh);
+    x3.globalCompositeOperation = "destination-in";
+    const g = x3.createLinearGradient(0, 0, dw, 0);
+    g.addColorStop(0, "rgba(0,0,0,0)"); g.addColorStop(0.1, "#000"); g.addColorStop(0.9, "#000"); g.addColorStop(1, "rgba(0,0,0,0)");
+    x3.fillStyle = g; x3.fillRect(0, 0, dw, dh);
+    x2.drawImage(c3, (w - dw) / 2, (h - dh) / 2);
+    const url = c2.toDataURL("image/jpeg", 0.86);
+    cachePintada.set(chave, url);
+    return url;
+  }
+  const usaFotoPintada = (acabamento) => !!base && ["brilhante", "acetinado", "fosco"].includes(tipoAcabamento(acabamento));
+
+  /** URL da foto de uma cor de produto: foto real enviada > foto real pintada > imagem gerada */
   function fotoProduto(produto, cor, opcoes) {
     cor = cor || produto.cores[0];
     if (cor.foto) return cor.foto;
     if ((window.MIDIA || {}).fotosProdutos) return caminhoFotoReal(produto, cor);
+    if (usaFotoPintada(produto.acabamento) && /^#[0-9a-f]{6}$/i.test(cor.hex)) return fotoPintada(cor.hex, produto.acabamento, opcoes);
     return fotoCor(cor.hex, produto.acabamento, opcoes);
   }
+
+  // Quando a foto base termina de carregar, troca as imagens geradas que já estão na tela
+  document.addEventListener("fotos-reais-prontas", () => {
+    document.querySelectorAll("img[data-produto][data-cor]").forEach((img) => {
+      if (!img.src.startsWith("data:") || img.dataset.pintada) return;
+      const p = (window.PRODUTOS || []).find((x) => x.id === img.dataset.produto);
+      const cor = p && p.cores.find((c) => c.nome === img.dataset.cor);
+      if (!p || !cor || cor.foto || !usaFotoPintada(p.acabamento)) return;
+      img.dataset.pintada = "1";
+      img.src = fotoPintada(cor.hex, p.acabamento, { largura: +img.getAttribute("width") || 600, altura: +img.getAttribute("height") || 480 });
+    });
+  });
 
   // Se a foto real ainda não existir, troca pela imagem gerada (sem imagem quebrada)
   document.addEventListener("error", (e) => {

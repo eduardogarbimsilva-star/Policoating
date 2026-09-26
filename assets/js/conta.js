@@ -54,6 +54,7 @@
   }
 
   function voltarParaEmail() {
+    etapa(1);
     $("#form-email").hidden = false;
     $("#form-codigo").hidden = true;
     $(".abas", $("#view-acesso")).hidden = false;
@@ -72,9 +73,20 @@
     }, 1000);
   }
 
+  const CHAVE_EMAIL = "policoating_ultimo_email";
+  const TAMANHO_CODIGO = Number((window.SITE_CONFIG || {}).tamanhoCodigo) || 6;
+  function etapa(n) { [1, 2, 3].forEach((i) => $("#passo-" + i).classList.toggle("ativo", i <= n)); }
+  function desenharCasas() {
+    const v = $("#codigo").value, n = Math.max(TAMANHO_CODIGO, v.length);
+    $("#codigo-casas .casas").innerHTML = Array.from({ length: n }, (_, i) =>
+      `<span class="${i === v.length ? "atual" : ""}${v[i] ? " cheia" : ""}">${v[i] || ""}</span>`).join("");
+  }
+
   async function enviarCodigo(email) {
     const r = await Conta.enviarCodigo(email, modo === "criar");
     emailAtual = email.trim().toLowerCase();
+    try { localStorage.setItem(CHAVE_EMAIL, emailAtual); } catch (e) { /* ignora */ }
+    etapa(2);
     $("#email-enviado").textContent = emailAtual;
     $("#form-email").hidden = true;
     $(".abas", $("#view-acesso")).hidden = true;
@@ -83,6 +95,7 @@
     demo.hidden = !r.codigoDemo;
     if (r.codigoDemo) demo.innerHTML = `Modo demonstração — seu código é <strong>${r.codigoDemo}</strong>`;
     $("#codigo").value = "";
+    desenharCasas();
     $("#codigo").focus();
     iniciarReenvio();
   }
@@ -105,7 +118,11 @@
 
   $("#codigo").addEventListener("input", (e) => {
     e.target.value = e.target.value.replace(/\D/g, "").slice(0, 10);
+    desenharCasas();
+    // completou o código: confere sozinho
+    if (e.target.value.length === TAMANHO_CODIGO && !$("#btn-verificar").disabled) $("#form-codigo").requestSubmit();
   });
+  ["focus", "blur", "keyup", "click"].forEach((ev) => $("#codigo").addEventListener(ev, () => $("#codigo-casas").classList.toggle("foco", document.activeElement === $("#codigo"))));
 
   $("#form-codigo").addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -115,9 +132,12 @@
     try {
       await Conta.verificarCodigo(emailAtual, $("#codigo").value);
       clearInterval(timerReenvio);
+      etapa(3);
       aposEntrar();
     } catch (err) {
       erro("#erro-acesso", err.message);
+      $("#codigo-casas").classList.remove("tremer"); void $("#codigo-casas").offsetWidth; $("#codigo-casas").classList.add("tremer");
+      $("#codigo").select();
     } finally {
       ocupado(btn, false);
     }
@@ -132,18 +152,33 @@
   $$(".abas [data-aba]").forEach((b) => b.addEventListener("click", () => trocarAba(b.dataset.aba)));
 
   /* ---------- Depois de entrar ---------- */
+  // Depois de entrar, volta para onde a pessoa estava (carrinho ou página de origem)
+  const voltarPara = (() => {
+    const v = params.get("voltar") || "";
+    return /^[a-z0-9-]+\.html$/.test(v) && v !== "conta.html" ? v : "";
+  })();
   function voltarAoCarrinhoSePreciso() {
-    if (params.get("voltar") !== "carrinho" || !Conta.perfilCompleto()) return false;
-    const destino = sess.get(CHAVE_VOLTAR) || "produtos.html";
-    sess.del(CHAVE_VOLTAR);
-    location.href = destino + "#carrinho";
-    return true;
+    if (params.get("voltar") === "carrinho") {
+      if (!Conta.perfilCompleto()) return false;
+      const destino = sess.get(CHAVE_VOLTAR) || "produtos.html";
+      sess.del(CHAVE_VOLTAR);
+      location.href = destino + "#carrinho";
+      return true;
+    }
+    if (voltarPara && Conta.perfilCompleto()) { location.href = voltarPara; return true; }
+    return false;
   }
 
   function aposEntrar() {
     if (voltarAoCarrinhoSePreciso()) return;
     abrirPainel(Conta.perfilCompleto() ? (location.hash.slice(1) || "resumo") : "dados");
   }
+
+  // links do menu da conta (conta.html#pedidos etc.) trocam de aba sem recarregar
+  window.addEventListener("hashchange", () => {
+    const aba = location.hash.slice(1);
+    if (Conta.usuario && PAINEIS.includes(aba)) abrirPainel(aba);
+  });
 
   /* ---------- Painel ---------- */
   const PAINEIS = ["resumo", "pedidos", "dados", "favoritos", "privacidade"];
@@ -487,6 +522,7 @@
     if (Conta.usuario) return aposEntrar();
     mostrar("acesso");
     trocarAba(params.get("criar") ? "criar" : "entrar");
+    try { const ultimo = localStorage.getItem(CHAVE_EMAIL); if (ultimo && !$("#acesso-email").value) $("#acesso-email").value = ultimo; } catch (e) { /* ignora */ }
     // Link do e-mail expirado ou já usado (o Supabase devolve o erro no endereço)
     const erroLink = new URLSearchParams(location.hash.slice(1)).get("error_description");
     if (erroLink) {

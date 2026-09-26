@@ -107,12 +107,18 @@
     });
     $$("[data-tel]").forEach((el) => (el.href = "tel:+" + String(CFG.whatsapp).replace(/\D/g, "")));
     $$("[data-email]").forEach((el) => (el.href = "mailto:" + CFG.email));
-    $$("[data-rede]").forEach((el) => {
-      const url = (CFG.redes || {})[el.getAttribute("data-rede")];
-      if (url && /^https?:\/\//.test(url)) { el.href = url; el.hidden = false; el.parentElement.hidden = false; }
+    // redes sociais e lojas: cada link só aparece se o endereço estiver configurado
+    $$("[data-rede], [data-loja]").forEach((el) => {
+      const url = el.dataset.rede ? (CFG.redes || {})[el.dataset.rede] : (CFG.lojas || {})[el.dataset.loja];
+      const ok = !!(url && /^https:\/\//.test(url));
+      if (ok) { el.href = url; el.target = "_blank"; el.rel = "noopener"; }
+      el.hidden = !ok;
     });
+    $$("[data-canais]").forEach((box) => { box.hidden = !box.querySelector("[data-rede]:not([hidden]), [data-loja]:not([hidden])"); });
     $$("[data-ano]").forEach((el) => (el.textContent = new Date().getFullYear()));
   }
+
+  document.addEventListener("config-atualizada", () => aplicarConfig());   // mudanças feitas no painel
 
   /* ---------- Menu mobile ---------- */
   function iniciarMenu() {
@@ -513,6 +519,10 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
           );
           return;
         }
+        if (tipo === "ficha" && p.ficha && /^https:\/\//.test(p.ficha)) {   // PDF enviado pelo painel
+          window.open(p.ficha, "_blank", "noopener");
+          return;
+        }
         const msg = tipo === "amostra"
           ? `Olá! Gostaria de solicitar uma amostra (painel) do produto *${p.nome}* na cor *${corSel.nome}*.`
           : `Olá! Gostaria de receber a ficha técnica (BT) e a FISPQ do produto *${p.nome}*.`;
@@ -651,11 +661,54 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
 
   /* ---------- Link "Entrar / Minha conta" no cabeçalho ---------- */
   function atualizarCabecalhoConta() {
+    const pagina = (location.pathname.split("/").pop() || "index.html");
     $$(".link-conta").forEach((a) => {
       const t = $(".texto", a);
-      if (logado()) { t.textContent = Conta.nomeExibicao() || "Minha conta"; a.title = "Minha conta"; a.classList.add("logado"); }
-      else { t.textContent = "Entrar"; a.title = "Entrar ou criar conta"; a.classList.remove("logado"); }
+      if (logado()) {
+        t.textContent = Conta.nomeExibicao() || "Minha conta"; a.title = "Minha conta"; a.classList.add("logado");
+        a.href = "conta.html";
+        a.setAttribute("aria-haspopup", "true");
+        montarMenuConta(a);
+      } else {
+        t.textContent = "Entrar"; a.title = "Entrar ou criar conta"; a.classList.remove("logado");
+        a.removeAttribute("aria-haspopup");
+        // depois de entrar, a pessoa volta para esta página
+        a.href = /^[a-z0-9-]+\.html$/.test(pagina) && !["conta.html", "404.html"].includes(pagina) ? "conta.html?voltar=" + pagina : "conta.html";
+        const m = a.parentElement.querySelector(".menu-conta"); if (m) m.remove();
+      }
     });
+  }
+
+  /* Menu da conta no cabeçalho (só para quem está logado) */
+  function montarMenuConta(link) {
+    let menu = link.parentElement.querySelector(".menu-conta");
+    if (!menu) {
+      menu = document.createElement("div");
+      menu.className = "menu-conta"; menu.hidden = true;
+      link.parentElement.classList.add("conta-ancora");
+      link.insertAdjacentElement("afterend", menu);
+      link.addEventListener("click", (e) => {
+        if (!logado()) return;
+        e.preventDefault();
+        menu.hidden = !menu.hidden;
+        link.setAttribute("aria-expanded", String(!menu.hidden));
+      });
+      document.addEventListener("click", (e) => { if (!menu.hidden && !menu.contains(e.target) && !link.contains(e.target)) { menu.hidden = true; link.setAttribute("aria-expanded", "false"); } });
+      document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !menu.hidden) { menu.hidden = true; link.focus(); } });
+      menu.addEventListener("click", async (e) => {
+        if (e.target.closest("[data-sair]")) { e.preventDefault(); await Conta.sair(); location.href = "index.html"; }
+      });
+    }
+    const u = Conta.usuario || {};
+    menu.innerHTML = `
+      <div class="mc-topo"><strong>${esc(Conta.nomeExibicao() || "Minha conta")}</strong><small>${esc(u.email || "")}</small></div>
+      <a href="conta.html#resumo">${ic("casa")}Visão geral</a>
+      <a href="conta.html#pedidos">${ic("caixa")}Meus pedidos</a>
+      <a href="conta.html#favoritos">${ic("coracao")}Favoritos</a>
+      <a href="conta.html#dados">${ic("usuario")}Meus dados</a>
+      <a href="admin.html" class="mc-admin" hidden>${ic("industria")}Painel da empresa</a>
+      <button type="button" data-sair>${ic("sair")}Sair</button>`;
+    if (window.Catalogo) window.Catalogo.Admin.ehAdmin().then((sim) => { const x = $(".mc-admin", menu); if (x) x.hidden = !sim; }).catch(() => {});
   }
 
   /* ---------- Inicialização ---------- */

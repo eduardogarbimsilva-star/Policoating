@@ -1,10 +1,12 @@
 /* =========================================================
-   Policoating — Catálogo de produtos gerenciável
+   Policoating — Catálogo e configurações gerenciáveis pelo painel
    - Os produtos cadastrados no painel da empresa (admin.html) ficam no
      Supabase (tabela "produtos") e substituem a lista de produtos.js.
    - Enquanto a tabela estiver vazia ou sem conexão, o site usa produtos.js.
    - A última lista recebida fica guardada no navegador, então a página
      abre na hora e se atualiza sozinha se algo mudou.
+   - Também aplica as configurações do painel: WhatsApp, telefone, e-mail,
+     endereço, horário, redes sociais, lojas (marketplaces) e galeria.
    - Sem Supabase (modo demonstração) o painel grava neste navegador.
    ========================================================= */
 (function () {
@@ -25,7 +27,7 @@
     return !!(p && typeof p.id === "string" && /^[a-z0-9-]{2,60}$/.test(p.id) && p.nome && (window.CATEGORIAS || {})[p.categoria] &&
       Array.isArray(p.cores) && p.cores.length && p.cores.every((c) => c && c.nome && /^#[0-9a-f]{6}$/i.test(c.hex) &&
         (!c.foto || /^(https:\/\/|data:image\/(jpeg|png|webp);base64,|assets\/)/.test(c.foto))) &&
-      Array.isArray(p.embalagens) && p.embalagens.length);
+      Array.isArray(p.embalagens) && p.embalagens.length && (!p.ficha || /^https:\/\//.test(p.ficha)));
   }
 
   /** Troca o conteúdo de PRODUTOS sem trocar o array (os outros scripts guardam a referência) */
@@ -60,6 +62,58 @@
     gravar(CHAVE_CACHE, { em: Date.now(), produtos: lista });
     return aplicar(lista);
   }
+
+  /* ---------- Configurações do site (contatos, redes, lojas, galeria) ---------- */
+  const CHAVE_CFG = "policoating_config";
+  const CHAVE_CFG_DEMO = "policoating_demo_config";
+  const TEXTO = ["telefone", "endereco", "horario", "slogan"];
+  const REDES = ["instagram", "facebook", "whatsappBusiness", "linkedin", "youtube", "tiktok"];
+  const LOJAS = ["mercadolivre", "shopee", "aliexpress", "amazon", "magalu"];
+  const https = (u) => typeof u === "string" && /^https:\/\/[^\s"'<>]+$/.test(u.trim()) ? u.trim() : "";
+
+  /** Aceita só campos conhecidos e valores no formato certo */
+  function limparConfig(d) {
+    d = d || {};
+    const o = {};
+    const zap = String(d.whatsapp || "").replace(/\D/g, "");
+    if (/^\d{12,13}$/.test(zap)) o.whatsapp = zap;
+    if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.email || "")) o.email = String(d.email).trim();
+    TEXTO.forEach((k) => { if (typeof d[k] === "string" && d[k].trim()) o[k] = d[k].trim().slice(0, 140); });
+    o.redes = {}; REDES.forEach((k) => { const u = https((d.redes || {})[k]); if (u) o.redes[k] = u; });
+    o.lojas = {}; LOJAS.forEach((k) => { const u = https((d.lojas || {})[k]); if (u) o.lojas[k] = u; });
+    if (Array.isArray(d.galeria)) {
+      o.galeria = d.galeria.filter((g) => g && typeof g.src === "string" && /^(https:\/\/|assets\/|data:image\/(jpeg|png|webp);base64,)/.test(g.src))
+        .slice(0, 60).map((g) => ({ src: g.src, titulo: String(g.titulo || "").slice(0, 80), descricao: String(g.descricao || "").slice(0, 140), categoria: "ambientes" }));
+    }
+    return o;
+  }
+
+  let galeriaPainel = null;
+  function aplicarConfig(bruto) {
+    const d = limparConfig(bruto);
+    const antes = JSON.stringify([CFG.whatsapp, CFG.email, CFG.redes, CFG.lojas, TEXTO.map((k) => CFG[k]), galeriaPainel]);
+    ["whatsapp", "email"].concat(TEXTO).forEach((k) => { if (d[k]) CFG[k] = d[k]; });
+    CFG.redes = Object.assign({}, CFG.redes, d.redes);
+    CFG.lojas = Object.assign({}, CFG.lojas, d.lojas);
+    if (d.galeria && d.galeria.length) galeriaPainel = d.galeria;
+    return antes !== JSON.stringify([CFG.whatsapp, CFG.email, CFG.redes, CFG.lojas, TEXTO.map((k) => CFG[k]), galeriaPainel]);
+  }
+  aplicarConfig(ONLINE ? (ler(CHAVE_CFG) || {}).dados : ler(CHAVE_CFG_DEMO));
+  // a galeria do painel substitui a de midia.js (midia.js carrega depois deste arquivo)
+  document.addEventListener("DOMContentLoaded", () => { if (galeriaPainel && window.MIDIA) window.MIDIA.galeria = galeriaPainel; });
+
+  async function configDoServidor() {
+    if (!ONLINE) return false;
+    const r = await fetch(`${SB.url}/rest/v1/configuracoes?select=dados&id=eq.1`, { headers: { apikey: SB.anonKey } });
+    if (!r.ok) throw new Error("configurações indisponíveis (" + r.status + ")");
+    const linha = (await r.json())[0];
+    if (!linha) return false;
+    gravar(CHAVE_CFG, { em: Date.now(), dados: linha.dados });
+    return aplicarConfig(linha.dados);
+  }
+  configDoServidor()
+    .then((mudou) => { if (mudou) document.dispatchEvent(new CustomEvent("config-atualizada")); })
+    .catch((e) => console.warn("Configurações:", e.message));
 
   const pronto = atualizarDoServidor()
     .then((mudou) => { if (mudou) document.dispatchEvent(new CustomEvent("catalogo-atualizado")); })
@@ -138,6 +192,72 @@
       return sb.storage.from("produtos").getPublicUrl(caminho).data.publicUrl;
     },
 
+    /** Configurações atuais do site (valores efetivos, para preencher o formulário) */
+    async lerConfig() {
+      let salvo = {};
+      if (ONLINE) {
+        const sb = await cliente();
+        const { data } = await sb.from("configuracoes").select("dados").eq("id", 1).maybeSingle();
+        salvo = (data && data.dados) || {};
+      } else salvo = ler(CHAVE_CFG_DEMO) || {};
+      const atual = limparConfig(salvo);
+      return {
+        whatsapp: atual.whatsapp || CFG.whatsapp, email: atual.email || CFG.email,
+        telefone: atual.telefone || CFG.telefone, endereco: atual.endereco || CFG.endereco,
+        horario: atual.horario || CFG.horario, slogan: atual.slogan || CFG.slogan,
+        redes: Object.assign({}, CFG.redes, atual.redes), lojas: Object.assign({}, CFG.lojas, atual.lojas),
+        galeria: atual.galeria || ((window.MIDIA || {}).galeria || []).map((g) => ({ src: g.src, titulo: g.titulo || "", descricao: g.descricao || "" })),
+      };
+    },
+
+    async salvarConfig(bruto) {
+      const d = limparConfig(bruto);
+      if (!d.whatsapp) throw new Error("WhatsApp inválido: use 55 + DDD + número, só dígitos (ex.: 5516992708155).");
+      if (!ONLINE) { gravar(CHAVE_CFG_DEMO, d); aplicarConfig(d); return d; }
+      const sb = await cliente();
+      const { error } = await sb.from("configuracoes").upsert({ id: 1, dados: d, atualizado_em: new Date().toISOString() });
+      if (error) throw erro(error);
+      localStorage.removeItem(CHAVE_CFG);
+      aplicarConfig(d);
+      return d;
+    },
+
+    /** Equipe: e-mails que podem usar o painel */
+    async listarAdmins() {
+      if (!ONLINE) return (ler("policoating_demo_admins") || [window.Conta.usuario.email]).map((email) => ({ email }));
+      const sb = await cliente();
+      const { data, error } = await sb.from("admins").select("email").order("email");
+      if (error) throw erro(error);
+      return data || [];
+    },
+    async adicionarAdmin(email) {
+      email = String(email || "").trim().toLowerCase();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error("E-mail inválido.");
+      if (!ONLINE) { const l = (ler("policoating_demo_admins") || [window.Conta.usuario.email]); if (!l.includes(email)) l.push(email); gravar("policoating_demo_admins", l); return; }
+      const sb = await cliente();
+      const { error } = await sb.from("admins").insert({ email });
+      if (error && error.code !== "23505") throw erro(error);
+    },
+    async removerAdmin(email) {
+      if (String(email).toLowerCase() === String(window.Conta.usuario.email).toLowerCase()) throw new Error("Você não pode remover o seu próprio acesso.");
+      if (!ONLINE) { gravar("policoating_demo_admins", (ler("policoating_demo_admins") || []).filter((e) => e !== email)); return; }
+      const sb = await cliente();
+      const { error } = await sb.from("admins").delete().eq("email", email);
+      if (error) throw erro(error);
+    },
+
+    /** Envia um PDF (ficha técnica) e retorna o endereço público */
+    async enviarPdf(arquivo, pasta) {
+      if (arquivo.type !== "application/pdf") throw new Error("Envie a ficha técnica em PDF.");
+      if (arquivo.size > 10 * 1024 * 1024) throw new Error("PDF muito grande (máx. 10 MB).");
+      if (!ONLINE) throw new Error("No modo demonstração não dá para enviar PDF. Ative o Supabase.");
+      const sb = await cliente();
+      const caminho = `${pasta}/ficha-${Date.now()}.pdf`;
+      const { error } = await sb.storage.from("produtos").upload(caminho, arquivo, { contentType: "application/pdf", upsert: false });
+      if (error) throw erro(error);
+      return sb.storage.from("produtos").getPublicUrl(caminho).data.publicUrl;
+    },
+
     padrao: () => JSON.parse(JSON.stringify(PADRAO)),
     valido,
   };
@@ -158,5 +278,5 @@
     });
   }
 
-  window.Catalogo = { pronto, atualizar: atualizarDoServidor, Admin };
+  window.Catalogo = { pronto, atualizar: atualizarDoServidor, Admin, REDES, LOJAS };
 })();

@@ -138,12 +138,23 @@ liberados como administradores; clientes comuns não veem nem acessam.
 3. Entre no site com esse e-mail (código por e-mail), abra o painel e clique em
    **Importar produtos atuais do site**. A partir daí, tudo é editado pelo painel.
 
-**No painel:**
+**Abas do painel:**
+- **Produtos:** veja abaixo.
+- **Contato e links:** WhatsApp dos pedidos, telefone, e-mail, horário, endereço, slogan, redes sociais
+  (Instagram, Facebook, WhatsApp Business, YouTube, TikTok, LinkedIn) e lojas (Mercado Livre, Shopee, AliExpress,
+  Amazon, Magalu). Cada link só aparece no site depois de preenchido.
+- **Galeria:** enviar, ordenar, legendar e remover as fotos da galeria.
+- **Equipe:** liberar ou remover o acesso de outros e-mails ao painel.
+
+Para as abas Contato, Galeria e Equipe, rode também a **PARTE E** do `setup.sql` (depois da PARTE D).
+
+**Produtos no painel:**
 - **Novo produto:** nome, linha, acabamento, descrição, rendimento, cura, embalagens, preço opcional, destaque na
   página inicial e cores. Cada cor pode ter uma foto real, que é reduzida e enviada automaticamente.
 - **Editar**, **Duplicar** (para criar variações) e **Excluir**.
 - **Visível/Oculto:** tira o produto do site sem apagar.
 - **Ordem no catálogo:** números menores aparecem primeiro.
+- **Ficha técnica (PDF):** opcional; o botão "Ficha técnica" do produto abre o PDF.
 
 As mudanças valem para todos os visitantes em segundos. Enquanto o painel estiver vazio (ou sem internet), o site
 usa a lista de [`assets/js/produtos.js`](assets/js/produtos.js). Sem Supabase configurado, o painel funciona em
@@ -188,6 +199,11 @@ Se alguma foto não carregar, ela some sozinha da tela (sem imagem quebrada).
 
 ### Fotos reais dos produtos (uma por cor)
 
+Enquanto uma cor não tiver foto própria, o site usa uma **foto real de uma peça de aço** (assets/img/marca/peca-armario.jpg)
+e a pinta digitalmente na cor e no acabamento (brilhante, acetinado ou fosco), mantendo sombras e reflexos.
+Acabamentos metálicos e texturizados usam a imagem ilustrativa. A melhor opção continua sendo enviar a foto real de
+cada cor pelo Painel da empresa.
+
 O guia [`FOTOS.md`](FOTOS.md) lista **o nome exato do arquivo de cada cor** e um **prompt pronto** para gerar a foto
 fotorrealista em uma IA de imagens (Gemini, ChatGPT…), além dos prompts das fotos de casas, fachadas e slides.
 
@@ -205,6 +221,11 @@ Outra opção: para a foto real de uma cor específica, adicione `foto` na cor d
 Dica: use fotos em `.jpg` com cerca de 1200 px de largura (proporção 5:4 para produtos e galeria) para o site continuar leve.
 
 ## Assistente de compras (botão no canto da tela)
+
+Além de buscar produtos, o assistente calcula a quantidade ("quanto preciso para 80 m²?"), compara linhas
+("diferença entre epóxi e poliéster"), coloca itens no carrinho ("quero 3 caixas de poliéster preto fosco"),
+lista cores, informa contato, lojas e redes (com os dados do painel), sugere próximas perguntas, aceita mensagem
+por voz e tem botão de nova conversa.
 
 Substitui o antigo botão do WhatsApp. O cliente conversa em linguagem natural e o assistente:
 - **pesquisa produtos** por uso, cor, código RAL e acabamento (ex.: *"portão preto fosco"*, *"painel elétrico RAL 7035"*,

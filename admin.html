@@ -23,7 +23,7 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Barlow:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/style.css?v=f2bc2d46">
+  <link rel="stylesheet" href="assets/css/style.css?v=d1c0954d">
 </head>
 <body>
   <a class="pular" href="#conteudo">Pular para o conteúdo</a>
@@ -116,6 +116,14 @@
             <strong>Modo demonstração:</strong> as alterações ficam salvas só neste navegador. Com o Supabase configurado, elas valem para todos os visitantes.
           </div>
 
+          <nav class="admin-abas" role="tablist" aria-label="Seções do painel">
+            <button type="button" role="tab" data-aba="produtos" class="ativo"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5M12 13v8"/></svg> Produtos</button>
+            <button type="button" role="tab" data-aba="contato"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/></svg> Contato e links</button>
+            <button type="button" role="tab" data-aba="galeria"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18c1.1 0 2-.9 2-2 0-.5-.2-1-.5-1.3-.3-.4-.5-.8-.5-1.2 0-1.1.9-2 2-2h2.4A4.6 4.6 0 0 0 22 10c0-3.9-4.5-7-10-7"/><circle cx="7.5" cy="11.5" r="1"/><circle cx="10.5" cy="7.5" r="1"/><circle cx="15.5" cy="7.5" r="1"/></svg> Galeria</button>
+            <button type="button" role="tab" data-aba="equipe"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg> Equipe</button>
+          </nav>
+
+          <div class="admin-aba" data-conteudo="produtos">
           <div class="admin-barra">
             <label class="busca"><input type="search" id="admin-busca" placeholder="Buscar produto..." aria-label="Buscar produto"></label>
             <select id="admin-filtro" aria-label="Filtrar por linha"><option value="">Todas as linhas</option></select>
@@ -131,6 +139,68 @@
               <thead><tr><th>Produto</th><th>Linha</th><th>Cores</th><th>Ordem</th><th>Situação</th><th><span class="sr">Ações</span></th></tr></thead>
               <tbody id="admin-lista"></tbody>
             </table>
+          </div>
+          </div>
+
+          <!-- Contato e links -->
+          <form class="admin-aba admin-cfg" data-conteudo="contato" id="form-config" hidden novalidate>
+            <fieldset>
+              <legend>Atendimento</legend>
+              <div class="grade-campos">
+                <label>WhatsApp dos pedidos *<input name="whatsapp" inputmode="numeric" placeholder="5516992708155"><small>55 + DDD + número, só dígitos. É para esse número que os pedidos do site vão.</small></label>
+                <label>Telefone exibido no site<input name="telefone" placeholder="(16) 99270-8155"></label>
+                <label>E-mail de contato<input name="email" type="email" placeholder="contato@policoating.com.br"></label>
+                <label>Horário de atendimento<input name="horario" placeholder="Seg a Sex, 8h às 18h"></label>
+                <label class="largo">Endereço ou área de atendimento<input name="endereco" placeholder="Atendimento para todo o Brasil"></label>
+                <label class="largo">Frase da empresa (slogan)<input name="slogan"></label>
+              </div>
+            </fieldset>
+            <fieldset>
+              <legend>Redes sociais</legend>
+              <p class="dica">Cole o endereço completo (começando com https://). Deixe em branco para esconder no site.</p>
+              <div class="grade-campos">
+                <label>Instagram<input name="redes.instagram" placeholder="https://www.instagram.com/policoating"></label>
+                <label>Facebook<input name="redes.facebook" placeholder="https://www.facebook.com/policoating"></label>
+                <label>WhatsApp Business (catálogo)<input name="redes.whatsappBusiness" placeholder="https://wa.me/c/5516992708155"></label>
+                <label>YouTube<input name="redes.youtube" placeholder="https://www.youtube.com/@policoating"></label>
+                <label>TikTok<input name="redes.tiktok" placeholder="https://www.tiktok.com/@policoating"></label>
+                <label>LinkedIn<input name="redes.linkedin" placeholder="https://www.linkedin.com/company/policoating"></label>
+              </div>
+            </fieldset>
+            <fieldset>
+              <legend>Lojas (marketplaces)</legend>
+              <div class="grade-campos">
+                <label>Mercado Livre<input name="lojas.mercadolivre" placeholder="https://www.mercadolivre.com.br/pagina/policoating"></label>
+                <label>Shopee<input name="lojas.shopee" placeholder="https://shopee.com.br/policoating"></label>
+                <label>AliExpress<input name="lojas.aliexpress" placeholder="https://pt.aliexpress.com/store/..."></label>
+                <label>Amazon<input name="lojas.amazon" placeholder="https://www.amazon.com.br/..."></label>
+                <label>Magalu<input name="lojas.magalu" placeholder="https://www.magazineluiza.com.br/..."></label>
+              </div>
+            </fieldset>
+            <p class="form-erro" id="cfg-erro" role="alert"></p>
+            <div class="admin-rodape-form"><button type="submit" class="btn btn-primario">Salvar contato e links</button></div>
+          </form>
+
+          <!-- Galeria -->
+          <div class="admin-aba" data-conteudo="galeria" hidden>
+            <div class="admin-barra">
+              <p class="dica" style="margin:0;flex:1">Fotos da aba "Policoating" da galeria e da página inicial. Arraste com as setas para mudar a ordem.</p>
+              <label class="btn btn-primario admin-enviar">+ Enviar fotos<input type="file" id="galeria-arquivos" accept="image/jpeg,image/png,image/webp" multiple hidden></label>
+            </div>
+            <div class="admin-galeria" id="admin-galeria"></div>
+            <p class="form-erro" id="galeria-erro" role="alert"></p>
+            <div class="admin-rodape-form"><button type="button" class="btn btn-primario" id="btn-salvar-galeria">Salvar galeria</button></div>
+          </div>
+
+          <!-- Equipe -->
+          <div class="admin-aba" data-conteudo="equipe" hidden>
+            <p class="dica">Pessoas com acesso a este painel. Elas entram no site com o próprio e-mail (código de acesso) e veem o botão "Painel da empresa" em Minha conta.</p>
+            <form class="admin-barra" id="form-equipe" novalidate>
+              <label class="busca" style="flex:1"><input type="email" id="equipe-email" placeholder="email@empresa.com.br" aria-label="E-mail para liberar"></label>
+              <button type="submit" class="btn btn-primario">Liberar acesso</button>
+            </form>
+            <ul class="admin-equipe" id="admin-equipe"></ul>
+            <p class="form-erro" id="equipe-erro" role="alert"></p>
           </div>
         </div>
       </div>
@@ -157,6 +227,13 @@
             <label>Preço por kg (opcional)<input name="preco" type="number" step="0.01" min="0" placeholder="Em branco = Sob consulta"></label>
             <label class="largo">Embalagens * <input name="embalagens" required placeholder="Caixa 20 kg, Caixa 25 kg"><small>Separe por vírgula.</small></label>
             <label>Ordem no catálogo<input name="ordem" type="number" step="1" value="100"></label>
+            <div class="largo campo-ficha">
+              <span>Ficha técnica (PDF)</span>
+              <div><a id="ficha-link" target="_blank" rel="noopener" hidden>Ver PDF atual</a>
+                <label class="btn btn-contorno-azul">Enviar PDF<input type="file" id="ficha-arquivo" accept="application/pdf" hidden></label>
+                <button type="button" class="cor-sem-foto" id="ficha-remover" hidden>Remover</button></div>
+              <small>Opcional. Sem PDF, o botão "Ficha técnica" pede a ficha pelo WhatsApp.</small>
+            </div>
             <div class="checks">
               <label class="check"><input type="checkbox" name="destaque"> Destaque na página inicial</label>
               <label class="check"><input type="checkbox" name="ativo" checked> Visível no site</label>
@@ -183,11 +260,13 @@
       <div>
         <a href="index.html" class="logo logo-rodape"><span class="logo-marca"><svg viewBox="0 0 64 64" aria-hidden="true"><path fill="#ffffff" fill-rule="evenodd" d="M22 6h24c11 0 17 7 15 17-2 11-11 18-23 18h-8l-4 17H12L22 6zm10 11-3.5 13H37c5 0 8-2.6 9-6.5 1-4-1-6.5-5.5-6.5H32z"/><path fill="#4d8bff" d="M4 58 14 20h11l-4 14c8 0 14-2 18-7-3 9-10 14-21 14h-2l-4 17z"/></svg></span><span class="logo-texto"><strong>Poli<span>coating</span></strong><small>Tinta eletrostática em pó</small></span></a>
         <p data-cfg="slogan"></p>
-        <div class="redes" hidden>
+        <div class="redes" data-canais hidden>
+          <a data-rede="whatsappBusiness" aria-label="WhatsApp Business" target="_blank" rel="noopener" hidden><svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2m0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2m4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.3-.4.8-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.7 11.8 11.8 0 0 0 4.5 4c1.7.7 2.3.8 3.1.6.5-.1 1.5-.6 1.7-1.2s.2-1.1.2-1.2-.2-.2-.4-.3"/></svg></a>
           <a data-rede="instagram" aria-label="Instagram" target="_blank" rel="noopener" hidden><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg></a>
           <a data-rede="facebook" aria-label="Facebook" target="_blank" rel="noopener" hidden><svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M13.5 21v-7.5h2.6l.4-3h-3V8.6c0-.9.3-1.5 1.5-1.5h1.6V4.4c-.3 0-1.2-.1-2.3-.1-2.3 0-3.8 1.4-3.8 3.9v2.3H8v3h2.5V21z"/></svg></a>
           <a data-rede="linkedin" aria-label="LinkedIn" target="_blank" rel="noopener" hidden><svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M4.98 3.5a2 2 0 1 1 0 4 2 2 0 0 1 0-4M3.2 9h3.6v11.5H3.2zM9.2 9h3.4v1.6h.1c.5-.9 1.7-1.9 3.4-1.9 3.6 0 4.3 2.4 4.3 5.5v6.3h-3.6v-5.6c0-1.3 0-3-1.8-3s-2.1 1.4-2.1 2.9v5.7H9.2z"/></svg></a>
           <a data-rede="youtube" aria-label="YouTube" target="_blank" rel="noopener" hidden><svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M21.6 7.2a2.5 2.5 0 0 0-1.8-1.8C18.2 5 12 5 12 5s-6.2 0-7.8.4A2.5 2.5 0 0 0 2.4 7.2 26 26 0 0 0 2 12a26 26 0 0 0 .4 4.8 2.5 2.5 0 0 0 1.8 1.8C5.8 19 12 19 12 19s6.2 0 7.8-.4a2.5 2.5 0 0 0 1.8-1.8A26 26 0 0 0 22 12a26 26 0 0 0-.4-4.8M10 15V9l5.2 3z"/></svg></a>
+          <a data-rede="tiktok" aria-label="TikTok" target="_blank" rel="noopener" hidden><svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M16.5 3c.3 2.2 1.6 3.6 3.8 3.8v3.1c-1.4.1-2.6-.3-3.8-1v6.4c0 3.6-3 6.1-6.4 5.6-2.3-.3-4.2-2.2-4.5-4.5-.5-3.6 2.4-6.6 6-6.2v3.2c-1.5-.4-3 .7-2.9 2.3.1 1.2 1.1 2.1 2.3 2.1 1.3 0 2.3-1.1 2.3-2.4V3z"/></svg></a>
         </div>
       </div>
       <div>
@@ -224,24 +303,32 @@
         </ul>
       </div>
     </div>
+    <div class="container rodape-lojas" data-canais hidden>
+      <span>Compre também em</span>
+      <a data-loja="mercadolivre" class="loja loja-mercadolivre" hidden>Mercado Livre</a>
+      <a data-loja="shopee" class="loja loja-shopee" hidden>Shopee</a>
+      <a data-loja="aliexpress" class="loja loja-aliexpress" hidden>AliExpress</a>
+      <a data-loja="amazon" class="loja loja-amazon" hidden>Amazon</a>
+      <a data-loja="magalu" class="loja loja-magalu" hidden>Magalu</a>
+    </div>
     <div class="container rodape-base">
       <span>© <span data-ano>2026</span> <span data-cfg="empresa">Policoating</span>. Todos os direitos reservados.</span>
       <span>Pedidos finalizados via WhatsApp com nossa equipe de vendas.</span>
     </div>
   </footer>
 
-  <script src="assets/js/config.js?v=2d363928"></script>
+  <script src="assets/js/config.js?v=383a138e"></script>
   <script src="assets/js/produtos.js?v=02717c64"></script>
-  <script src="assets/js/catalogo.js?v=1939b95a"></script>
-  <script src="assets/js/icones.js?v=fbc0a612"></script>
+  <script src="assets/js/catalogo.js?v=83eea685"></script>
+  <script src="assets/js/icones.js?v=0989d2a0"></script>
   <script src="assets/js/midia.js?v=781286f8"></script>
   <script src="assets/js/fotos-reais.js?v=cd443528"></script>
-  <script src="assets/js/fotos.js?v=b90ec185"></script>
+  <script src="assets/js/fotos.js?v=48f81340"></script>
   <script src="assets/js/auth.js?v=a28ab023"></script>
-  <script src="assets/js/main.js?v=0fd3b5b0"></script>
+  <script src="assets/js/main.js?v=8ec8dfd3"></script>
   <script src="assets/js/animacoes.js?v=d458c529"></script>
   <script src="assets/js/secoes.js?v=6acddd4d"></script>
-  <script src="assets/js/assistente.js?v=041927b2"></script>
-  <script src="assets/js/admin.js?v=9b2d402c"></script>
+  <script src="assets/js/assistente.js?v=8c7879e2"></script>
+  <script src="assets/js/admin.js?v=e88ef805"></script>
 </body>
 </html>

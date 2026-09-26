@@ -32,12 +32,22 @@ window.SITE_CONFIG = {
     endpoint: ""
   },
 
-  // Endereços das redes sociais. Deixe vazio ("") para esconder o ícone.
+  // Redes sociais e lojas. Deixe vazio ("") para esconder. Também dá para editar tudo
+  // pelo Painel da empresa → "Contato e links" (o que for salvo lá vale mais que este arquivo).
   // Ex.: instagram: "https://www.instagram.com/policoating"
   redes: {
     instagram: "",
     facebook: "",
+    whatsappBusiness: "",   // link do catálogo do WhatsApp Business, ex.: https://wa.me/c/5516992708155
     linkedin: "",
-    youtube: ""
+    youtube: "",
+    tiktok: ""
+  },
+  lojas: {
+    mercadolivre: "",
+    shopee: "",
+    aliexpress: "",
+    amazon: "",
+    magalu: ""
   }
 };

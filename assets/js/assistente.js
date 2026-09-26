@@ -63,7 +63,9 @@
     const numero = (t.match(/ral\s*(\d{4})/) || [])[1] || (t.match(/\b\d{4}\b/g) || []).find((n) => codigosCatalogo.has(n));
     const ral = numero || null;
     const acab = Object.keys(ACABAMENTOS).filter((a) => t.includes(a)).map((a) => ACABAMENTOS[a]);
-    const cats = PISTAS.filter(([re]) => re.test(t)).map(([, c]) => c);
+    // nome da linha escrito direto tem prioridade; depois, pistas de uso
+    const NOMES_LINHA = [[/poliester/, "poliester"], [/epox/, "epoxi"], [/hibrid/, "hibrida"], [/texturizad|martelad/, "texturizada"], [/metalic/, "metalica"]];
+    const cats = [...new Set(NOMES_LINHA.filter(([re]) => re.test(t)).map(([, c]) => c).concat(PISTAS.filter(([re]) => re.test(t)).map(([, c]) => c)))];
     let intencao = "buscar";
     if (/\b(oi|ola|bom dia|boa tarde|boa noite|e ai)\b/.test(t) && t.length < 25) intencao = "saudacao";
     if (/repet|de novo|novamente|ultimo pedido|ultimos pedidos|meus pedidos|comprar mais|recompr|pedido anterior/.test(t)) intencao = "pedidos";
@@ -77,8 +79,21 @@
     if (/maquina|equipamento|estufa|cabine|pistola|jateamento|pre.?tratamento|fosfat|como (se )?aplica|como funciona|processo|etapa/.test(t)) intencao = "processo";
     if (/nao (posso|pode|devo|deve) usar|nao serve|limitac|onde nao|quando nao|madeira|plastico|retoque/.test(t)) intencao = "limites";
     if (/qual (po|tinta) usar|nao sei qual|me ajuda a escolher|indica/.test(t)) intencao = cats.length || cores.length ? "buscar" : "guia";
+    if (/horario|endereco|onde fica|onde voces ficam|e-?mail|contato|atendimento/.test(t) && intencao !== "entrega") intencao = "contato";
+    if (/mercado ?livre|shopee|aliexpress|amazon|magalu|marketplace|outras lojas|loja (oficial|online)/.test(t)) intencao = "lojas";
+    if (/instagram|facebook|tiktok|youtube|linkedin|rede social|redes sociais/.test(t)) intencao = "redes";
+    if (/cadastr|minha conta|login|entrar na conta|senha|criar conta/.test(t) && intencao === "buscar") intencao = "conta";
+    if (/quais (as )?cores|cores disponiveis|cartela|que cores/.test(t)) intencao = "cores";
+    if (/diferenca|compar|\bvs\b|versus|ou (o |a )?(epoxi|poliester|hibrida)|melhor.*(epoxi|poliester|hibrida)/.test(t) && cats.length >= 1) intencao = "comparar";
+    // área: "50 m2", "120 metros quadrados" → cálculo de consumo
+    const area = (t.match(/(\d+(?:[.,]\d+)?)\s*(m2|m²|metros? quadrados?|metro2)/) || [])[1];
+    if (area || /quanto(s)? (kg|quilo|caixa|po) (eu )?preciso|calcul|rendimento|consumo/.test(t)) intencao = "calcular";
+    // quantidade para comprar: "quero 3 caixas de ..." → coloca direto no carrinho
+    const qtd = (t.match(/(\d+)\s*(caixas?|cx)\b/) || [])[1];
+    if (qtd && /quero|preciso|compr|adicion|coloc|manda|pedido/.test(t) && intencao !== "calcular") intencao = "adicionar";
+    if (/^(obrigad|valeu|brigad|show|perfeito|otimo)/.test(t)) intencao = "agradecer";
     const alvos = PISTAS_PRODUTO.filter(([re]) => re.test(t)).map(([, id]) => id);
-    return { t, cores, ral, acab, cats, alvos, intencao };
+    return { t, cores, ral, acab, cats, alvos, intencao, area: area ? parseFloat(area.replace(",", ".")) : null, qtd: qtd ? parseInt(qtd, 10) : null };
   }
 
   function buscarProdutos(q) {
@@ -135,12 +150,14 @@
         <header class="assist-topo">
           <div class="assist-avatar">${ic("bussola")}</div>
           <div><strong>Assistente Policoating</strong><small><i></i>${CFG_IA.endpoint ? "Inteligência artificial" : "Online"} · responde na hora</small></div>
+          <button type="button" class="assist-limpar" aria-label="Começar nova conversa" title="Nova conversa">${ic("reciclar")}</button>
           <button type="button" class="assist-fechar" aria-label="Fechar assistente">×</button>
         </header>
         <div class="assist-mensagens" aria-live="polite"></div>
         <div class="assist-atalhos"></div>
         <form class="assist-form">
-          <input type="text" maxlength="400" placeholder="Ex.: portão preto fosco para área externa" aria-label="Escreva sua mensagem" autocomplete="off">
+          <input type="text" maxlength="400" placeholder="Pergunte: produto, cor, quantidade, prazo..." aria-label="Escreva sua mensagem" autocomplete="off">
+          <button type="button" class="assist-voz" aria-label="Falar a mensagem" title="Falar" hidden>${ic("microfone")}</button>
           <button type="submit" aria-label="Enviar">${ic("seta")}</button>
         </form>
         <a class="assist-whats" data-whats-assist target="_blank" rel="noopener">${CW().iconeWhats()} Falar com um vendedor no WhatsApp</a>
@@ -148,6 +165,36 @@
 
     $(".assist-botao").addEventListener("click", () => alternar(!aberto));
     $(".assist-fechar").addEventListener("click", () => alternar(false));
+    $(".assist-limpar").addEventListener("click", () => {
+      historico = []; salvar(); $(".assist-mensagens").innerHTML = ""; contexto.produto = null; boasVindas();
+    });
+    // mensagem por voz (quando o navegador permite)
+    const Reconhecer = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (Reconhecer) {
+      const voz = $(".assist-voz"); voz.hidden = false;
+      voz.addEventListener("click", () => {
+        const r = new Reconhecer(); r.lang = "pt-BR"; r.interimResults = false;
+        voz.classList.add("ouvindo");
+        r.onresult = (ev) => { const t = ev.results[0][0].transcript; if (t && !ocupado) responder(t); };
+        r.onend = () => voz.classList.remove("ouvindo");
+        r.onerror = () => voz.classList.remove("ouvindo");
+        r.start();
+      });
+    }
+    // convite discreto depois de um tempo na página (uma vez por sessão)
+    try {
+      if (!sessionStorage.getItem("policoating_assist_convite") && !carregar().length) {
+        setTimeout(() => {
+          if (aberto || sessionStorage.getItem("policoating_assist_convite")) return;
+          sessionStorage.setItem("policoating_assist_convite", "1");
+          const b = $(".assist-botao");
+          b.insertAdjacentHTML("beforebegin", `<div class="assist-convite" role="status">Precisa de ajuda para escolher a tinta ou calcular a quantidade? <button type="button" aria-label="Fechar">×</button></div>`);
+          const c = $(".assist-convite");
+          c.addEventListener("click", (e) => { c.remove(); if (!e.target.closest("button")) alternar(true); });
+          setTimeout(() => c && c.remove(), 12000);
+        }, 25000);
+      }
+    } catch (e) { /* ignora */ }
     document.addEventListener("keydown", (e) => { if (e.key === "Escape" && aberto) alternar(false); });
     $(".assist-form").addEventListener("submit", (e) => {
       e.preventDefault();
@@ -191,12 +238,13 @@
 
   function boasVindas() {
     const nome = nomeCliente();
-    adicionar({ de: "bot", texto: `Olá${nome ? ", " + nome : ""}! Sou o assistente da Policoating. Posso encontrar a tinta ideal para a sua peça, repetir um pedido ou chamar um vendedor. O que você procura?` });
+    adicionar({ de: "bot", texto: `Olá${nome ? ", " + nome : ""}! Sou o assistente da Policoating. Posso:\n• encontrar a tinta certa para a sua peça\n• calcular quantos quilos e caixas você precisa\n• comparar linhas e mostrar cores\n• repetir um pedido ou chamar um vendedor\n\nO que você procura?`,
+      sugestoes: ["Portão preto fosco externo", "Quanto preciso para 50 m²?", "Diferença entre epóxi e poliéster"] });
   }
 
   function atualizarAtalhos() {
-    const opcoes = [["buscar", "Buscar produto"], ["pedidos", "Comprar novamente"], ["vistos", "Vistos recentemente"],
-      ["favoritos", "Meus favoritos"], ["guia", "Qual pó usar?"], ["carrinho", "Ver carrinho"], ["vendedor", "Falar com vendedor"]];
+    const opcoes = [["buscar", "Buscar produto"], ["calcular", "Calcular quantidade"], ["comparar", "Comparar linhas"], ["pedidos", "Comprar novamente"],
+      ["vistos", "Vistos recentemente"], ["favoritos", "Meus favoritos"], ["carrinho", "Ver carrinho"], ["contato", "Contato"], ["vendedor", "Falar com vendedor"]];
     $(".assist-atalhos").innerHTML = opcoes.map(([k, t]) => `<button type="button" data-atalho="${k}">${t}</button>`).join("");
   }
 
@@ -210,13 +258,24 @@
     const caixa = $(".assist-mensagens");
     const el = document.createElement("div");
     el.className = "assist-msg " + (msg.de === "eu" ? "eu" : "bot") + (animar ? " entrando" : "");
-    let html = msg.texto ? `<p>${esc(msg.texto).replace(/\n/g, "<br>")}</p>` : "";
+    let html = msg.texto ? `<p>${formatar(msg.texto)}</p>` : "";
+    if (msg.comparacao && msg.comparacao.length) html += tabelaComparacao(msg.comparacao);
+    if (msg.links && msg.links.length) html += `<div class="assist-links">${msg.links.map((l) => /^https:\/\//.test(l.url) ? `<a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.nome)} ${ic("seta")}</a>` : "").join("")}</div>`;
     if (msg.produtos && msg.produtos.length) html += `<div class="assist-produtos">${msg.produtos.map(cartaoProduto).join("")}</div>`;
     if (msg.pedidos && msg.pedidos.length) html += `<div class="assist-pedidos">${msg.pedidos.map(cartaoPedido).join("")}</div>`;
     if (msg.acoes && msg.acoes.length) html += `<div class="assist-acoes">${msg.acoes.map(botaoAcao).join("")}</div>`;
+    if (msg.sugestoes && msg.sugestoes.length && animar) html += `<div class="assist-sugestoes">${msg.sugestoes.map((t) => `<button type="button" data-sugestao>${esc(t)}</button>`).join("")}</div>`;
     el.innerHTML = html;
     caixa.appendChild(el);
     rolar();
+  }
+
+  // texto seguro com **negrito** e quebras de linha
+  function formatar(t) { return esc(t).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>").replace(/\n/g, "<br>"); }
+  function tabelaComparacao(linhas) {
+    const campos = [["ideal", "Ideal para"], ["uso", "Uso"], ["cura", "Cura"], ["sol", "Sol/UV"], ["quimica", "Química"], ["corrosao", "Corrosão"]];
+    return `<div class="assist-comparar"><table><thead><tr><th></th>${linhas.map((l) => `<th>${esc(l.nome)}</th>`).join("")}</tr></thead><tbody>${
+      campos.map(([k, r]) => `<tr><th>${r}</th>${linhas.map((l) => `<td>${esc(l[k] || "—")}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
   }
 
   function rolar() { const c = $(".assist-mensagens"); if (c) c.scrollTop = c.scrollHeight; }
@@ -245,7 +304,8 @@
   const ACOES = {
     whatsapp: ["conversa", "Falar com vendedor"], carrinho: ["carrinho", "Abrir carrinho"], guia: ["bussola", "Fazer o guia"],
     pedidos: ["caixa", "Meus pedidos"], favoritos: ["coracao", "Meus favoritos"], entrar: ["usuario", "Entrar na conta"],
-    catalogo: ["grade", "Ver catálogo"], fichas: ["documento", "Fichas técnicas"], processo: ["industria", "Máquinas e etapas"]
+    catalogo: ["grade", "Ver catálogo"], fichas: ["documento", "Fichas técnicas"], processo: ["industria", "Máquinas e etapas"],
+    calculadora: ["calculadora", "Abrir calculadora"]
   };
   function botaoAcao(a) {
     const [icone, texto] = ACOES[a] || ACOES.whatsapp;
@@ -273,11 +333,22 @@
     }
     const acao = e.target.closest("[data-acao-assist]");
     if (acao) executarAcao(acao.dataset.acaoAssist);
+    const sug = e.target.closest("[data-sugestao]");
+    if (sug && !ocupado) {
+      sug.parentElement.remove();
+      const t = sug.textContent.trim();
+      if (t === "Colocar no carrinho" && contexto.produto) {
+        const p = CW().buscarProduto(contexto.produto);
+        if (p) { CW().adicionarAoCarrinho(p.id, p.cores[0].nome, p.embalagens[0], 1); adicionar({ de: "bot", texto: `Adicionei **${p.nome}** ao carrinho. Ajuste a cor e a quantidade no carrinho, se precisar.`, acoes: ["carrinho"] }); }
+        return;
+      }
+      responder(t.replace(/^Produtos /, "produtos linha "));
+    }
   }
 
   function executarAcao(a) {
     const destinos = { guia: "recursos.html#guia", pedidos: "conta.html#pedidos", favoritos: "conta.html#favoritos", entrar: "conta.html",
-      catalogo: "produtos.html", fichas: "recursos.html#documentos", processo: "aplicacao.html#equipamentos" };
+      catalogo: "produtos.html", fichas: "recursos.html#documentos", processo: "aplicacao.html#equipamentos", calculadora: "recursos.html#calculadora" };
     if (a === "carrinho") { alternar(false); CW().abrirCarrinho(); return; }
     if (a === "whatsapp") { window.open(CW().linkWhatsApp(mensagemVendedor()), "_blank", "noopener"); return; }
     if (destinos[a]) location.href = destinos[a];
@@ -302,8 +373,10 @@
     digitando(true);
     let resposta;
     try {
-      resposta = atalho ? await respostaLocal(texto, atalho)
-        : CFG_IA.endpoint ? await respostaIA(texto).catch(() => respostaLocal(texto)) : await respostaLocal(texto);
+      // cálculos, carrinho, pedidos e dados de contato saem sempre do site (dados exatos)
+      const LOCAL = ["calcular", "adicionar", "comparar", "contato", "lojas", "redes", "pedidos", "carrinho", "vistos", "favoritos", "cores", "agradecer"];
+      const usarLocal = atalho || !CFG_IA.endpoint || LOCAL.includes(interpretar(texto).intencao);
+      resposta = usarLocal ? await respostaLocal(texto, atalho) : await respostaIA(texto).catch(() => respostaLocal(texto));
     } catch (e) {
       resposta = { texto: "Desculpe, tive um problema agora. Quer falar direto com um vendedor?", acoes: ["whatsapp"] };
     }
@@ -327,6 +400,38 @@
     if (intencao === "processo") return { texto: "A pintura a pó tem 4 etapas: 1) preparação (jateamento, desengraxe e pré-tratamento químico); 2) aplicação com pistola eletrostática, unidade de alimentação e cabine com recuperação de pó; 3) cura na estufa, em geral de 160 a 200 °C; 4) controle de qualidade (espessura, aderência e brilho). Veja cada máquina em detalhe:", acoes: ["processo", "whatsapp"] };
     if (intencao === "limites") return { texto: "A tinta em pó não é indicada para materiais que não aguentam o calor da estufa (plástico comum, borracha, madeira natural), para retoques na obra (precisa de cabine e estufa), para peças maiores que a estufa e, no caso do epóxi, para peças expostas ao sol. Nesses casos um técnico indica outra solução.", acoes: ["processo", "whatsapp"] };
     if (intencao === "ficha") return { texto: "Enviamos o boletim técnico e a FISPQ de qualquer produto. Abra o produto e toque em \"Ficha técnica\", ou peça na página de documentos.", acoes: ["fichas"] };
+
+    if (intencao === "agradecer") return { texto: "Por nada! Se precisar, é só chamar. Posso calcular a quantidade de pó ou montar o pedido para você.", sugestoes: ["Calcular quantidade", "Ver carrinho"] };
+    if (intencao === "contato") {
+      return { texto: `**Atendimento Policoating**\n• WhatsApp: ${CFG.telefone || ""}\n• E-mail: ${CFG.email || ""}\n• Horário: ${CFG.horario || ""}\n• ${CFG.endereco || ""}`, acoes: ["whatsapp"] };
+    }
+    if (intencao === "lojas") {
+      const lojas = Object.entries(CFG.lojas || {}).filter(([, u]) => /^https:\/\//.test(u || ""));
+      if (!lojas.length) return { texto: "Por enquanto as vendas são feitas pelo site, com atendimento direto no WhatsApp. Monte o carrinho que o vendedor confirma preço e frete.", acoes: ["catalogo", "whatsapp"] };
+      return { texto: "Você também encontra a Policoating nestas lojas:", links: lojas.map(([k, u]) => ({ nome: NOMES_CANAIS[k] || k, url: u })), acoes: ["whatsapp"] };
+    }
+    if (intencao === "redes") {
+      const redes = Object.entries(CFG.redes || {}).filter(([, u]) => /^https:\/\//.test(u || ""));
+      if (!redes.length) return { texto: "Nossas redes sociais ainda estão sendo configuradas. Enquanto isso, fale com a gente pelo WhatsApp.", acoes: ["whatsapp"] };
+      return { texto: "Siga a Policoating:", links: redes.map(([k, u]) => ({ nome: NOMES_CANAIS[k] || k, url: u })) };
+    }
+    if (intencao === "conta") return { texto: "A conta é sem senha: você informa o e-mail e recebe um código de 6 dígitos. Com a conta, seus dados vão junto no pedido, você repete compras anteriores e guarda favoritos.", acoes: ["entrar"] };
+    if (intencao === "cores") {
+      const alvo = q.cats[0] ? (window.PRODUTOS || []).filter((p) => p.categoria === q.cats[0]) : (window.PRODUTOS || []);
+      const nomes = [...new Set([].concat(...alvo.map((p) => p.cores.map((c) => c.nome))))];
+      const titulo = q.cats[0] ? `Cores da linha ${(CATEGORIAS[q.cats[0]] || {}).nome}` : "Cores do catálogo";
+      return { texto: `**${titulo}** (${nomes.length}):\n${nomes.slice(0, 24).map((n) => "• " + n).join("\n")}${nomes.length > 24 ? "\n• e mais…" : ""}\n\nOutra cor? Desenvolvemos sob medida (RAL, Pantone ou amostra).`, sugestoes: ["Cor sob medida", "Falar com vendedor"] };
+    }
+    if (intencao === "comparar") return comparar(q);
+    if (intencao === "calcular") return calcular(q);
+    if (intencao === "adicionar") {
+      const achado = buscarProdutos(q)[0];
+      if (!achado) return { texto: "Qual produto você quer? Diga a peça, a cor e o acabamento, por exemplo: \"quero 3 caixas de poliéster preto fosco\"." };
+      const emb = achado.p.embalagens[0];
+      CW().adicionarAoCarrinho(achado.p.id, achado.cor.nome, emb, q.qtd);
+      contexto.produto = achado.p.id;
+      return { texto: `Coloquei no carrinho: **${q.qtd} × ${achado.p.nome}**, cor ${achado.cor.nome}, ${emb}. Quer revisar e enviar ao vendedor?`, produtos: [{ id: achado.p.id, cor: achado.cor.nome }], acoes: ["carrinho", "whatsapp"] };
+    }
 
     if (intencao === "carrinho") {
       const itens = CW().itensCarrinho();
@@ -360,7 +465,45 @@
     let msg = semCor
       ? "Essa cor não está no nosso catálogo padrão, mas a Policoating desenvolve cores sob medida. Estas são as linhas indicadas para a sua peça; o vendedor confirma a cor:"
       : achados.length === 1 ? "Encontrei esta opção para você:" : "Encontrei estas opções para você:";
-    return { texto: msg, produtos: achados.map((r) => ({ id: r.p.id, cor: r.cor.nome })), acoes: semCor ? ["whatsapp"] : [] };
+    contexto.produto = achados[0].p.id;
+    return { texto: msg, produtos: achados.map((r) => ({ id: r.p.id, cor: r.cor.nome })), acoes: semCor ? ["whatsapp"] : [],
+      sugestoes: ["Quanto preciso para 50 m²?", "Quais cores tem?", "Falar com vendedor"] };
+  }
+
+  /* ---------- Cálculo de consumo ---------- */
+  const NOMES_CANAIS = { mercadolivre: "Mercado Livre", shopee: "Shopee", aliexpress: "AliExpress", amazon: "Amazon", magalu: "Magalu",
+    instagram: "Instagram", facebook: "Facebook", whatsappBusiness: "WhatsApp Business", youtube: "YouTube", tiktok: "TikTok", linkedin: "LinkedIn" };
+  const contexto = { produto: null };
+  function calcular(q) {
+    if (!q.area) return { texto: "Me diga a área a pintar, por exemplo: \"quanto preciso para 80 m²?\". Se a peça tiver os dois lados pintados, some as duas faces.", sugestoes: ["Quanto preciso para 50 m²?", "Quanto preciso para 200 m²?"] };
+    // só usa um produto se a pessoa citou linha/cor/peça; senão, o da conversa ou um rendimento médio
+    const citou = q.cats.length || q.cores.length || q.ral || q.acab.length || q.alvos.length;
+    const achado = citou ? buscarProdutos(q)[0] : null;
+    const p = achado ? achado.p : CW().buscarProduto(contexto.produto);
+    const rend = p ? parseFloat(String(p.rendimento || "").replace(",", ".").match(/[\d.]+/)) : NaN;
+    const m2kg = rend > 0 ? rend : 9;                       // m² por kg a ~70 µm
+    const kg = (q.area / m2kg) * 1.15;                        // +15% de perda na aplicação
+    const caixas = (p ? p.embalagens : ["Caixa 20 kg", "Caixa 25 kg"]).map((e) => {
+      const tam = parseFloat((e.match(/(\d+(?:[.,]\d+)?)\s*kg/i) || [])[1]);
+      return tam ? `${Math.ceil(kg / tam)} × ${e}` : null;
+    }).filter(Boolean);
+    return {
+      texto: `**Estimativa para ${q.area.toLocaleString("pt-BR")} m²**${p ? " com " + p.nome : ""}:\n• Rendimento: ≈ ${m2kg.toLocaleString("pt-BR")} m²/kg (camada de ~70 µm)\n• Consumo: **≈ ${kg.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} kg** (já com 15% de perda)\n• Embalagem: ${caixas.join(" ou ")}\n\nO valor real depende da peça, da cabine e da recuperação do pó.`,
+      produtos: p ? [{ id: p.id }] : [], acoes: ["calculadora"], sugestoes: ["Colocar no carrinho", "Falar com vendedor"]
+    };
+  }
+
+  /* ---------- Comparação entre linhas ---------- */
+  function comparar(q) {
+    let cats = [...new Set(q.cats)];
+    if (cats.length < 2) cats = cats.concat(["poliester", "epoxi", "hibrida"].filter((c) => !cats.includes(c))).slice(0, 2);
+    const linhas = cats.slice(0, 3).map((k) => Object.assign({ k }, CATEGORIAS[k] || {})).filter((c) => c.nome);
+    const n = (v) => "●".repeat(v || 0) + "○".repeat(5 - (v || 0));
+    return {
+      comparacao: linhas.map((c) => ({ nome: c.nome, ideal: c.ideal, uso: c.uso, cura: c.cura, sol: n((c.notas || {}).sol), quimica: n((c.notas || {}).quimica), corrosao: n((c.notas || {}).corrosao) })),
+      texto: "Comparando as linhas:",
+      sugestoes: linhas.map((c) => "Produtos " + c.nome).concat(["Fazer o guia"])
+    };
   }
 
   /* ---------- IA de verdade (opcional) ---------- */

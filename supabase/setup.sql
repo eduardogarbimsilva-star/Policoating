@@ -161,3 +161,52 @@ create policy "admin apaga fotos de produtos" on storage.objects
 
 -- >>> TROQUE PELO E-MAIL DA EMPRESA E RODE ESTA LINHA <<<
 -- insert into public.admins (email) values ('email-da-empresa@exemplo.com') on conflict do nothing;
+
+-- ===========================================================
+-- PARTE E — Painel: contatos, links, galeria e equipe
+-- (rode depois da PARTE D)
+-- ===========================================================
+
+-- Configurações do site (uma linha só): WhatsApp, telefone, e-mail, redes, lojas, galeria
+create table if not exists public.configuracoes (
+  id            integer primary key default 1 check (id = 1),
+  dados         jsonb not null default '{}'::jsonb,
+  atualizado_em timestamptz not null default now()
+);
+alter table public.configuracoes enable row level security;
+
+drop policy if exists "todos leem configuracoes" on public.configuracoes;
+create policy "todos leem configuracoes" on public.configuracoes
+  for select to anon, authenticated using (true);
+
+drop policy if exists "admin cria configuracoes" on public.configuracoes;
+create policy "admin cria configuracoes" on public.configuracoes
+  for insert to authenticated with check (public.eh_admin());
+
+drop policy if exists "admin edita configuracoes" on public.configuracoes;
+create policy "admin edita configuracoes" on public.configuracoes
+  for update to authenticated using (public.eh_admin()) with check (public.eh_admin());
+
+grant select on public.configuracoes to anon, authenticated;
+grant insert, update on public.configuracoes to authenticated;
+
+-- Equipe: administradores podem ver, adicionar e remover outros administradores
+drop policy if exists "admin ve equipe" on public.admins;
+create policy "admin ve equipe" on public.admins
+  for select to authenticated using (public.eh_admin());
+
+drop policy if exists "admin adiciona equipe" on public.admins;
+create policy "admin adiciona equipe" on public.admins
+  for insert to authenticated with check (public.eh_admin());
+
+drop policy if exists "admin remove equipe" on public.admins;
+create policy "admin remove equipe" on public.admins
+  for delete to authenticated using (public.eh_admin() and lower(email) <> lower(auth.jwt() ->> 'email'));
+
+grant select, insert, delete on public.admins to authenticated;
+
+-- A pasta de arquivos passa a aceitar PDF (fichas técnicas), até 10 MB
+update storage.buckets
+   set allowed_mime_types = array['image/jpeg', 'image/png', 'image/webp', 'application/pdf'],
+       file_size_limit = 10485760
+ where id = 'produtos';

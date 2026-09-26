@@ -1963,3 +1963,22 @@ main { overflow-x: clip; }
 .btn-excluir-pedido { padding: 8px 12px; border: 1px solid #e3b3b3; border-radius: 6px; background: #fff; color: #b3261e; font: inherit; font-size: .85rem; cursor: pointer; }
 .btn-excluir-pedido:hover { background: #fdecea; }
 .check-excluir { display: inline-flex; align-items: center; gap: 6px; font-size: .85rem; color: var(--texto-suave); cursor: pointer; }
+/* Painel: clientes */
+.admin-clientes { display: grid; gap: 12px; }
+.adm-cli { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1.2fr) auto; gap: 16px; align-items: center; padding: 14px 16px; border: 1px solid var(--borda); border-radius: 6px; background: #fff; }
+.adm-cli-id { display: grid; gap: 3px; min-width: 0; }
+.adm-cli-id strong { font-size: 1rem; }
+.adm-cli-id small { color: var(--texto-suave); font-size: .84rem; overflow-wrap: anywhere; }
+.adm-cli-num { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin: 0; }
+.adm-cli-num div { padding: 6px 8px; border-radius: 4px; background: var(--fundo-alt); }
+.adm-cli-num dt { font-size: .72rem; color: var(--texto-suave); text-transform: uppercase; letter-spacing: .03em; }
+.adm-cli-num dd { margin: 2px 0 0; font-weight: 700; font-size: .92rem; }
+.adm-cli-acoes { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+.adm-cli-acoes .btn { padding: 8px 14px; font-size: .85rem; }
+.selo-cli { display: inline-block; margin-left: 6px; padding: 2px 8px; border-radius: 999px; font-size: .72rem; font-weight: 700; vertical-align: middle; }
+.selo-cli.ativo { background: #e3f5ea; color: #1d6b3b; }
+.selo-cli.inativo { background: #fff4d6; color: #8a5a00; }
+.selo-cli.sem { background: #eceff2; color: #5d6773; }
+@media (max-width: 900px) { .adm-cli { grid-template-columns: 1fr; } .adm-cli-acoes { justify-content: flex-start; } }
+@media (max-width: 480px) { .adm-cli-num { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.adm-cli-id .selo-cli { justify-self: start; margin: 2px 0; }

@@ -157,6 +157,19 @@
     async ehAdmin() { return (await this.meuPapel()) === "admin"; },
 
     /** Pode excluir pedidos? Administradores sempre; os demais só com a permissão dada por um administrador. */
+    /** Pode exportar a planilha de clientes? Administradores sempre; vendedores só com a permissão. */
+    async podeExportarClientes() {
+      const papel = await this.meuPapel();
+      if (!papel) return false;
+      if (papel === "admin") return true;
+      if (!ONLINE) {
+        const eu = window.Conta.usuario.email.toLowerCase(), m = equipeDemo().find((x) => x.email === eu);
+        return !!(m && m.pode_exportar);
+      }
+      const { data, error } = await (await cliente()).rpc("pode_exportar_clientes");
+      return !error && data === true;
+    },
+
     async podeExcluirPedidos() {
       const papel = await this.meuPapel();
       if (!papel) return false;
@@ -255,11 +268,12 @@
     async listarEquipe() {
       if (!ONLINE) return equipeDemo();
       const sb = await cliente();
-      let r = await sb.from("admins").select("email, papel, pode_excluir").order("email");
+      let r = await sb.from("admins").select("email, papel, pode_excluir, pode_exportar").order("email");
+      if (r.error) r = await sb.from("admins").select("email, papel, pode_excluir").order("email");   // sem a PARTE I ainda
       if (r.error) r = await sb.from("admins").select("email, papel").order("email");   // sem a PARTE G ainda
       if (r.error) r = await sb.from("admins").select("email").order("email");          // sem a PARTE F ainda
       if (r.error) throw erro(r.error);
-      return (r.data || []).map((x) => ({ email: x.email, papel: x.papel || "admin", pode_excluir: !!x.pode_excluir }));
+      return (r.data || []).map((x) => ({ email: x.email, papel: x.papel || "admin", pode_excluir: !!x.pode_excluir, pode_exportar: !!x.pode_exportar }));
     },
     async salvarMembro(email, papel) {
       email = String(email || "").trim().toLowerCase();
@@ -276,16 +290,43 @@
       if (error) throw erro(error);
     },
     /** Dá ou tira de um membro a permissão de excluir pedidos (só administradores) */
-    async permitirExcluir(email, sim) {
+    async permitirExcluir(email, sim) { return this.permitir(email, "pode_excluir", sim); },
+    /** Liga ou desliga uma permissão extra de um membro: "pode_excluir" (pedidos) ou "pode_exportar" (clientes) */
+    async permitir(email, campo, sim) {
+      if (!["pode_excluir", "pode_exportar"].includes(campo)) throw new Error("Permissão desconhecida.");
       email = String(email || "").trim().toLowerCase();
       if (!ONLINE) {
         const eq = equipeDemo(), m = eq.find((x) => x.email === email);
-        if (m) { m.pode_excluir = !!sim; gravar(CHAVE_EQUIPE_DEMO, eq); }
+        if (m) { m[campo] = !!sim; gravar(CHAVE_EQUIPE_DEMO, eq); }
         return;
       }
       const sb = await cliente();
-      const { error } = await sb.from("admins").update({ pode_excluir: !!sim }).eq("email", email);
-      if (error) throw erro(/pode_excluir/.test(error.message) ? { message: "Rode a PARTE G do setup.sql no Supabase para usar esta permissão." } : error);
+      const { error } = await sb.from("admins").update({ [campo]: !!sim }).eq("email", email);
+      if (error) throw erro(new RegExp(campo).test(error.message) ? { message: `Rode a PARTE ${campo === "pode_excluir" ? "G" : "I"} do setup.sql no Supabase para usar esta permissão.` } : error);
+    },
+
+    /** Clientes cadastrados, com o resumo das compras: pedidos, kg e data do último pedido */
+    async listarClientes() {
+      const kgDe = (itens) => (itens || []).reduce((s, it) => s + (window.ColorWeg ? window.ColorWeg.kgDoItem({ embalagem: it.embalagem, qtd: +it.qtd || 0 }) : 0), 0);
+      const resumir = (c, pedidos) => Object.assign({}, c, {
+        pedidos: pedidos.length,
+        kg: pedidos.reduce((s, p) => s + kgDe(p.itens), 0),
+        ultimo_pedido: pedidos.map((p) => p.criado_em).sort().pop() || null
+      });
+      if (!ONLINE) {
+        const perfis = ler("policoating_demo_perfis") || {}, todos = ler("policoating_demo_pedidos") || {};
+        return Object.entries(perfis).filter(([, c]) => c && c.tipo)
+          .map(([email, c]) => resumir(Object.assign({ email }, c), todos[email] || []));
+      }
+      const sb = await cliente();
+      const [rc, rp] = await Promise.all([
+        sb.from("clientes").select("*").order("criado_em", { ascending: false }).limit(5000),
+        sb.from("pedidos").select("cliente_id, criado_em, itens").limit(20000)
+      ]);
+      if (rc.error) throw erro(rc.error);
+      const porCliente = {};
+      (rp.data || []).forEach((p) => (porCliente[p.cliente_id] = porCliente[p.cliente_id] || []).push(p));
+      return (rc.data || []).map((c) => resumir(c, porCliente[c.id] || []));
     },
     async removerMembro(email) {
       if (String(email).toLowerCase() === String(window.Conta.usuario.email).toLowerCase()) throw new Error("Você não pode remover o seu próprio acesso.");

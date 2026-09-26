@@ -170,10 +170,12 @@ da equipe; clientes comuns não veem nem acessam.
 
 **Cargos da equipe:**
 - **Administrador:** tudo (produtos, pedidos, contato e links, galeria e equipe).
-- **Vendedor:** só a **Área do vendedor**, com a busca de pedidos, o botão para chamar o cliente e a planilha.
+- **Vendedor:** só a **Área do vendedor**, com as abas Pedidos e Clientes (busca, chamar o cliente e planilha de pedidos).
 - **Excluir pedidos:** administradores sempre podem. Vendedores só quando um administrador marca
   **Pode excluir pedidos** na aba Equipe (e pode desmarcar a qualquer momento). O pedido excluído some do painel e
   de Minha conta do cliente. Precisa da **PARTE G** do `setup.sql`.
+- **Exportar clientes:** administradores sempre podem. Vendedores só com **Pode exportar clientes** marcado na aba
+  Equipe. Precisa da **PARTE I** do `setup.sql`.
 
 O primeiro administrador é liberado pelo SQL (PARTE D); os demais são adicionados no site, na aba **Equipe**,
 escolhendo o cargo. Nada é pago ou enviado pelo site: o pedido vai para o WhatsApp e o atendimento segue por lá.
@@ -193,13 +195,18 @@ escolhendo o cargo. Nada é pago ou enviado pelo site: o pedido vai para o Whats
   pedidos atrasados. Também busca por empresa, CNPJ/CPF, telefone, cidade, produto ou cor, com filtro de período.
   Botões para copiar o código, chamar o cliente no WhatsApp e **Exportar planilha** (CSV/Excel).
   Precisa da **PARTE F** do `setup.sql`.
+- **Clientes:** todos os clientes cadastrados (só a equipe vê; nunca aparecem na parte pública do site).
+  Busca por nome, empresa, CPF/CNPJ, e-mail, telefone ou cidade; filtros "compraram nos últimos 30 dias",
+  "não compram há mais de 90 dias", "sem pedidos" e "cadastrados nos últimos 30 dias"; ordem por último pedido,
+  kg comprados, número de pedidos ou nome. Cada cliente mostra pedidos, total em kg, último pedido e desde quando é
+  cliente, com os botões **Ver pedidos** e **WhatsApp**. A planilha de clientes só aparece para quem pode exportar.
 - **Contato e links:** WhatsApp dos pedidos, telefone, e-mail, horário, endereço, slogan, redes sociais
   (Instagram, Facebook, WhatsApp Business, YouTube, TikTok, LinkedIn) e lojas (Mercado Livre, Shopee, AliExpress,
   Amazon, Magalu). Cada link só aparece no site depois de preenchido.
 - **Galeria:** enviar, ordenar, legendar e remover as fotos da galeria.
 - **Equipe:** adicionar pessoas como Administrador ou Vendedor, mudar o cargo ou remover o acesso.
 
-Para as abas Contato, Galeria e Equipe, rode também as **PARTES E, F, G e H** do `setup.sql`, nessa ordem.
+Para as abas Contato, Galeria e Equipe, rode também as **PARTES E, F, G, H e I** do `setup.sql`, nessa ordem.
 
 **Produtos no painel:**
 - **Novo produto:** nome, linha, acabamento, descrição, rendimento, cura, embalagens, preço opcional, destaque na

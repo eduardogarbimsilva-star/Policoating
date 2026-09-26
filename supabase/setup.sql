@@ -416,3 +416,25 @@ grant execute on function public.email_ja_cadastrado(text) to anon, authenticate
 -- select 'CPF' as tipo, public.so_digitos(cpf) as doc, array_agg(email) from public.clientes where coalesce(cpf,'')<>'' group by 2 having count(*) > 1
 -- union all
 -- select 'CNPJ', public.so_digitos(cnpj), array_agg(email) from public.clientes where coalesce(cnpj,'')<>'' group by 2 having count(*) > 1;
+
+-- ===========================================================
+-- PARTE I — Permissão para exportar a planilha de clientes
+-- (rode depois das PARTES F e G; pode rodar de novo sem problema)
+--   Administradores sempre podem exportar.
+--   Vendedores só quando um administrador marcar "Pode exportar clientes" na aba Equipe.
+-- (A aba Clientes usa a permissão de leitura da PARTE F: toda a equipe vê os cadastros.)
+-- ===========================================================
+
+alter table public.admins add column if not exists pode_exportar boolean not null default false;
+
+create or replace function public.pode_exportar_clientes()
+returns boolean language sql stable security definer set search_path = public
+as $$
+  select exists (select 1 from public.admins
+                 where lower(email) = lower(auth.jwt() ->> 'email') and (papel = 'admin' or pode_exportar));
+$$;
+
+revoke all on function public.pode_exportar_clientes() from public;
+grant execute on function public.pode_exportar_clientes() to anon, authenticated;
+
+grant update (pode_exportar) on public.admins to authenticated;

@@ -23,7 +23,7 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Barlow:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/style.css?v=7af9b237">
+  <link rel="stylesheet" href="assets/css/style.css?v=59056e6e">
 </head>
 <body>
   <a class="pular" href="#conteudo">Pular para o conteúdo</a>
@@ -92,7 +92,7 @@
       <div class="container">
         <div class="migalhas"><a href="index.html">Início</a> / <a href="conta.html">Minha conta</a> / Painel da empresa</div>
         <h1>Painel da empresa</h1>
-        <p>Produtos, pedidos, contato, galeria e equipe da Policoating em um só lugar.</p>
+        <p>Produtos, pedidos, clientes, contato, galeria e equipe da Policoating em um só lugar.</p>
       </div>
     </section>
 
@@ -120,6 +120,7 @@
           <nav class="admin-abas" role="tablist" aria-label="Seções do painel">
             <button type="button" role="tab" data-aba="produtos" class="ativo"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5M12 13v8"/></svg> Produtos</button>
             <button type="button" role="tab" data-aba="pedidos"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h2l2.4 11h11L21 8H6.2"/><circle cx="9.5" cy="19.5" r="1.5"/><circle cx="17.5" cy="19.5" r="1.5"/></svg> Pedidos</button>
+            <button type="button" role="tab" data-aba="clientes"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg> Clientes</button>
             <button type="button" role="tab" data-aba="contato"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/></svg> Contato e links</button>
             <button type="button" role="tab" data-aba="galeria"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18c1.1 0 2-.9 2-2 0-.5-.2-1-.5-1.3-.3-.4-.5-.8-.5-1.2 0-1.1.9-2 2-2h2.4A4.6 4.6 0 0 0 22 10c0-3.9-4.5-7-10-7"/><circle cx="7.5" cy="11.5" r="1"/><circle cx="10.5" cy="7.5" r="1"/><circle cx="15.5" cy="7.5" r="1"/></svg> Galeria</button>
             <button type="button" role="tab" data-aba="equipe"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg> Equipe</button>
@@ -165,6 +166,40 @@
             </div>
             <div class="admin-pedidos" id="admin-pedidos"></div>
             <p class="form-erro" id="pedidos-erro" role="alert"></p>
+          </div>
+
+          <!-- Clientes -->
+          <div class="admin-aba" data-conteudo="clientes" hidden>
+            <div class="busca-pedidos">
+              <label for="clientes-busca">Buscar cliente</label>
+              <div class="busca-pedidos-linha">
+                <input type="search" id="clientes-busca" placeholder="Nome, empresa, CPF/CNPJ, e-mail, telefone ou cidade" autocomplete="off">
+                <select id="clientes-filtro" aria-label="Filtrar clientes">
+                  <option value="">Todos os clientes</option>
+                  <option value="recentes">Compraram nos últimos 30 dias</option>
+                  <option value="inativos">Não compram há mais de 90 dias</option>
+                  <option value="sem">Ainda sem pedidos</option>
+                  <option value="novos">Cadastrados nos últimos 30 dias</option>
+                </select>
+                <select id="clientes-ordem" aria-label="Ordenar">
+                  <option value="ultimo">Último pedido</option>
+                  <option value="kg">Mais kg comprados</option>
+                  <option value="pedidos">Mais pedidos</option>
+                  <option value="nome">Nome (A–Z)</option>
+                  <option value="cadastro">Cadastro mais recente</option>
+                </select>
+              </div>
+              <small>Dados pessoais: visíveis só para a equipe. Não compartilhe fora da empresa (LGPD).</small>
+            </div>
+            <div class="admin-barra">
+              <div class="pedidos-resumo" id="clientes-resumo"></div>
+              <div class="admin-acoes">
+                <button type="button" class="btn btn-contorno-azul" id="clientes-atualizar">Atualizar</button>
+                <button type="button" class="btn btn-primario" id="clientes-csv" hidden><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg> Exportar planilha</button>
+              </div>
+            </div>
+            <div class="admin-clientes" id="admin-clientes"></div>
+            <p class="form-erro" id="clientes-erro" role="alert"></p>
           </div>
 
           <!-- Contato e links -->
@@ -220,8 +255,8 @@
           <!-- Equipe -->
           <div class="admin-aba" data-conteudo="equipe" hidden>
             <div class="cargos-info">
-              <div><b class="cargo cargo-admin">Administrador</b><span>Tudo: produtos, pedidos (inclusive excluir), contato e links, galeria e equipe.</span></div>
-              <div><b class="cargo cargo-vendedor">Vendedor</b><span>Só a busca de pedidos (código ou nome do cliente), chamar o cliente e exportar planilha. Exclui pedidos apenas se o administrador marcar "Pode excluir pedidos".</span></div>
+              <div><b class="cargo cargo-admin">Administrador</b><span>Tudo: produtos, pedidos (inclusive excluir), clientes (inclusive exportar), contato e links, galeria e equipe.</span></div>
+              <div><b class="cargo cargo-vendedor">Vendedor</b><span>Busca de pedidos e de clientes, chamar o cliente e exportar a planilha de pedidos. Exclui pedidos e exporta a planilha de clientes só se o administrador liberar.</span></div>
             </div>
             <p class="dica">A pessoa entra no site com o próprio e-mail (código de acesso) e vê o botão "Painel da empresa" no menu da conta.</p>
             <form class="admin-barra" id="form-equipe" novalidate>
@@ -349,7 +384,7 @@
 
   <script src="assets/js/config.js?v=fa69da5c"></script>
   <script src="assets/js/produtos.js?v=33acf86a"></script>
-  <script src="assets/js/catalogo.js?v=fe790eba"></script>
+  <script src="assets/js/catalogo.js?v=f451a26e"></script>
   <script src="assets/js/icones.js?v=0989d2a0"></script>
   <script src="assets/js/midia.js?v=781286f8"></script>
   <script src="assets/js/fotos-reais.js?v=cd443528"></script>
@@ -359,6 +394,6 @@
   <script src="assets/js/animacoes.js?v=d458c529"></script>
   <script src="assets/js/secoes.js?v=79232704"></script>
   <script src="assets/js/assistente.js?v=ed48da65"></script>
-  <script src="assets/js/admin.js?v=77a816f5"></script>
+  <script src="assets/js/admin.js?v=2b2e3555"></script>
 </body>
 </html>

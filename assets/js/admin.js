@@ -23,11 +23,13 @@
     if (!ehAdmin) {
       document.title = "Área do vendedor | Policoating";
       $(".cabecalho-pagina h1").textContent = "Área do vendedor";
-      $(".cabecalho-pagina p").textContent = "Encontre qualquer pedido feito pelo site pelo código ou pelo nome do cliente.";
-      $$(".admin-abas [data-aba]").forEach((b) => { if (b.dataset.aba !== "pedidos") b.remove(); });
+      $(".cabecalho-pagina p").textContent = "Encontre qualquer pedido pelo código ou pelo nome do cliente, e veja a carteira de clientes.";
+      $$(".admin-abas [data-aba]").forEach((b) => { if (!["pedidos", "clientes"].includes(b.dataset.aba)) b.remove(); });
     }
-    const podeExcluir = await A.podeExcluirPedidos();
-    $("#selo-papel").textContent = (ehAdmin ? "Administrador" : "Vendedor") + (!ehAdmin && podeExcluir ? " (pode excluir pedidos)" : "");
+    const [podeExcluir, podeExportar] = await Promise.all([A.podeExcluirPedidos(), A.podeExportarClientes()]);
+    const extras = [podeExcluir && "pode excluir pedidos", podeExportar && "pode exportar clientes"].filter(Boolean);
+    $("#selo-papel").textContent = (ehAdmin ? "Administrador" : "Vendedor") + (!ehAdmin && extras.length ? ` (${extras.join(", ")})` : "");
+    $("#clientes-csv").hidden = !podeExportar;
 
     const filtro = $("#admin-filtro"), selCat = $("[name=categoria]");
     const opcoes = Object.entries(CATS).map(([k, c]) => `<option value="${esc(k)}">${esc(c.nome)}</option>`).join("");
@@ -232,6 +234,7 @@
       $$(".admin-aba").forEach((c) => (c.hidden = c.dataset.conteudo !== nome));
       if (nome === "contato") carregarConfig();
       if (nome === "pedidos") carregarPedidos();
+      if (nome === "clientes") carregarClientes();
       if (nome === "galeria") carregarGaleria();
       if (nome === "equipe") carregarEquipe();
     };
@@ -322,6 +325,90 @@
     });
     if (!ehAdmin) abrirAba("pedidos");
 
+    /* ---------- Clientes (administradores e vendedores) ---------- */
+    let clientes = [], clientesCarregados = false;
+    const docCliente = (c) => (c.tipo === "pj" ? (c.cnpj ? "CNPJ " + c.cnpj : "") : (c.cpf ? "CPF " + c.cpf : ""));
+    const diasDesde = (d) => (d ? (Date.now() - new Date(d).getTime()) / 864e5 : Infinity);
+    async function carregarClientes() {
+      $("#clientes-erro").textContent = "";
+      try { clientes = await A.listarClientes(); clientesCarregados = true; }
+      catch (e) { clientes = []; $("#clientes-erro").textContent = e.message + " (rode a PARTE F do setup.sql no Supabase)"; }
+      desenharClientes();
+    }
+    function clientesFiltrados() {
+      const termo = slug($("#clientes-busca").value || ""), f = $("#clientes-filtro").value, ordem = $("#clientes-ordem").value;
+      const soDig = BRso($("#clientes-busca").value);
+      const lista = clientes.filter((c) => {
+        if (f === "recentes" && !(diasDesde(c.ultimo_pedido) <= 30)) return false;
+        if (f === "inativos" && !(c.pedidos && diasDesde(c.ultimo_pedido) > 90)) return false;
+        if (f === "sem" && c.pedidos) return false;
+        if (f === "novos" && !(diasDesde(c.criado_em) <= 30)) return false;
+        if (!termo) return true;
+        if (soDig.length >= 4 && [c.cpf, c.cnpj, c.telefone].some((x) => BRso(x).includes(soDig))) return true;
+        return slug([nomeCliente(c), c.razao_social, c.nome_fantasia, c.responsavel, c.email, c.cidade, c.uf].join(" ")).includes(termo);
+      });
+      const por = {
+        ultimo: (a, b) => String(b.ultimo_pedido || "").localeCompare(String(a.ultimo_pedido || "")),
+        kg: (a, b) => b.kg - a.kg, pedidos: (a, b) => b.pedidos - a.pedidos,
+        nome: (a, b) => nomeCliente(a).localeCompare(nomeCliente(b), "pt-BR"),
+        cadastro: (a, b) => String(b.criado_em || "").localeCompare(String(a.criado_em || ""))
+      };
+      return lista.sort(por[ordem] || por.ultimo);
+    }
+    const BRso = (v) => String(v || "").replace(/\D/g, "");
+    const dataCurta = (d) => (d ? new Date(d).toLocaleDateString("pt-BR") : "—");
+    function desenharClientes() {
+      const lista = clientesFiltrados();
+      const ativos = clientes.filter((c) => diasDesde(c.ultimo_pedido) <= 90).length;
+      $("#clientes-resumo").innerHTML = clientes.length
+        ? `<span><strong>${lista.length}</strong> de ${clientes.length} clientes</span><span><strong>${ativos}</strong> compraram nos últimos 90 dias</span><span><strong>${clientes.filter((c) => !c.pedidos).length}</strong> sem pedidos</span>` : "";
+      $("#admin-clientes").innerHTML = lista.length ? lista.map((c) => {
+        const tel = BRso(c.telefone), inativo = c.pedidos && diasDesde(c.ultimo_pedido) > 90;
+        const selo = !c.pedidos ? `<b class="selo-cli sem">Sem pedidos</b>` : inativo ? `<b class="selo-cli inativo">Sem comprar há ${Math.floor(diasDesde(c.ultimo_pedido))} dias</b>` : diasDesde(c.ultimo_pedido) <= 30 ? `<b class="selo-cli ativo">Comprou recentemente</b>` : "";
+        const msg = inativo ? `Olá, ${nomeCliente(c)}! Aqui é da Policoating. Faz um tempo que não conversamos — posso ajudar com alguma tinta em pó?` : `Olá, ${nomeCliente(c)}! Aqui é da Policoating.`;
+        return `<article class="adm-cli" data-email="${esc(c.email || "")}">
+          <div class="adm-cli-id">
+            <strong>${esc(nomeCliente(c))}</strong> ${selo}
+            <small>${c.tipo === "pj" ? "Empresa" : "Pessoa física"}${docCliente(c) ? " · " + esc(docCliente(c)) : ""}${c.tipo === "pj" && c.responsavel ? " · " + esc(c.responsavel) : ""}</small>
+            <small>${esc(c.email || "")}${c.telefone ? " · " + esc(c.telefone) : ""}</small>
+            ${c.cidade ? `<small>${esc(c.cidade)}/${esc(c.uf || "")}</small>` : ""}
+          </div>
+          <dl class="adm-cli-num">
+            <div><dt>Pedidos</dt><dd>${c.pedidos}</dd></div>
+            <div><dt>Total</dt><dd>${Math.round(c.kg).toLocaleString("pt-BR")} kg</dd></div>
+            <div><dt>Último pedido</dt><dd>${dataCurta(c.ultimo_pedido)}</dd></div>
+            <div><dt>Cliente desde</dt><dd>${dataCurta(c.criado_em)}</dd></div>
+          </dl>
+          <div class="adm-cli-acoes">
+            ${c.pedidos ? `<button type="button" class="btn btn-contorno-azul" data-ver-pedidos="${esc(c.email || nomeCliente(c))}">Ver pedidos</button>` : ""}
+            ${tel ? `<a class="btn btn-whats" target="_blank" rel="noopener" href="https://wa.me/${tel.length <= 11 ? "55" + tel : tel}?text=${encodeURIComponent(msg)}">WhatsApp</a>` : ""}
+          </div>
+        </article>`;
+      }).join("") : `<p class="dica">${!clientesCarregados ? "Carregando..." : clientes.length ? "Nenhum cliente encontrado com essa busca." : "Nenhum cliente cadastrado ainda."}</p>`;
+    }
+    $("#clientes-busca").addEventListener("input", desenharClientes);
+    $("#clientes-filtro").addEventListener("change", desenharClientes);
+    $("#clientes-ordem").addEventListener("change", desenharClientes);
+    $("#clientes-atualizar").addEventListener("click", carregarClientes);
+    $("#admin-clientes").addEventListener("click", (e) => {
+      const b = e.target.closest("[data-ver-pedidos]"); if (!b) return;
+      $("#pedidos-busca").value = b.dataset.verPedidos; $("#pedidos-periodo").value = "0";
+      abrirAba("pedidos");
+    });
+    $("#clientes-csv").addEventListener("click", () => {
+      if (!podeExportar) return;
+      const cel = (v) => `"${String(v == null ? "" : v).replace(/"/g, '""')}"`;
+      const linhas = [["Cliente", "Tipo", "Razão social", "CPF/CNPJ", "Inscrição estadual", "Responsável", "E-mail", "Telefone", "CEP", "Endereço", "Bairro", "Cidade", "UF", "Pedidos", "Total kg", "Último pedido", "Cliente desde"]];
+      clientesFiltrados().forEach((c) => linhas.push([nomeCliente(c), c.tipo === "pj" ? "Empresa" : "Pessoa física", c.razao_social || "", c.cnpj || c.cpf || "", c.inscricao_estadual || "",
+        c.responsavel || "", c.email || "", c.telefone || "", c.cep || "", [c.logradouro, c.numero, c.complemento].filter(Boolean).join(", "), c.bairro || "", c.cidade || "", c.uf || "",
+        c.pedidos, Math.round(c.kg), dataCurta(c.ultimo_pedido), dataCurta(c.criado_em)]));
+      const csv = "\ufeff" + linhas.map((l) => l.map(cel).join(";")).join("\r\n");
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+      a.download = `clientes-policoating-${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a); a.click(); a.remove();
+    });
+
     /* ---------- Contato e links ---------- */
     const formCfg = $("#form-config");
     let cfgAtual = null;
@@ -407,7 +494,8 @@
         const souEu = m.email.toLowerCase() === eu;
         return `<li data-email="${esc(m.email)}"><span>${icone}${esc(m.email)}${souEu ? " <em>(você)</em>" : ""}</span>
           <div class="equipe-acoes">${souEu ? `<b class="cargo cargo-${m.papel}">${CARGOS[m.papel]}</b>`
-            : `${m.papel === "admin" ? "" : `<label class="check-excluir"><input type="checkbox" data-pode-excluir ${m.pode_excluir ? "checked" : ""}> Pode excluir pedidos</label>`}
+            : `${m.papel === "admin" ? "" : `<label class="check-excluir"><input type="checkbox" data-permissao="pode_excluir" ${m.pode_excluir ? "checked" : ""}> Pode excluir pedidos</label>
+               <label class="check-excluir"><input type="checkbox" data-permissao="pode_exportar" ${m.pode_exportar ? "checked" : ""}> Pode exportar clientes</label>`}
                <select data-cargo aria-label="Cargo de ${esc(m.email)}">${Object.entries(CARGOS).map(([k, v]) => `<option value="${k}" ${k === m.papel ? "selected" : ""}>${v}</option>`).join("")}</select>
                <button type="button" class="perigo" data-remover-membro>Remover</button>`}</div></li>`;
       }).join("");
@@ -421,10 +509,10 @@
       } catch (err) { $("#equipe-erro").textContent = err.message; }
     });
     $("#admin-equipe").addEventListener("change", async (e) => {
-      const chk = e.target.closest("[data-pode-excluir]");
+      const chk = e.target.closest("[data-permissao]");
       if (chk) {
-        const email = chk.closest("[data-email]").dataset.email;
-        try { await A.permitirExcluir(email, chk.checked); CW.mostrarToast(chk.checked ? `${email} agora pode excluir pedidos.` : `${email} não pode mais excluir pedidos.`); }
+        const email = chk.closest("[data-email]").dataset.email, oque = chk.dataset.permissao === "pode_excluir" ? "excluir pedidos" : "exportar clientes";
+        try { await A.permitir(email, chk.dataset.permissao, chk.checked); CW.mostrarToast(chk.checked ? `${email} agora pode ${oque}.` : `${email} não pode mais ${oque}.`); }
         catch (err) { chk.checked = !chk.checked; $("#equipe-erro").textContent = err.message; }
         return;
       }

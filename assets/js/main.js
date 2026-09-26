@@ -138,6 +138,9 @@
   // "Sob medida": o cliente informa o total em kg (qtd = kg). Caixas: qtd = número de caixas.
   const SOB_MEDIDA = "Sob medida";
   const ehSobMedida = (emb) => emb === SOB_MEDIDA;
+  // limites por item: até 2.000 caixas ou 50.000 kg sob medida (acima disso, o vendedor atende direto)
+  const QTD_MAX = { caixas: 2000, kg: 50000 };
+  const limitarQtd = (emb, n) => Math.min(ehSobMedida(emb) ? QTD_MAX.kg : QTD_MAX.caixas, Math.max(1, parseInt(n, 10) || 1));
   const kgDaEmbalagem = (emb) => { const m = String(emb || "").match(/(\d+(?:[.,]\d+)?)\s*kg/i); return m ? parseFloat(m[1].replace(",", ".")) : 0; };
   const kgDoItem = (i) => (ehSobMedida(i.embalagem) ? i.qtd : i.qtd * kgDaEmbalagem(i.embalagem));
   const embalagemPadrao = (p) => p.embalagens.find((e) => kgDaEmbalagem(e) === 25) || p.embalagens[0];
@@ -160,10 +163,11 @@
       id,
       cor: cor || p.cores[0].nome,
       embalagem: embalagem || embalagemPadrao(p),
-      qtd: Math.max(1, parseInt(qtd, 10) || 1)
+      qtd: 1
     };
+    item.qtd = limitarQtd(item.embalagem, qtd);
     const existente = carrinho.find((i) => chaveItem(i) === chaveItem(item));
-    if (existente) existente.qtd += item.qtd;
+    if (existente) existente.qtd = limitarQtd(item.embalagem, existente.qtd + item.qtd);
     else carrinho.push(item);
     salvarCarrinho();
     mostrarToast(`<strong>${esc(p.nome)}</strong> adicionado ao carrinho`, true);
@@ -194,7 +198,7 @@
     <div class="resumo-kg" id="carrinho-kg"></div>
     <div class="campos">
       <div id="carrinho-cliente"></div>
-      <textarea id="cliente-obs" rows="2" placeholder="Observações (opcional)"></textarea>
+      <textarea id="cliente-obs" rows="2" maxlength="500" placeholder="Observações (opcional)"></textarea>
     </div>
     <button class="btn btn-whats btn-bloco" id="btn-finalizar">${iconeWhats()} Comprar pelo WhatsApp</button>
     <p class="aviso">Você será direcionado ao WhatsApp de um de nossos vendedores com o seu pedido pronto.
@@ -227,15 +231,15 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
       const idx = +btn.closest("[data-idx]").dataset.idx;
       const acao = btn.dataset.acao;
       const passo = ehSobMedida(carrinho[idx].embalagem) ? 5 : 1;       // sob medida anda de 5 em 5 kg
-      if (acao === "mais") carrinho[idx].qtd += passo;
-      if (acao === "menos") carrinho[idx].qtd = Math.max(1, carrinho[idx].qtd - passo);
+      if (acao === "mais") carrinho[idx].qtd = limitarQtd(carrinho[idx].embalagem, carrinho[idx].qtd + passo);
+      if (acao === "menos") carrinho[idx].qtd = limitarQtd(carrinho[idx].embalagem, carrinho[idx].qtd - passo);
       if (acao === "remover") carrinho.splice(idx, 1);
       salvarCarrinho();
     });
     $("#carrinho-itens").addEventListener("change", (e) => {
       if (!e.target.matches("input")) return;
       const idx = +e.target.closest("[data-idx]").dataset.idx;
-      carrinho[idx].qtd = Math.max(1, parseInt(e.target.value, 10) || 1);
+      carrinho[idx].qtd = limitarQtd(carrinho[idx].embalagem, e.target.value);
       salvarCarrinho();
     });
   }
@@ -368,7 +372,7 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
       return;
     }
 
-    const obs = $("#cliente-obs").value.trim();
+    const obs = $("#cliente-obs").value.replace(/\s+/g, " ").trim().slice(0, 500);
     const numero = gerarNumeroPedido();
     const linhas = [];
     linhas.push(`Olá! Vim pelo site da *${CFG.empresa}* e gostaria de fazer um pedido.`);
@@ -532,7 +536,8 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
     // quantidade: caixas (padrão) ou kg (sob medida), com o total em kg sempre visível
     const passo = () => (ehSobMedida(embSel) ? 5 : 1);
     function atualizarQtd() {
-      const sob = ehSobMedida(embSel), n = Math.max(1, parseInt(qtd.value, 10) || 1);
+      const sob = ehSobMedida(embSel), n = limitarQtd(embSel, qtd.value);
+      if (qtd.value !== "" && +qtd.value > n) { qtd.value = n; mostrarToast(`Máximo de ${n.toLocaleString("pt-BR")} ${sob ? "kg" : "caixas"} por item. Para mais, fale com o vendedor.`); }
       $("#unidade-qtd").textContent = sob ? "(kg)" : "(caixas)";
       $("#nota-sob-medida").hidden = !sob;
       qtd.setAttribute("aria-label", sob ? "Quantidade em kg" : "Quantidade de caixas");
@@ -579,7 +584,7 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
           window.open(p.ficha, "_blank", "noopener");
           return;
         }
-        const item = { embalagem: embSel, qtd: Math.max(1, parseInt(qtd.value, 10) || 1) };
+        const item = { embalagem: embSel, qtd: limitarQtd(embSel, qtd.value) };
         const msg = tipo === "orcamento"
           ? `Olá! Gostaria de um orçamento do produto *${p.nome}*, cor *${corSel.nome}*, quantidade: *${descreverQtd(item)}*.`
           : `Olá! Gostaria de receber a ficha técnica (BT) e a FISPQ do produto *${p.nome}*.`;

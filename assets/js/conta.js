@@ -97,7 +97,8 @@
     emailAtual = email.trim().toLowerCase();
     try { localStorage.setItem(CHAVE_EMAIL, emailAtual); } catch (e) { /* ignora */ }
     etapa(2);
-    $(".nota-codigo").innerHTML = (modo === "criar" ? "Enviamos o código para confirmar o seu cadastro em " : "Enviamos o seu código de acesso para ")
+    if (r.jaTinhaConta) modo = "entrar";
+    $(".nota-codigo").innerHTML = (r.jaTinhaConta ? "Este e-mail já tem conta na Policoating, então enviamos um código para você <b>entrar</b> em " : modo === "criar" ? "Enviamos o código para confirmar o seu cadastro em " : "Enviamos o seu código de acesso para ")
       + '<strong id="email-enviado"></strong>. Confira também a caixa de spam.';
     $("#email-enviado").textContent = emailAtual;
     $("#form-email").hidden = true;
@@ -118,7 +119,14 @@
   $("#form-email").addEventListener("submit", async (e) => {
     e.preventDefault();
     erro("#erro-acesso");
-    const email = $("#acesso-email").value;
+    const email = BR.limpar($("#acesso-email").value).toLowerCase();
+    $("#acesso-email").value = email;
+    // domínio digitado errado (gmial.com, hotmail.con...): avisa uma vez
+    const sugestao = BR.sugerirEmail(email);
+    if (sugestao && $("#acesso-email").dataset.avisado !== email) {
+      $("#acesso-email").dataset.avisado = email;
+      return erro("#erro-acesso", `Confira o e-mail: você quis dizer ${sugestao}? Se estiver certo, clique de novo para continuar.`);
+    }
     if (modo === "criar") {
       if (!$("#aceite-cadastro").checked) return erro("#erro-acesso", "Para criar a conta, aceite a Política de Privacidade.");
       sess.set(CHAVE_TIPO, $("[name=tipo-cadastro]:checked").value);
@@ -473,7 +481,8 @@
     e.preventDefault();
     erro("#erro-dados");
     const tipo = $("[name=tipo]:checked", form).value;
-    const v = (n) => (campo(n).value || "").trim();
+    const LIMITES = { razao_social: 150, nome_fantasia: 150, responsavel: 100, nome: 100, logradouro: 150, numero: 20, complemento: 80, bairro: 80, cidade: 80 };
+    const v = (n) => BR.limpar(campo(n).value, LIMITES[n] || 40);
     const d = { tipo, telefone: v("telefone"), cep: v("cep"), numero: v("numero"), logradouro: v("logradouro"),
       complemento: v("complemento"), bairro: v("bairro"), cidade: v("cidade"), uf: v("uf") };
 
@@ -482,15 +491,22 @@
       Object.assign(d, { cnpj: v("cnpj"), inscricao_estadual: v("inscricao_estadual"), razao_social: v("razao_social"),
         nome_fantasia: v("nome_fantasia"), responsavel: v("responsavel"), nome: null, cpf: null });
       if (!BR.cnpjValido(d.cnpj)) return erro("#erro-dados", "CNPJ inválido. Confira os números.");
-      if (!d.razao_social) faltando.push("razão social");
+      if (!BR.ieValida(d.inscricao_estadual)) return erro("#erro-dados", "Inscrição estadual: use só os números ou escreva ISENTO.");
+      if (d.inscricao_estadual) d.inscricao_estadual = /isento/i.test(d.inscricao_estadual) ? "ISENTO" : BR.so(d.inscricao_estadual);
+      if (d.razao_social.length < 2) faltando.push("razão social");
       if (!d.responsavel) faltando.push("nome do responsável");
+      else if (!BR.nomeValido(d.responsavel)) return erro("#erro-dados", "Nome do responsável: escreva nome e sobrenome, só com letras.");
     } else {
       Object.assign(d, { nome: v("nome"), cpf: v("cpf"), cnpj: null, inscricao_estadual: null, razao_social: null, nome_fantasia: null, responsavel: null });
-      if (!d.nome || d.nome.split(" ").length < 2) faltando.push("nome completo");
+      if (!d.nome) faltando.push("nome completo");
+      else if (!BR.nomeValido(d.nome)) return erro("#erro-dados", "Nome: escreva nome e sobrenome, só com letras (sem números ou símbolos).");
       if (!BR.cpfValido(d.cpf)) return erro("#erro-dados", "CPF inválido. Confira os números.");
     }
-    if (BR.so(d.telefone).length < 10) faltando.push("telefone com DDD");
-    if (BR.so(d.cep).length !== 8) faltando.push("CEP");
+    if (!BR.so(d.telefone)) faltando.push("telefone com DDD");
+    else if (!BR.telefoneValido(d.telefone)) return erro("#erro-dados", "Telefone inválido. Use DDD + número (celular começa com 9), ex.: (16) 99270-8155.");
+    if (!BR.so(d.cep)) faltando.push("CEP");
+    else if (!BR.cepValido(d.cep)) return erro("#erro-dados", "CEP inválido. Confira os 8 números.");
+    if (d.uf && !BR.UFS.includes(d.uf)) return erro("#erro-dados", "Escolha o estado na lista.");
     if (!d.logradouro) faltando.push("rua");
     if (!d.numero) faltando.push("número");
     if (!d.cidade) faltando.push("cidade");

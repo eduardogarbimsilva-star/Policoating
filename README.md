@@ -86,6 +86,22 @@ e os dados ficam só no navegador de quem testa. **Não publique para clientes r
 
 Os cadastros e pedidos podem ser consultados pela equipe em **Table Editor → clientes / pedidos** no painel do Supabase.
 
+### Validações do cadastro (PARTE H do `setup.sql`)
+
+O site confere os dados antes de salvar, e o banco confere de novo (assim ninguém burla pelo navegador):
+- **Sem repetição:** um e-mail, um CPF e um CNPJ por conta. "Criar conta" com um e-mail que já tem cadastro
+  vira "Entrar" automaticamente.
+- **CPF e CNPJ** com dígitos verificadores; **nome** e **responsável** com nome e sobrenome, só letras;
+  **telefone** com DDD real (celular começa com 9); **CEP** com 8 números; **estado** da lista;
+  **inscrição estadual** só números ou ISENTO; tamanho máximo em todos os campos.
+- **E-mail digitado errado** (gmial.com, hotmail.con...): o site sugere o correto.
+- O e-mail do cadastro é sempre o do login, e as datas dos pedidos são do servidor.
+- **Pedidos:** até 2.000 caixas ou 50.000 kg sob medida por item; observação até 500 caracteres.
+
+Cadastros antigos não são bloqueados; as regras valem para novos cadastros e alterações. Se ao rodar a
+PARTE H aparecer erro de "duplicate key", já existem cadastros repetidos: use a consulta do fim da PARTE H
+para encontrá-los, resolva e rode de novo.
+
 ### Newsletter
 
 O bloco "Receba nossa Newsletter" da página inicial grava o e-mail na tabela `newsletter` do Supabase
@@ -183,7 +199,7 @@ escolhendo o cargo. Nada é pago ou enviado pelo site: o pedido vai para o Whats
 - **Galeria:** enviar, ordenar, legendar e remover as fotos da galeria.
 - **Equipe:** adicionar pessoas como Administrador ou Vendedor, mudar o cargo ou remover o acesso.
 
-Para as abas Contato, Galeria e Equipe, rode também as **PARTES E, F e G** do `setup.sql`, nessa ordem.
+Para as abas Contato, Galeria e Equipe, rode também as **PARTES E, F, G e H** do `setup.sql`, nessa ordem.
 
 **Produtos no painel:**
 - **Novo produto:** nome, linha, acabamento, descrição, rendimento, cura, embalagens, preço opcional, destaque na

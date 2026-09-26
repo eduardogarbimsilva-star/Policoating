@@ -46,8 +46,18 @@
     return clientePromise;
   }
 
+  const DUPLICADO = {
+    cpf: "Este CPF já está cadastrado em outra conta. Entre com o e-mail dessa conta ou fale com a gente pelo WhatsApp.",
+    cnpj: "Este CNPJ já está cadastrado em outra conta. Entre com o e-mail dessa conta ou fale com a gente pelo WhatsApp.",
+    email: "Este e-mail já está cadastrado. Use \"Entrar\" em vez de \"Criar conta\"."
+  };
   function traduzirErro(erro) {
     const msg = String((erro && erro.message) || erro || "");
+    if ((erro && erro.code === "23505") || /duplicate key|unique constraint/i.test(msg)) {
+      const k = /cpf/i.test(msg) ? "cpf" : /cnpj/i.test(msg) ? "cnpj" : /email/i.test(msg) ? "email" : null;
+      return new Error(k ? DUPLICADO[k] : "Esses dados já estão cadastrados em outra conta.");
+    }
+    if ((erro && erro.code === "23514") || /check constraint/i.test(msg)) return new Error("Alguns dados estão inválidos. Confira CPF/CNPJ, nome, telefone, CEP e estado.");
     if (/signups? not allowed|user not found/i.test(msg)) return new Error("Não encontramos uma conta com este e-mail. Clique em \"Criar conta\".");
     if (/expired|invalid/i.test(msg) && /token|otp/i.test(msg)) return new Error("Código inválido ou expirado. Confira ou peça um novo código.");
     if (/rate limit|security purposes|only request/i.test(msg)) return new Error("Muitas tentativas. Aguarde um minuto antes de pedir outro código.");
@@ -97,18 +107,22 @@
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error("Informe um e-mail válido.");
       if (USAR_SUPABASE) {
         const sb = await supabase();
+        // Criar conta com e-mail que já tem cadastro: avisa e segue como "Entrar"
+        let jaTem = false;
+        if (criar) { const r = await sb.rpc("email_ja_cadastrado", { e: email }); jaTem = !r.error && r.data === true; }
         // Se o modelo de e-mail do Supabase enviar um link em vez do código, o link também funciona:
         // ele volta para a página "Minha conta" deste site, já com o cliente conectado.
         const voltarPara = location.origin + location.pathname.replace(/[^/]*$/, "") + "conta.html";
         const { error } = await sb.auth.signInWithOtp({ email, options: { shouldCreateUser: !!criar, emailRedirectTo: voltarPara } });
         if (error) throw traduzirErro(error);
-        return {};
+        return { jaTinhaConta: jaTem };
       }
       const perfis = ler(K.perfis, {});
+      const jaTinhaConta = !!(criar && perfis[email] && perfis[email].tipo);
       if (!criar && !perfis[email]) throw new Error("Não encontramos uma conta com este e-mail. Clique em \"Criar conta\".");
       const codigo = String(Math.floor(100000 + Math.random() * 900000));
       gravar(K.codigo, { email, codigo, expira: Date.now() + 10 * 60 * 1000, tentativas: 0 });
-      return { codigoDemo: codigo };
+      return { codigoDemo: codigo, jaTinhaConta };
     },
 
     /** Confere o código digitado e inicia a sessão */
@@ -186,6 +200,7 @@
     async salvarPerfil(dados) {
       if (!usuarioAtual) throw new Error("Entre na sua conta para salvar os dados.");
       const registro = Object.assign({}, dados, { email: usuarioAtual.email, atualizado_em: new Date().toISOString() });
+      const so = (v) => String(v || "").replace(/\D/g, "");
       if (USAR_SUPABASE) {
         const sb = await supabase();
         const { data, error } = await sb.from("clientes").upsert(Object.assign(registro, { id: usuarioAtual.id })).select().single();
@@ -193,6 +208,12 @@
         perfilAtual = data;
       } else {
         const perfis = ler(K.perfis, {});
+        // mesmas regras do banco: um CPF/CNPJ por conta
+        for (const [email, p] of Object.entries(perfis)) {
+          if (email === usuarioAtual.email) continue;
+          if (registro.cpf && so(p.cpf) === so(registro.cpf)) throw new Error(DUPLICADO.cpf);
+          if (registro.cnpj && so(p.cnpj) === so(registro.cnpj)) throw new Error(DUPLICADO.cnpj);
+        }
         perfis[usuarioAtual.email] = Object.assign({}, perfis[usuarioAtual.email], registro);
         gravar(K.perfis, perfis);
         perfilAtual = perfis[usuarioAtual.email];

@@ -210,3 +210,27 @@ update storage.buckets
    set allowed_mime_types = array['image/jpeg', 'image/png', 'image/webp', 'application/pdf'],
        file_size_limit = 10485760
  where id = 'produtos';
+
+-- ===========================================================
+-- PARTE F — Painel: pedidos e status (rode depois das PARTES D e E)
+-- A empresa vê todos os pedidos e muda o status; o cliente acompanha em Minha conta.
+-- ===========================================================
+alter table public.pedidos add column if not exists status text not null default 'novo';
+alter table public.pedidos drop constraint if exists pedidos_status_valido;
+alter table public.pedidos add constraint pedidos_status_valido
+  check (status in ('novo', 'em_atendimento', 'aguardando_pagamento', 'enviado', 'concluido', 'cancelado'));
+
+drop policy if exists "admin ve pedidos" on public.pedidos;
+create policy "admin ve pedidos" on public.pedidos
+  for select to authenticated using (public.eh_admin());
+
+drop policy if exists "admin atualiza pedidos" on public.pedidos;
+create policy "admin atualiza pedidos" on public.pedidos
+  for update to authenticated using (public.eh_admin()) with check (public.eh_admin());
+
+-- só o campo status pode ser alterado (e só por administradores, pela regra acima)
+grant update (status) on public.pedidos to authenticated;
+
+drop policy if exists "admin ve clientes" on public.clientes;
+create policy "admin ve clientes" on public.clientes
+  for select to authenticated using (public.eh_admin());

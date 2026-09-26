@@ -271,16 +271,17 @@
 
   function cartaoPedido(p, i, compacto) {
     const itens = p.itens || [];
-    const total = itens.reduce((s, it) => s + (+it.qtd || 0), 0);
+    const total = itens.length;
+    const kg = itens.reduce((s, it) => s + CW.kgDoItem({ embalagem: it.embalagem, qtd: +it.qtd || 0 }), 0);
     const lista = itens.map((it) => {
       const prod = CW.buscarProduto(it.id);
       const cor = prod && (prod.cores.find((c) => c.nome === it.cor) || prod.cores[0]);
-      return `<li>${cor ? `<i class="bolinha" style="background:${cor.hex}"></i>` : ""}<span>${esc(it.nome)}<small>${esc(it.cor)} · ${esc(it.embalagem)}</small></span><strong>${it.qtd}×</strong></li>`;
+      return `<li>${cor ? `<i class="bolinha" style="background:${cor.hex}"></i>` : ""}<span>${esc(it.nome)}<small>${esc(it.cor)} · ${esc(CW.descreverQtd({ embalagem: it.embalagem, qtd: +it.qtd || 0 }))}</small></span></li>`;
     }).join("");
     return `<article class="pedido">
       <header>
-        <div><strong>Pedido ${esc(p.numero)}</strong><small>${dataHora(p.criado_em)} · ${total} ${total === 1 ? "item" : "itens"}</small></div>
-        <span class="status">Enviado ao vendedor</span>
+        <div><strong>Pedido ${esc(p.numero)}</strong><small>${dataHora(p.criado_em)} · ${total} ${total === 1 ? "produto" : "produtos"}${kg ? ` · ${kg.toLocaleString("pt-BR")} kg` : ""}</small></div>
+        <span class="status status-${esc(p.status || "novo")}">${esc(CW.STATUS_PEDIDO[p.status] || "Enviado ao vendedor")}</span>
       </header>
       <ul>${lista}</ul>
       ${p.observacoes ? `<p class="obs">${window.Icone("nota")}${esc(p.observacoes)}</p>` : ""}

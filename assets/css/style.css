@@ -1902,3 +1902,51 @@ main { overflow-x: clip; }
 .assist-convite { position: fixed; right: 22px; bottom: 96px; z-index: 950; max-width: 260px; padding: 14px 34px 14px 16px; border-radius: 12px 12px 4px 12px; background: #fff; box-shadow: var(--sombra-forte); font-size: .9rem; cursor: pointer; animation: insp-entrar .5s both; }
 .assist-convite button { position: absolute; top: 6px; right: 8px; border: 0; background: none; font-size: 1.1rem; color: var(--texto-suave); cursor: pointer; }
 .assist-form .assist-voz { background: none !important; color: var(--texto-suave) !important; border: 1px solid var(--borda) !important; border-radius: 6px; } .assist-form .assist-voz.ouvindo { color: #e53935 !important; border-color: #e53935 !important; }
+
+/* Janela do produto: quantidade em caixas ou sob medida, calculadora pela área */
+.seletor-embalagem [data-emb="Sob medida"] { border-style: dashed; }
+.nota-sob-medida { margin: 8px 0 0; font-size: .82rem; color: var(--texto-suave); }
+.campo-qtd { display: flex; align-items: center; gap: 6px; margin-top: 16px; }
+.campo-qtd #unidade-qtd { font-weight: 400; color: var(--texto-suave); }
+.link-calc { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; border: 0; background: none; color: var(--azul); font: inherit; font-size: .82rem; font-weight: 600; cursor: pointer; }
+.link-calc .icone-svg { width: 16px; height: 16px; }
+.calc-area { margin: 8px 0 4px; padding: 12px 14px; background: var(--fundo-alt); border: 1px solid var(--borda); border-radius: 8px; }
+.calc-area label { display: grid; gap: 6px; font-size: .85rem; font-weight: 600; }
+.calc-area input { padding: 9px 12px; border: 1px solid var(--borda); border-radius: 6px; font: inherit; max-width: 180px; }
+.calc-area p { margin: 8px 0 0; font-size: .82rem; color: var(--texto-suave); }
+.linha-compra .quantidade input { width: 72px; }
+.resumo-qtd { margin: 8px 0 0; font-size: .85rem; color: var(--texto-suave); }
+.acoes-extra { margin-top: 16px; }
+.quantidade-linha { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.quantidade-linha .unidade { font-size: .8rem; color: var(--texto-suave); }
+.resumo-kg { margin: -4px 0 10px; text-align: right; font-size: .85rem; color: var(--texto-suave); }
+
+/* Painel: pedidos */
+.pedidos-resumo { display: flex; flex-wrap: wrap; gap: 10px; margin: 6px 0 14px; }
+.pedidos-resumo span { padding: 8px 14px; border: 1px solid var(--borda); border-radius: 6px; background: #fff; font-size: .88rem; color: var(--texto-suave); }
+.pedidos-resumo strong { color: var(--texto); font-size: 1.05rem; margin-right: 4px; }
+.admin-pedidos { display: grid; gap: 14px; }
+.adm-pedido { border: 1px solid var(--borda); border-left: 5px solid #1558d6; border-radius: 6px; background: #fff; }
+.adm-pedido.status-em_atendimento { border-left-color: #f7a600; }
+.adm-pedido.status-aguardando_pagamento { border-left-color: #8e44ad; }
+.adm-pedido.status-enviado { border-left-color: #0aa2c0; }
+.adm-pedido.status-concluido { border-left-color: #2e9d57; }
+.adm-pedido.status-cancelado { border-left-color: #9aa3ad; opacity: .75; }
+.adm-pedido header, .adm-pedido footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; }
+.adm-pedido header { border-bottom: 1px solid var(--borda); }
+.adm-pedido header small { display: block; color: var(--texto-suave); font-size: .8rem; }
+.adm-pedido select { padding: 7px 10px; border: 1px solid var(--borda); border-radius: 6px; font: inherit; font-size: .88rem; background: #fff; }
+.adm-pedido-corpo { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 18px; padding: 14px 16px; }
+.adm-cliente { display: grid; gap: 3px; }
+.adm-cliente small { color: var(--texto-suave); font-size: .84rem; }
+.adm-pedido ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-size: .9rem; }
+.adm-pedido ul small { display: block; color: var(--texto-suave); font-size: .82rem; }
+.adm-pedido .obs { grid-column: 1 / -1; margin: 0; padding: 8px 12px; background: var(--fundo-alt); border-radius: 4px; font-size: .86rem; }
+.adm-pedido footer { border-top: 1px solid var(--borda); background: var(--fundo-alt); }
+.adm-pedido footer .btn { padding: 8px 14px; font-size: .85rem; }
+.status.status-em_atendimento { background: #fff4d6; color: #8a5a00; }
+.status.status-aguardando_pagamento { background: #f3e8fb; color: #6b2d8a; }
+.status.status-enviado { background: #dff5fa; color: #06728a; }
+.status.status-concluido { background: #e3f5ea; color: #1d6b3b; }
+.status.status-cancelado { background: #eceff2; color: #5d6773; }
+@media (max-width: 700px) { .adm-pedido-corpo { grid-template-columns: 1fr; } }

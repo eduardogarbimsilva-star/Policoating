@@ -135,7 +135,20 @@
   let carrinho = lerStorage(CHAVE_CARRINHO, []).filter((i) => buscarProduto(i.id));
 
   const chaveItem = (i) => `${i.id}|${i.cor}|${i.embalagem}`;
-  const totalItens = () => carrinho.reduce((s, i) => s + i.qtd, 0);
+  // "Sob medida": o cliente informa o total em kg (qtd = kg). Caixas: qtd = número de caixas.
+  const SOB_MEDIDA = "Sob medida";
+  const ehSobMedida = (emb) => emb === SOB_MEDIDA;
+  const kgDaEmbalagem = (emb) => { const m = String(emb || "").match(/(\d+(?:[.,]\d+)?)\s*kg/i); return m ? parseFloat(m[1].replace(",", ".")) : 0; };
+  const kgDoItem = (i) => (ehSobMedida(i.embalagem) ? i.qtd : i.qtd * kgDaEmbalagem(i.embalagem));
+  const embalagemPadrao = (p) => p.embalagens.find((e) => kgDaEmbalagem(e) === 25) || p.embalagens[0];
+  const descreverQtd = (i) => (ehSobMedida(i.embalagem)
+    ? `${i.qtd} kg (quantidade sob medida)`
+    : `${i.qtd} × ${i.embalagem}${kgDaEmbalagem(i.embalagem) ? ` (${kgDoItem(i).toLocaleString("pt-BR")} kg)` : ""}`);
+  const totalItens = () => carrinho.reduce((s, i) => s + (ehSobMedida(i.embalagem) ? 1 : i.qtd), 0);
+  // etapas do pedido (definidas no painel da empresa; o cliente acompanha em Minha conta)
+  const STATUS_PEDIDO = { novo: "Recebido", em_atendimento: "Em atendimento", aguardando_pagamento: "Aguardando pagamento",
+    enviado: "Enviado", concluido: "Concluído", cancelado: "Cancelado" };
+  const totalKg = () => carrinho.reduce((s, i) => s + kgDoItem(i), 0);
 
   function salvarCarrinho() {
     gravarStorage(CHAVE_CARRINHO, carrinho);
@@ -149,7 +162,7 @@
     const item = {
       id,
       cor: cor || p.cores[0].nome,
-      embalagem: embalagem || p.embalagens[0],
+      embalagem: embalagem || embalagemPadrao(p),
       qtd: Math.max(1, parseInt(qtd, 10) || 1)
     };
     const existente = carrinho.find((i) => chaveItem(i) === chaveItem(item));
@@ -181,6 +194,7 @@
   <div class="carrinho-itens" id="carrinho-itens"></div>
   <div class="carrinho-rodape" id="carrinho-rodape">
     <div class="resumo"><span>Total de itens</span><strong id="carrinho-total">0</strong></div>
+    <div class="resumo-kg" id="carrinho-kg"></div>
     <div class="campos">
       <div id="carrinho-cliente"></div>
       <textarea id="cliente-obs" rows="2" placeholder="Observações (opcional)"></textarea>
@@ -215,8 +229,9 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
       if (!btn) return;
       const idx = +btn.closest("[data-idx]").dataset.idx;
       const acao = btn.dataset.acao;
-      if (acao === "mais") carrinho[idx].qtd++;
-      if (acao === "menos") carrinho[idx].qtd = Math.max(1, carrinho[idx].qtd - 1);
+      const passo = ehSobMedida(carrinho[idx].embalagem) ? 5 : 1;       // sob medida anda de 5 em 5 kg
+      if (acao === "mais") carrinho[idx].qtd += passo;
+      if (acao === "menos") carrinho[idx].qtd = Math.max(1, carrinho[idx].qtd - passo);
       if (acao === "remover") carrinho.splice(idx, 1);
       salvarCarrinho();
     });
@@ -232,6 +247,8 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
     const lista = $("#carrinho-itens");
     if (!lista) return;
     $("#carrinho-total").textContent = totalItens();
+    const kg = $("#carrinho-kg");
+    if (kg) kg.textContent = carrinho.length ? `≈ ${totalKg().toLocaleString("pt-BR")} kg de tinta` : "";
     $("#btn-finalizar").disabled = carrinho.length === 0;
     renderClienteCarrinho();
 
@@ -249,11 +266,14 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
   ${imgProduto(p, cor, FOTO_CARTAO, "mini-foto")}
   <div>
     <h4>${esc(p.nome)}</h4>
-    <div class="detalhes"><i style="background:${cor.hex}"></i>${esc(cor.nome)} · ${esc(item.embalagem)}</div>
-    <div class="quantidade">
-      <button data-acao="menos" aria-label="Diminuir">−</button>
-      <input type="number" min="1" value="${item.qtd}" aria-label="Quantidade">
-      <button data-acao="mais" aria-label="Aumentar">+</button>
+    <div class="detalhes"><i style="background:${cor.hex}"></i>${esc(cor.nome)} · ${esc(ehSobMedida(item.embalagem) ? "Quantidade sob medida" : item.embalagem)}</div>
+    <div class="quantidade-linha">
+      <div class="quantidade">
+        <button data-acao="menos" aria-label="Diminuir">−</button>
+        <input type="number" min="1" value="${item.qtd}" aria-label="Quantidade em ${ehSobMedida(item.embalagem) ? "kg" : "caixas"}">
+        <button data-acao="mais" aria-label="Aumentar">+</button>
+      </div>
+      <span class="unidade">${ehSobMedida(item.embalagem) ? "kg" : (item.qtd === 1 ? "caixa" : "caixas") + (kgDaEmbalagem(item.embalagem) ? ` · ${kgDoItem(item).toLocaleString("pt-BR")} kg` : "")}</span>
     </div>
   </div>
   <button class="remover" data-acao="remover">Remover</button>
@@ -360,10 +380,11 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
     carrinho.forEach((item, i) => {
       const p = buscarProduto(item.id);
       linhas.push(`*${i + 1}. ${p.nome}*`);
-      linhas.push(`   Cor: ${item.cor} | Embalagem: ${item.embalagem} | Qtd: ${item.qtd}`);
+      linhas.push(`   Cor: ${item.cor}`);
+      linhas.push(`   Quantidade: ${descreverQtd(item)}`);
     });
     linhas.push("");
-    linhas.push(`Total de itens: ${totalItens()}`);
+    linhas.push(`*Total: ${totalKg().toLocaleString("pt-BR")} kg*`);
 
     if (logado()) {
       linhas.push(...linhasCliente(Conta.perfil, Conta.usuario.email));
@@ -427,7 +448,7 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
     if (!p) return;
     registrarVisto(id);
     const modal = $("#modal-produto");
-    let corSel = p.cores.find((c) => c.nome === corNome) || p.cores[0], embSel = p.embalagens[0];
+    let corSel = p.cores.find((c) => c.nome === corNome) || p.cores[0], embSel = embalagemPadrao(p);
     const cat = CATEGORIAS[p.categoria] || {};
 
     modal.innerHTML = `
@@ -456,14 +477,17 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
     <div class="seletor-cores">
       ${p.cores.map((c, i) => `<button class="${c === corSel ? "ativo" : ""}" data-cor="${i}" style="background:${c.hex}" title="${esc(c.nome)}" aria-label="${esc(c.nome)}"></button>`).join("")}
     </div>
-    <div class="campo-titulo">Embalagem (caixa)</div>
+    <div class="campo-titulo">Embalagem</div>
     <div class="seletor-embalagem">
-      ${p.embalagens.map((e, i) => `<button class="${i === 0 ? "ativo" : ""}" data-emb="${esc(e)}">${esc(e)}</button>`).join("")}
+      ${p.embalagens.slice().sort((x, y) => (x === embSel ? -1 : y === embSel ? 1 : 0)).map((e) => `<button class="${e === embSel ? "ativo" : ""}" data-emb="${esc(e)}">${esc(e)}</button>`).join("")}
+      <button data-emb="${SOB_MEDIDA}" title="Informe a quantidade exata em kg">Sob medida (kg)</button>
     </div>
-    <div class="acoes-extra">
-      <button type="button" data-extra="amostra">${ic("paleta")}Solicitar amostra</button>
-      <button type="button" data-extra="ficha">${ic("documento")}Ficha técnica</button>
-      <button type="button" data-extra="link">${ic("link")}Copiar link</button>
+    <p class="nota-sob-medida" id="nota-sob-medida" hidden>Informe o total em quilos. O vendedor confirma a melhor combinação de embalagens.</p>
+    <div class="campo-titulo campo-qtd">Quantidade <span id="unidade-qtd">(caixas)</span>
+      <button type="button" class="link-calc" id="abrir-calc">${ic("calculadora")}Calcular pela área</button></div>
+    <div class="calc-area" id="calc-area" hidden>
+      <label>Área a pintar (m²)<input type="number" id="calc-m2" min="1" step="1" placeholder="Ex.: 80" inputmode="decimal"></label>
+      <p id="calc-resultado" aria-live="polite">Some a área das peças (as duas faces, se for pintar dos dois lados).</p>
     </div>
     <div class="linha-compra">
       <div class="quantidade">
@@ -472,6 +496,12 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
         <button data-q="1" aria-label="Aumentar">+</button>
       </div>
       <button class="btn btn-primario" id="modal-add" style="flex:1">Adicionar ao carrinho</button>
+    </div>
+    <p class="resumo-qtd" id="resumo-qtd"></p>
+    <div class="acoes-extra">
+      <button type="button" data-extra="ficha">${ic("documento")}Ficha técnica</button>
+      <button type="button" data-extra="orcamento">${ic("conversa")}Pedir orçamento</button>
+      <button type="button" data-extra="link">${ic("link")}Copiar link</button>
     </div>
   </div>
 </div>`;
@@ -499,15 +529,44 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
       })
     );
     $$("[data-emb]", modal).forEach((b) =>
-      b.addEventListener("click", () => {
-        embSel = b.dataset.emb;
-        $$("[data-emb]", modal).forEach((x) => x.classList.toggle("ativo", x === b));
-      })
+      b.addEventListener("click", () => $$("[data-emb]", modal).forEach((x) => x.classList.toggle("ativo", x === b)))
     );
     const qtd = $("#modal-qtd");
+    // quantidade: caixas (padrão) ou kg (sob medida), com o total em kg sempre visível
+    const passo = () => (ehSobMedida(embSel) ? 5 : 1);
+    function atualizarQtd() {
+      const sob = ehSobMedida(embSel), n = Math.max(1, parseInt(qtd.value, 10) || 1);
+      $("#unidade-qtd").textContent = sob ? "(kg)" : "(caixas)";
+      $("#nota-sob-medida").hidden = !sob;
+      qtd.setAttribute("aria-label", sob ? "Quantidade em kg" : "Quantidade de caixas");
+      const kg = sob ? n : n * kgDaEmbalagem(embSel);
+      $("#resumo-qtd").textContent = sob ? `Total: ${n.toLocaleString("pt-BR")} kg` : `${n} ${n === 1 ? "caixa" : "caixas"} de ${kgDaEmbalagem(embSel)} kg = ${kg.toLocaleString("pt-BR")} kg`;
+    }
     $$("[data-q]", modal).forEach((b) =>
-      b.addEventListener("click", () => (qtd.value = Math.max(1, (parseInt(qtd.value, 10) || 1) + +b.dataset.q)))
+      b.addEventListener("click", () => { qtd.value = Math.max(1, (parseInt(qtd.value, 10) || 1) + +b.dataset.q * passo()); atualizarQtd(); })
     );
+    qtd.addEventListener("input", atualizarQtd);
+    $$("[data-emb]", modal).forEach((b) => b.addEventListener("click", () => {
+      const eraSob = ehSobMedida(embSel);
+      // ao trocar entre caixas e kg, converte a quantidade para a nova unidade
+      const kgAtual = eraSob ? (parseInt(qtd.value, 10) || 1) : (parseInt(qtd.value, 10) || 1) * kgDaEmbalagem(embSel);
+      embSel = b.dataset.emb;
+      qtd.value = ehSobMedida(embSel) ? Math.max(1, Math.round(kgAtual)) : Math.max(1, Math.ceil(kgAtual / (kgDaEmbalagem(embSel) || 1)));
+      calcular(); atualizarQtd();
+    }));
+    // calculadora pela área (rendimento do produto + 15% de perda)
+    const rendimento = parseFloat(String(p.rendimento || "").replace(",", ".").match(/[\d.]+/)) || 9;
+    function calcular() {
+      const m2 = parseFloat(String($("#calc-m2").value).replace(",", "."));
+      if (!(m2 > 0) || $("#calc-area").hidden) return;
+      const kg = (m2 / rendimento) * 1.15;
+      qtd.value = ehSobMedida(embSel) ? Math.ceil(kg) : Math.ceil(kg / (kgDaEmbalagem(embSel) || 25));
+      $("#calc-resultado").textContent = `≈ ${kg.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} kg para ${m2.toLocaleString("pt-BR")} m² (rendimento ${rendimento.toLocaleString("pt-BR")} m²/kg + 15% de perda). Quantidade preenchida abaixo.`;
+      atualizarQtd();
+    }
+    $("#abrir-calc").addEventListener("click", () => { const c = $("#calc-area"); c.hidden = !c.hidden; if (!c.hidden) $("#calc-m2").focus(); });
+    $("#calc-m2").addEventListener("input", calcular);
+    atualizarQtd();
     $$("[data-extra]", modal).forEach((b) =>
       b.addEventListener("click", () => {
         const tipo = b.dataset.extra;
@@ -523,8 +582,9 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
           window.open(p.ficha, "_blank", "noopener");
           return;
         }
-        const msg = tipo === "amostra"
-          ? `Olá! Gostaria de solicitar uma amostra (painel) do produto *${p.nome}* na cor *${corSel.nome}*.`
+        const item = { embalagem: embSel, qtd: Math.max(1, parseInt(qtd.value, 10) || 1) };
+        const msg = tipo === "orcamento"
+          ? `Olá! Gostaria de um orçamento do produto *${p.nome}*, cor *${corSel.nome}*, quantidade: *${descreverQtd(item)}*.`
           : `Olá! Gostaria de receber a ficha técnica (BT) e a FISPQ do produto *${p.nome}*.`;
         window.open(linkWhatsApp(msg), "_blank", "noopener");
       })
@@ -733,5 +793,5 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
   });
 
   /* API pública usada pelas páginas */
-  window.ColorWeg = { lerVistos, iconeWhats, totalItens: () => totalItens(), itensCarrinho: () => carrinho.slice(), fotoProduto, imgProduto, lerFavoritos, alternarFavorito, gravarStorage, lerStorage, buscarProduto, $, $$, caixaSVG, renderProdutos, abrirProduto, adicionarAoCarrinho, linkWhatsApp, ehEscura, esc, observarRevelar, mostrarToast, abrirCarrinho };
+  window.ColorWeg = { STATUS_PEDIDO, descreverQtd, kgDoItem, embalagemPadrao, lerVistos, iconeWhats, totalItens: () => totalItens(), itensCarrinho: () => carrinho.slice(), fotoProduto, imgProduto, lerFavoritos, alternarFavorito, gravarStorage, lerStorage, buscarProduto, $, $$, caixaSVG, renderProdutos, abrirProduto, adicionarAoCarrinho, linkWhatsApp, ehEscura, esc, observarRevelar, mostrarToast, abrirCarrinho };
 })();

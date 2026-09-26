@@ -62,7 +62,7 @@ window.PRODUTOS = [
     rendimento: "≈ 9,5 m²/kg a 70 µm",
     cura: "10 min a 200 °C (temperatura da peça)",
     densidade: 1.5,
-    embalagens: ["Caixa 20 kg", "Caixa 25 kg"],
+    embalagens: ["Caixa 25 kg", "Caixa 20 kg"],
     cores: [
       { nome: "Branco Tráfego RAL 9016", hex: "#F1F0EA" },
       { nome: "Preto Intenso RAL 9005", hex: "#0E0E10" },
@@ -83,7 +83,7 @@ window.PRODUTOS = [
     rendimento: "≈ 9 m²/kg a 70 µm",
     cura: "10 min a 200 °C",
     densidade: 1.55,
-    embalagens: ["Caixa 20 kg", "Caixa 25 kg"],
+    embalagens: ["Caixa 25 kg", "Caixa 20 kg"],
     cores: [
       { nome: "Preto RAL 9005", hex: "#0E0E10" },
       { nome: "Grafite RAL 7024", hex: "#474A50" },
@@ -103,7 +103,7 @@ window.PRODUTOS = [
     rendimento: "≈ 9,8 m²/kg a 70 µm",
     cura: "15 min a 180 °C",
     densidade: 1.45,
-    embalagens: ["Caixa 20 kg", "Caixa 25 kg"],
+    embalagens: ["Caixa 25 kg", "Caixa 20 kg"],
     cores: [
       { nome: "Cinza Claro RAL 7035", hex: "#CBD0CC" },
       { nome: "Cinza Munsell N6.5", hex: "#9C9E9F" },
@@ -123,7 +123,7 @@ window.PRODUTOS = [
     rendimento: "≈ 9,5 m²/kg a 70 µm",
     cura: "15 min a 180 °C",
     densidade: 1.5,
-    embalagens: ["Caixa 20 kg", "Caixa 25 kg"],
+    embalagens: ["Caixa 25 kg", "Caixa 20 kg"],
     cores: [
       { nome: "Cinza RAL 7032", hex: "#B5B0A1" },
       { nome: "Cinza Claro RAL 7035", hex: "#CBD0CC" },
@@ -140,7 +140,7 @@ window.PRODUTOS = [
     rendimento: "≈ 10 m²/kg a 70 µm",
     cura: "10 min a 190 °C",
     densidade: 1.42,
-    embalagens: ["Caixa 20 kg", "Caixa 25 kg"],
+    embalagens: ["Caixa 25 kg", "Caixa 20 kg"],
     cores: [
       { nome: "Branco RAL 9003", hex: "#F4F4F4" },
       { nome: "Preto RAL 9005", hex: "#0E0E10" },
@@ -160,7 +160,7 @@ window.PRODUTOS = [
     rendimento: "≈ 10 m²/kg a 70 µm",
     cura: "10 min a 190 °C",
     densidade: 1.42,
-    embalagens: ["Caixa 20 kg", "Caixa 25 kg"],
+    embalagens: ["Caixa 25 kg", "Caixa 20 kg"],
     cores: [
       { nome: "Branco RAL 9016", hex: "#F1F0EA" },
       { nome: "Grafite RAL 7024", hex: "#474A50" },
@@ -177,7 +177,7 @@ window.PRODUTOS = [
     rendimento: "≈ 8 m²/kg a 80 µm",
     cura: "12 min a 200 °C",
     densidade: 1.55,
-    embalagens: ["Caixa 20 kg", "Caixa 25 kg"],
+    embalagens: ["Caixa 25 kg", "Caixa 20 kg"],
     cores: [
       { nome: "Preto RAL 9005", hex: "#1A1A1C" },
       { nome: "Grafite RAL 7024", hex: "#474A50" },
@@ -196,7 +196,7 @@ window.PRODUTOS = [
     rendimento: "≈ 9 m²/kg a 70 µm",
     cura: "12 min a 200 °C",
     densidade: 1.5,
-    embalagens: ["Caixa 20 kg", "Caixa 25 kg"],
+    embalagens: ["Caixa 25 kg", "Caixa 20 kg"],
     cores: [
       { nome: "Cinza Martelado", hex: "#7E8387" },
       { nome: "Azul Martelado", hex: "#3B5B8A" },
@@ -213,7 +213,7 @@ window.PRODUTOS = [
     rendimento: "≈ 10 m²/kg a 60 µm",
     cura: "10 min a 200 °C",
     densidade: 1.4,
-    embalagens: ["Caixa 20 kg", "Caixa 25 kg"],
+    embalagens: ["Caixa 25 kg", "Caixa 20 kg"],
     cores: [
       { nome: "Prata RAL 9006", hex: "#A5A5A5" },
       { nome: "Grafite Metálico RAL 9007", hex: "#8F8F8C" },
@@ -231,7 +231,7 @@ window.PRODUTOS = [
     rendimento: "≈ 10 m²/kg a 60 µm",
     cura: "10 min a 200 °C",
     densidade: 1.4,
-    embalagens: ["Caixa 20 kg", "Caixa 25 kg"],
+    embalagens: ["Caixa 25 kg", "Caixa 20 kg"],
     cores: [
       { nome: "Cobre", hex: "#B06A3B" },
       { nome: "Bronze", hex: "#8C6A3E" },
@@ -248,7 +248,7 @@ window.PRODUTOS = [
     rendimento: "≈ 7 m²/kg a 60 µm",
     cura: "Pré-cura: 5 min a 180 °C",
     densidade: 2.3,
-    embalagens: ["Caixa 20 kg", "Caixa 25 kg"],
+    embalagens: ["Caixa 25 kg", "Caixa 20 kg"],
     cores: [{ nome: "Cinza Zinco", hex: "#8D9296" }],
     destaque: true
   },
@@ -262,7 +262,7 @@ window.PRODUTOS = [
     rendimento: "≈ 11 m²/kg a 60 µm",
     cura: "10 min a 180 °C",
     densidade: 1.2,
-    embalagens: ["Caixa 20 kg", "Caixa 25 kg"],
+    embalagens: ["Caixa 25 kg", "Caixa 20 kg"],
     cores: [{ nome: "Incolor", hex: "#E9EEF3" }]
   },
   {
@@ -275,7 +275,7 @@ window.PRODUTOS = [
     rendimento: "≈ 9 m²/kg a 60 µm",
     cura: "20 min a 200 °C",
     densidade: 1.6,
-    embalagens: ["Caixa 20 kg", "Caixa 25 kg"],
+    embalagens: ["Caixa 25 kg", "Caixa 20 kg"],
     cores: [
       { nome: "Preto Fosco", hex: "#1C1C1E" },
       { nome: "Alumínio", hex: "#B9BCBE" }
@@ -291,7 +291,7 @@ window.PRODUTOS = [
     rendimento: "Conforme formulação",
     cura: "Conforme formulação",
     densidade: 1.5,
-    embalagens: ["Caixa 20 kg", "Caixa 25 kg"],
+    embalagens: ["Caixa 25 kg", "Caixa 20 kg"],
     cores: [{ nome: "Cor a definir", hex: "#1558D6" }]
   }
 ];

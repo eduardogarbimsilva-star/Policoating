@@ -234,12 +234,13 @@
       if (!usuarioAtual) return [];
       if (USAR_SUPABASE) {
         const sb = await supabase();
-        const { data, error } = await sb.from("pedidos").select("numero, itens, observacoes, criado_em")
+        const { data, error } = await sb.from("pedidos").select("*")
           .eq("cliente_id", usuarioAtual.id).order("criado_em", { ascending: false }).limit(50);
         if (error) throw traduzirErro(error);
         return data || [];
       }
-      return (ler(K.pedidos, {})[usuarioAtual.email] || []).slice(0, 50);
+      const status = ler("policoating_demo_status", {});
+      return (ler(K.pedidos, {})[usuarioAtual.email] || []).slice(0, 50).map((p) => Object.assign({ status: status[p.numero] || "novo" }, p));
     }
   };
 

@@ -228,7 +228,7 @@
         <div class="insp-trilho" tabindex="0" aria-live="polite"></div>
         <button type="button" class="insp-seta proxima" aria-label="Próximas">›</button>
       </div>
-      <p class="insp-credito">${esc(FR.credito)}. As cores das tintas indicadas são aproximadas; peça uma amostra.</p>`;
+      <p class="insp-credito">${esc(FR.credito)}. As cores das tintas indicadas são aproximadas; confirme a cor com o vendedor.</p>`;
     const trilho = $(".insp-trilho", raiz);
 
     function mostrar(cor) {

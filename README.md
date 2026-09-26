@@ -77,6 +77,12 @@ O bloco "Receba nossa Newsletter" da página inicial grava o e-mail na tabela `n
 Para ver a lista: **Table Editor → newsletter**. Enquanto a tabela não existir, o botão abre o e-mail do cliente
 já preenchido para `contato@...`.
 
+## Quantidade: caixas ou sob medida
+
+Na janela do produto, a **Caixa 25 kg** vem selecionada. O cliente também pode escolher **Sob medida (kg)** e digitar o
+total em quilos; o vendedor confirma a combinação de embalagens. O atalho **Calcular pela área** transforma m² em kg
+(rendimento do produto + 15% de perda) e preenche a quantidade. O carrinho e a mensagem do WhatsApp mostram o total em kg.
+
 ## Como funciona o pedido
 
 1. O cliente abre um produto, escolhe **cor**, **embalagem** e **quantidade** e adiciona ao carrinho.
@@ -140,6 +146,10 @@ liberados como administradores; clientes comuns não veem nem acessam.
 
 **Abas do painel:**
 - **Produtos:** veja abaixo.
+- **Pedidos:** todos os pedidos enviados pelo site, com os dados do cliente, total em kg e observações.
+  Mude o status (Recebido, Em atendimento, Aguardando pagamento, Enviado, Concluído, Cancelado); o cliente acompanha em
+  Minha conta. Busca, filtro por status, botão para chamar o cliente no WhatsApp e **Exportar planilha** (CSV/Excel).
+  Precisa da **PARTE F** do `setup.sql`.
 - **Contato e links:** WhatsApp dos pedidos, telefone, e-mail, horário, endereço, slogan, redes sociais
   (Instagram, Facebook, WhatsApp Business, YouTube, TikTok, LinkedIn) e lojas (Mercado Livre, Shopee, AliExpress,
   Amazon, Magalu). Cada link só aparece no site depois de preenchido.

@@ -246,6 +246,30 @@
       if (error) throw erro(error);
     },
 
+    /** Todos os pedidos do site, com os dados do cliente (mais recentes primeiro) */
+    async listarPedidos() {
+      if (!ONLINE) {
+        const todos = ler("policoating_demo_pedidos") || {}, perfis = ler("policoating_demo_perfis") || {}, status = ler("policoating_demo_status") || {};
+        return Object.entries(todos).flatMap(([email, lista]) => lista.map((p) => Object.assign({}, p, { status: status[p.numero] || "novo", cliente: perfis[email] || { email } })))
+          .sort((a, b) => String(b.criado_em).localeCompare(String(a.criado_em)));
+      }
+      const sb = await cliente();
+      const { data: pedidos, error } = await sb.from("pedidos").select("*").order("criado_em", { ascending: false }).limit(500);
+      if (error) throw erro(error);
+      const ids = [...new Set((pedidos || []).map((p) => p.cliente_id))];
+      let clientes = [];
+      if (ids.length) { const r = await sb.from("clientes").select("*").in("id", ids); clientes = r.data || []; }
+      const porId = Object.fromEntries(clientes.map((c) => [c.id, c]));
+      return (pedidos || []).map((p) => Object.assign({}, p, { status: p.status || "novo", cliente: porId[p.cliente_id] || {} }));
+    },
+
+    async mudarStatus(numero, status) {
+      if (!ONLINE) { const st = ler("policoating_demo_status") || {}; st[numero] = status; gravar("policoating_demo_status", st); return; }
+      const sb = await cliente();
+      const { error } = await sb.from("pedidos").update({ status }).eq("numero", numero);
+      if (error) throw erro(error);
+    },
+
     /** Envia um PDF (ficha técnica) e retorna o endereço público */
     async enviarPdf(arquivo, pasta) {
       if (arquivo.type !== "application/pdf") throw new Error("Envie a ficha técnica em PDF.");

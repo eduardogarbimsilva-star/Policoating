@@ -90,10 +90,11 @@
     if (area || /quanto(s)? (kg|quilo|caixa|po) (eu )?preciso|calcul|rendimento|consumo/.test(t)) intencao = "calcular";
     // quantidade para comprar: "quero 3 caixas de ..." → coloca direto no carrinho
     const qtd = (t.match(/(\d+)\s*(caixas?|cx)\b/) || [])[1];
-    if (qtd && /quero|preciso|compr|adicion|coloc|manda|pedido/.test(t) && intencao !== "calcular") intencao = "adicionar";
+    const kg = (t.match(/(\d+(?:[.,]\d+)?)\s*(kg|quilos?|kilos?)\b/) || [])[1];
+    if ((qtd || kg) && /quero|preciso|compr|adicion|coloc|manda|pedido/.test(t) && intencao !== "calcular") intencao = "adicionar";
     if (/^(obrigad|valeu|brigad|show|perfeito|otimo)/.test(t)) intencao = "agradecer";
     const alvos = PISTAS_PRODUTO.filter(([re]) => re.test(t)).map(([, id]) => id);
-    return { t, cores, ral, acab, cats, alvos, intencao, area: area ? parseFloat(area.replace(",", ".")) : null, qtd: qtd ? parseInt(qtd, 10) : null };
+    return { t, cores, ral, acab, cats, alvos, intencao, area: area ? parseFloat(area.replace(",", ".")) : null, qtd: qtd ? parseInt(qtd, 10) : null, kg: kg ? Math.ceil(parseFloat(kg.replace(",", "."))) : null };
   }
 
   function buscarProdutos(q) {
@@ -319,7 +320,7 @@
     const add = e.target.closest("[data-add]");
     if (add) {
       const p = CW().buscarProduto(add.dataset.add);
-      CW().adicionarAoCarrinho(p.id, add.dataset.cor, p.embalagens[0], 1);
+      CW().adicionarAoCarrinho(p.id, add.dataset.cor, CW().embalagemPadrao(p), 1);
       add.textContent = "Adicionado ✓";
       add.disabled = true;
       return;
@@ -339,7 +340,7 @@
       const t = sug.textContent.trim();
       if (t === "Colocar no carrinho" && contexto.produto) {
         const p = CW().buscarProduto(contexto.produto);
-        if (p) { CW().adicionarAoCarrinho(p.id, p.cores[0].nome, p.embalagens[0], 1); adicionar({ de: "bot", texto: `Adicionei **${p.nome}** ao carrinho. Ajuste a cor e a quantidade no carrinho, se precisar.`, acoes: ["carrinho"] }); }
+        if (p) { CW().adicionarAoCarrinho(p.id, p.cores[0].nome, CW().embalagemPadrao(p), 1); adicionar({ de: "bot", texto: `Adicionei **${p.nome}** ao carrinho. Ajuste a cor e a quantidade no carrinho, se precisar.`, acoes: ["carrinho"] }); }
         return;
       }
       responder(t.replace(/^Produtos /, "produtos linha "));
@@ -420,17 +421,19 @@
       const alvo = q.cats[0] ? (window.PRODUTOS || []).filter((p) => p.categoria === q.cats[0]) : (window.PRODUTOS || []);
       const nomes = [...new Set([].concat(...alvo.map((p) => p.cores.map((c) => c.nome))))];
       const titulo = q.cats[0] ? `Cores da linha ${(CATEGORIAS[q.cats[0]] || {}).nome}` : "Cores do catálogo";
-      return { texto: `**${titulo}** (${nomes.length}):\n${nomes.slice(0, 24).map((n) => "• " + n).join("\n")}${nomes.length > 24 ? "\n• e mais…" : ""}\n\nOutra cor? Desenvolvemos sob medida (RAL, Pantone ou amostra).`, sugestoes: ["Cor sob medida", "Falar com vendedor"] };
+      return { texto: `**${titulo}** (${nomes.length}):\n${nomes.slice(0, 24).map((n) => "• " + n).join("\n")}${nomes.length > 24 ? "\n• e mais…" : ""}\n\nOutra cor? Desenvolvemos sob medida (RAL, Pantone ou amostra física da cor).`, sugestoes: ["Cor sob medida", "Falar com vendedor"] };
     }
     if (intencao === "comparar") return comparar(q);
     if (intencao === "calcular") return calcular(q);
     if (intencao === "adicionar") {
       const achado = buscarProdutos(q)[0];
       if (!achado) return { texto: "Qual produto você quer? Diga a peça, a cor e o acabamento, por exemplo: \"quero 3 caixas de poliéster preto fosco\"." };
-      const emb = achado.p.embalagens[0];
-      CW().adicionarAoCarrinho(achado.p.id, achado.cor.nome, emb, q.qtd);
+      // "130 kg" → quantidade sob medida; "3 caixas" → caixas de 25 kg
+      const sob = !q.qtd && q.kg, emb = sob ? "Sob medida" : CW().embalagemPadrao(achado.p), n = sob ? q.kg : q.qtd;
+      CW().adicionarAoCarrinho(achado.p.id, achado.cor.nome, emb, n);
       contexto.produto = achado.p.id;
-      return { texto: `Coloquei no carrinho: **${q.qtd} × ${achado.p.nome}**, cor ${achado.cor.nome}, ${emb}. Quer revisar e enviar ao vendedor?`, produtos: [{ id: achado.p.id, cor: achado.cor.nome }], acoes: ["carrinho", "whatsapp"] };
+      const desc = sob ? `${n} kg de ${achado.p.nome} (quantidade sob medida)` : `${n} × ${achado.p.nome}, ${emb}`;
+      return { texto: `Coloquei no carrinho: **${desc}**, cor ${achado.cor.nome}. Quer revisar e enviar ao vendedor?`, produtos: [{ id: achado.p.id, cor: achado.cor.nome }], acoes: ["carrinho", "whatsapp"] };
     }
 
     if (intencao === "carrinho") {

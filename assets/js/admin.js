@@ -140,7 +140,7 @@
 
     function abrir(r, duplicar) {
       editando = r && !duplicar ? r.id : null;
-      const p = r ? JSON.parse(JSON.stringify(r.dados)) : { categoria: Object.keys(CATS)[0], embalagens: ["Caixa 20 kg", "Caixa 25 kg"], cores: [] };
+      const p = r ? JSON.parse(JSON.stringify(r.dados)) : { categoria: Object.keys(CATS)[0], embalagens: ["Caixa 25 kg", "Caixa 20 kg"], cores: [] };
       if (duplicar) { p.nome = p.nome + " (cópia)"; p.id = p.id + "-copia"; }
       $("#form-titulo").textContent = editando ? "Editar produto" : "Novo produto";
       ["nome", "id", "linha", "acabamento", "descricao", "rendimento", "cura"].forEach((k) => (form[k].value = p[k] || ""));
@@ -220,10 +220,87 @@
       abas.forEach((b) => { const on = b.dataset.aba === nome; b.classList.toggle("ativo", on); b.setAttribute("aria-selected", on); });
       $$(".admin-aba").forEach((c) => (c.hidden = c.dataset.conteudo !== nome));
       if (nome === "contato") carregarConfig();
+      if (nome === "pedidos") carregarPedidos();
       if (nome === "galeria") carregarGaleria();
       if (nome === "equipe") carregarEquipe();
     };
     abas.forEach((b) => b.addEventListener("click", () => abrirAba(b.dataset.aba)));
+
+    /* ---------- Pedidos ---------- */
+    const ST = CW.STATUS_PEDIDO;
+    $("#pedidos-status").insertAdjacentHTML("beforeend", Object.entries(ST).map(([k, v]) => `<option value="${k}">${esc(v)}</option>`).join(""));
+    let pedidos = [];
+    const nomeCliente = (c) => (c.tipo === "pj" ? (c.nome_fantasia || c.razao_social) : c.nome) || c.email || "Cliente";
+    const kgPedido = (p) => (p.itens || []).reduce((s, it) => s + CW.kgDoItem({ embalagem: it.embalagem, qtd: +it.qtd || 0 }), 0);
+    const dataBR = (d) => (d ? new Date(d).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }) : "");
+    async function carregarPedidos() {
+      $("#pedidos-erro").textContent = "";
+      try { pedidos = await A.listarPedidos(); }
+      catch (e) { pedidos = []; $("#pedidos-erro").textContent = e.message + " (rode a PARTE F do setup.sql no Supabase)"; }
+      desenharPedidos();
+    }
+    function filtrados() {
+      const termo = slug($("#pedidos-busca").value || ""), st = $("#pedidos-status").value;
+      return pedidos.filter((p) => (!st || p.status === st) && (!termo || slug([p.numero, nomeCliente(p.cliente), p.cliente.cidade, p.cliente.email,
+        (p.itens || []).map((i) => i.nome + " " + i.cor).join(" ")].join(" ")).includes(termo)));
+    }
+    function desenharPedidos() {
+      const lista = filtrados();
+      const conta = (k) => pedidos.filter((p) => p.status === k).length;
+      $("#pedidos-resumo").innerHTML = pedidos.length ? `<span><strong>${pedidos.length}</strong> pedidos</span><span><strong>${conta("novo")}</strong> novos</span><span><strong>${conta("em_atendimento")}</strong> em atendimento</span><span><strong>${pedidos.reduce((s, p) => s + kgPedido(p), 0).toLocaleString("pt-BR")}</strong> kg no total</span>` : "";
+      $("#admin-pedidos").innerHTML = lista.length ? lista.map((p, i) => {
+        const c = p.cliente || {}, tel = String(c.telefone || "").replace(/\D/g, "");
+        return `<article class="adm-pedido status-${esc(p.status)}" data-numero="${esc(p.numero)}">
+          <header>
+            <div><strong>${esc(p.numero)}</strong><small>${esc(dataBR(p.criado_em))}</small></div>
+            <select data-status aria-label="Status do pedido">${Object.entries(ST).map(([k, v]) => `<option value="${k}" ${k === p.status ? "selected" : ""}>${esc(v)}</option>`).join("")}</select>
+          </header>
+          <div class="adm-pedido-corpo">
+            <div class="adm-cliente">
+              <strong>${esc(nomeCliente(c))}</strong>
+              ${c.tipo === "pj" && c.cnpj ? `<small>CNPJ ${esc(c.cnpj)}${c.responsavel ? " · " + esc(c.responsavel) : ""}</small>` : c.cpf ? `<small>CPF ${esc(c.cpf)}</small>` : ""}
+              <small>${esc(c.email || "")}${c.telefone ? " · " + esc(c.telefone) : ""}</small>
+              ${c.cidade ? `<small>${esc([c.logradouro, c.numero].filter(Boolean).join(", "))} — ${esc(c.cidade)}/${esc(c.uf || "")} · CEP ${esc(c.cep || "")}</small>` : ""}
+            </div>
+            <ul>${(p.itens || []).map((it) => `<li><strong>${esc(it.nome)}</strong> · ${esc(it.cor)}<small>${esc(CW.descreverQtd({ embalagem: it.embalagem, qtd: +it.qtd || 0 }))}</small></li>`).join("")}</ul>
+            ${p.observacoes ? `<p class="obs">Obs.: ${esc(p.observacoes)}</p>` : ""}
+          </div>
+          <footer>
+            <span>Total: <strong>${kgPedido(p).toLocaleString("pt-BR")} kg</strong></span>
+            ${tel ? `<a class="btn btn-whats" target="_blank" rel="noopener" href="https://wa.me/${tel.length <= 11 ? "55" + tel : tel}?text=${encodeURIComponent(`Olá, ${nomeCliente(c)}! Aqui é da Policoating, sobre o seu pedido ${p.numero}.`)}">Chamar cliente</a>` : ""}
+          </footer>
+        </article>`;
+      }).join("") : `<p class="dica">${pedidos.length ? "Nenhum pedido com esse filtro." : "Nenhum pedido ainda. Os pedidos enviados pelo site por clientes logados aparecem aqui."}</p>`;
+    }
+    $("#pedidos-busca").addEventListener("input", desenharPedidos);
+    $("#pedidos-status").addEventListener("change", desenharPedidos);
+    $("#pedidos-atualizar").addEventListener("click", carregarPedidos);
+    $("#admin-pedidos").addEventListener("change", async (e) => {
+      const sel = e.target.closest("[data-status]"); if (!sel) return;
+      const art = sel.closest("[data-numero]"), numero = art.dataset.numero;
+      try {
+        await A.mudarStatus(numero, sel.value);
+        const p = pedidos.find((x) => x.numero === numero); if (p) p.status = sel.value;
+        art.className = "adm-pedido status-" + sel.value;
+        CW.mostrarToast(`Pedido ${numero}: ${ST[sel.value]}`);
+        desenharPedidos();
+      } catch (err) { $("#pedidos-erro").textContent = err.message; }
+    });
+    $("#pedidos-csv").addEventListener("click", () => {
+      const lista = filtrados();
+      const cel = (v) => `"${String(v == null ? "" : v).replace(/"/g, '""')}"`;
+      const linhas = [["Pedido", "Data", "Status", "Cliente", "Documento", "E-mail", "Telefone", "Cidade", "UF", "Produto", "Cor", "Quantidade", "Kg", "Observações"]];
+      lista.forEach((p) => (p.itens || []).forEach((it) => {
+        const c = p.cliente || {};
+        linhas.push([p.numero, dataBR(p.criado_em), ST[p.status] || p.status, nomeCliente(c), c.cnpj || c.cpf || "", c.email || "", c.telefone || "", c.cidade || "", c.uf || "",
+          it.nome, it.cor, CW.descreverQtd({ embalagem: it.embalagem, qtd: +it.qtd || 0 }), CW.kgDoItem({ embalagem: it.embalagem, qtd: +it.qtd || 0 }), p.observacoes || ""]);
+      }));
+      const csv = "\ufeff" + linhas.map((l) => l.map(cel).join(";")).join("\r\n");
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+      a.download = `pedidos-policoating-${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a); a.click(); a.remove();
+    });
 
     /* ---------- Contato e links ---------- */
     const formCfg = $("#form-config");

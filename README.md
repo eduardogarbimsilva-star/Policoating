@@ -190,13 +190,24 @@ escolhendo o cargo. Nada é pago ou enviado pelo site: o pedido vai para o Whats
   "não compram há mais de 90 dias", "sem pedidos" e "cadastrados nos últimos 30 dias"; ordem por último pedido,
   kg comprados, número de pedidos ou nome. Cada cliente mostra pedidos, total em kg, último pedido e desde quando é
   cliente, com os botões **Ver pedidos** e **WhatsApp**. A planilha de clientes só aparece para quem pode exportar.
+- **Estoque:** saldo em kg (e em caixas de 25 kg) de cada produto e cor, com busca e filtros "abaixo do mínimo",
+  "sem estoque" e "com estoque". Em **Movimentar**: **Entrada** (produção ou compra, com número da NF),
+  **Saída**, **Inventário** (informe a contagem real e o sistema lança a diferença) e **Mínimo** (alerta de
+  reposição). Cada item tem **Histórico** com data, tipo, kg, pedido, documento e quem fez; nada é apagado nem
+  editado, correções entram como inventário. Saídas não deixam o saldo ficar negativo.
+  - **Baixa pelo pedido:** o pedido do site não desconta sozinho (a venda fecha no WhatsApp). Quando fechar, use
+    **Dar baixa no estoque** no pedido; o sistema não deixa dar baixa duas vezes.
+  - **No site:** o cliente vê só **Pronta entrega** ou **Sob encomenda** ao escolher a cor, nunca a quantidade.
+    Enquanto o estoque não tiver nenhuma movimentação, nada aparece.
+  - Toda a equipe consulta; movimenta quem é administrador ou tem **Pode movimentar estoque** (aba Equipe).
+    Precisa da **PARTE J** do `setup.sql`.
 - **Contato e links:** WhatsApp dos pedidos, telefone, e-mail, horário, endereço, slogan, redes sociais
   (Instagram, Facebook, WhatsApp Business, YouTube, TikTok, LinkedIn) e lojas (Mercado Livre, Shopee, AliExpress,
   Amazon, Magalu). Cada link só aparece no site depois de preenchido.
 - **Galeria:** enviar, ordenar, legendar e remover as fotos da galeria.
 - **Equipe:** adicionar pessoas como Administrador ou Vendedor, mudar o cargo ou remover o acesso.
 
-Para as abas Contato, Galeria e Equipe, rode também as **PARTES E, F, G, H e I** do `setup.sql`, nessa ordem.
+Para as abas Contato, Galeria e Equipe, rode também as **PARTES E, F, G, H, I e J** do `setup.sql`, nessa ordem.
 
 **Produtos no painel:**
 - **Novo produto:** nome, linha, acabamento, descrição, rendimento, cura, embalagens, preço opcional, destaque na
@@ -329,6 +340,18 @@ O guia **"Qual pó usar?"** (em Recursos) usa essas mesmas linhas para indicar p
 - `sitemap.xml` e `robots.txt` ajudam o Google a encontrar as páginas. Se o endereço do site mudar
   (domínio próprio), atualize-o nesses dois arquivos e nas tags `og:` das páginas.
 - Dados estruturados da empresa (schema.org) na página inicial.
+
+## Próximos passos (pendências importantes)
+
+1. **Envio de e-mails em grande volume.** O e-mail padrão do Supabase manda poucos códigos por hora; com muitos
+   acessos, clientes ficariam sem receber o código. Antes de divulgar o site, configurar um provedor de e-mail
+   profissional (Resend, Brevo ou Amazon SES) em **Authentication → Emails → SMTP Settings**, com remetente do
+   domínio da empresa (ex.: `nao-responda@policoating.com.br`) e registros SPF/DKIM no domínio, e aumentar o
+   limite em **Authentication → Rate Limits**.
+2. **Parte fiscal (NF-e).** O estoque já guarda o número do documento em cada movimentação e liga a saída ao
+   pedido. O próximo passo é emitir a NF-e por um serviço autorizado (ex.: Focus NFe, eNotas, PlugNotas ou o ERP
+   da empresa), com certificado digital A1 da empresa e os dados fiscais dos produtos (NCM, CFOP, CST/CSOSN) e do
+   cliente (já validados no cadastro). A emissão precisa rodar no servidor (função do Supabase), nunca no navegador.
 
 ## Rodar localmente
 

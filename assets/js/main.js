@@ -138,6 +138,10 @@
   // "Sob medida": o cliente informa o total em kg (qtd = kg). Caixas: qtd = número de caixas.
   const SOB_MEDIDA = "Sob medida";
   const ehSobMedida = (emb) => emb === SOB_MEDIDA;
+  // disponibilidade do estoque (carrega uma vez por página)
+  let promessaEstoque = null;
+  const disponibilidadeEstoque = () => (promessaEstoque = promessaEstoque ||
+    (window.Catalogo && window.Catalogo.disponibilidade ? window.Catalogo.disponibilidade() : Promise.resolve({})));
   // limites por item: até 2.000 caixas ou 50.000 kg sob medida (acima disso, o vendedor atende direto)
   const QTD_MAX = { caixas: 2000, kg: 50000 };
   const limitarQtd = (emb, n) => Math.min(ehSobMedida(emb) ? QTD_MAX.kg : QTD_MAX.caixas, Math.max(1, parseInt(n, 10) || 1));
@@ -474,7 +478,7 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
       <li><span>Cura</span><span>${esc(p.cura)}</span></li>
       ${p.preco ? `<li><span>Preço a partir de</span><span>${formatarPreco(p.preco)}</span></li>` : ""}
     </ul>
-    <div class="campo-titulo">Cor: <span id="nome-cor">${esc(corSel.nome)}</span></div>
+    <div class="campo-titulo">Cor: <span id="nome-cor">${esc(corSel.nome)}</span> <span class="selo-estoque" id="selo-estoque" hidden></span></div>
     <div class="seletor-cores">
       ${p.cores.map((c, i) => `<button class="${c === corSel ? "ativo" : ""}" data-cor="${i}" style="background:${c.hex}" title="${esc(c.nome)}" aria-label="${esc(c.nome)}"></button>`).join("")}
     </div>
@@ -508,6 +512,19 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
 </div>`;
 
     $(".fechar", modal).addEventListener("click", fecharTudo);
+    // estoque: só "Pronta entrega" ou "Sob encomenda" (nunca a quantidade); some se o estoque não é usado
+    function mostrarDisponibilidade() {
+      const selo = $("#selo-estoque", modal);
+      disponibilidadeEstoque().then((mapa) => {
+        if (!selo.isConnected || !Object.keys(mapa).length) return;
+        const pronta = mapa[p.id + "|" + corSel.nome] === true;
+        selo.hidden = false;
+        selo.className = "selo-estoque " + (pronta ? "pronta" : "encomenda");
+        selo.textContent = pronta ? "Pronta entrega" : "Sob encomenda";
+        selo.title = pronta ? "Temos esta cor em estoque" : "Produzimos sob encomenda. O vendedor informa o prazo.";
+      });
+    }
+    mostrarDisponibilidade();
     let vista = "foto";
     const desenharVitrine = () => {
       const alvo = $("#modal-vitrine");
@@ -526,6 +543,7 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
         corSel = p.cores[+b.dataset.cor];
         $$("[data-cor]", modal).forEach((x) => x.classList.toggle("ativo", x === b));
         $("#nome-cor").textContent = corSel.nome;
+        mostrarDisponibilidade();
         desenharVitrine();
       })
     );

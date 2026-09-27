@@ -438,3 +438,114 @@ revoke all on function public.pode_exportar_clientes() from public;
 grant execute on function public.pode_exportar_clientes() to anon, authenticated;
 
 grant update (pode_exportar) on public.admins to authenticated;
+
+-- ===========================================================
+-- PARTE J — Estoque (rode depois das PARTES F e G; pode rodar de novo sem problema)
+--   • Saldo por produto e cor, em kg, calculado pelo histórico de movimentações
+--   • Movimentações: entrada (produção/compra), saída (venda) e ajuste (inventário)
+--     Nada é apagado nem editado: correções entram como ajuste (histórico confiável, pronto para a parte fiscal)
+--   • Baixa de pedido: uma por produto e cor em cada pedido (não deixa dar baixa duas vezes)
+--   • Saídas não deixam o saldo ficar negativo
+--   • Toda a equipe vê; movimenta quem é administrador ou tem "Pode movimentar estoque"
+--   • Visitantes só sabem se a cor está em "pronta entrega" (nunca a quantidade)
+-- ===========================================================
+
+alter table public.admins add column if not exists pode_estoque boolean not null default false;
+grant update (pode_estoque) on public.admins to authenticated;
+
+create or replace function public.pode_mexer_estoque()
+returns boolean language sql stable security definer set search_path = public
+as $$
+  select exists (select 1 from public.admins
+                 where lower(email) = lower(auth.jwt() ->> 'email') and (papel = 'admin' or pode_estoque));
+$$;
+revoke all on function public.pode_mexer_estoque() from public;
+grant execute on function public.pode_mexer_estoque() to anon, authenticated;
+
+create table if not exists public.estoque_movimentos (
+  id            bigint generated always as identity primary key,
+  produto_id    text not null check (produto_id ~ '^[a-z0-9-]{2,60}$'),
+  cor           text not null check (length(btrim(cor)) between 1 and 80),
+  tipo          text not null check (tipo in ('entrada', 'saida', 'ajuste')),
+  kg            numeric(12, 2) not null check (kg <> 0 and abs(kg) <= 1000000),
+  pedido_numero text check (pedido_numero ~ '^PC-\d{6}-[A-Z0-9]{2,10}$'),
+  documento     text check (length(documento) <= 60),          -- ex.: número da NF de compra ou de venda
+  obs           text check (length(obs) <= 300),
+  feito_por     text,
+  criado_em     timestamptz not null default now(),
+  constraint estoque_kg_positivo check (tipo = 'ajuste' or kg > 0)
+);
+create index if not exists estoque_mov_item_idx on public.estoque_movimentos (produto_id, cor, criado_em desc);
+create unique index if not exists estoque_baixa_unica on public.estoque_movimentos (pedido_numero, produto_id, cor)
+  where tipo = 'saida' and pedido_numero is not null;
+
+create table if not exists public.estoque_minimos (
+  produto_id text not null,
+  cor        text not null,
+  minimo_kg  numeric(12, 2) not null default 0 check (minimo_kg >= 0 and minimo_kg <= 1000000),
+  primary key (produto_id, cor)
+);
+
+create or replace view public.estoque_saldos with (security_invoker = true) as
+  select produto_id, cor,
+         sum(case when tipo = 'saida' then -kg else kg end) as saldo_kg,
+         max(criado_em) as ultima_movimentacao
+  from public.estoque_movimentos
+  group by produto_id, cor;
+
+-- Quem fez e quando: definido pelo servidor. Saída/ajuste negativo não pode deixar o saldo abaixo de zero.
+create or replace function public.estoque_antes_de_gravar()
+returns trigger language plpgsql as $$
+declare saldo numeric;
+begin
+  new.feito_por := lower(auth.jwt() ->> 'email');
+  new.criado_em := now();
+  new.cor := btrim(new.cor);
+  if new.tipo = 'saida' or new.kg < 0 then
+    perform pg_advisory_xact_lock(hashtext(new.produto_id || '|' || new.cor));
+    select coalesce(sum(case when tipo = 'saida' then -kg else kg end), 0) into saldo
+      from public.estoque_movimentos where produto_id = new.produto_id and cor = new.cor;
+    if saldo - (case when new.tipo = 'saida' then new.kg else -new.kg end) < 0 then
+      raise exception 'Estoque insuficiente: saldo de % kg', saldo using errcode = 'P0001';
+    end if;
+  end if;
+  return new;
+end $$;
+drop trigger if exists estoque_antes_de_gravar on public.estoque_movimentos;
+create trigger estoque_antes_de_gravar before insert on public.estoque_movimentos
+  for each row execute function public.estoque_antes_de_gravar();
+
+alter table public.estoque_movimentos enable row level security;
+alter table public.estoque_minimos enable row level security;
+
+drop policy if exists "equipe ve estoque" on public.estoque_movimentos;
+create policy "equipe ve estoque" on public.estoque_movimentos
+  for select to authenticated using (public.eh_equipe());
+drop policy if exists "equipe movimenta estoque" on public.estoque_movimentos;
+create policy "equipe movimenta estoque" on public.estoque_movimentos
+  for insert to authenticated with check (public.pode_mexer_estoque());
+
+drop policy if exists "equipe ve minimos" on public.estoque_minimos;
+create policy "equipe ve minimos" on public.estoque_minimos
+  for select to authenticated using (public.eh_equipe());
+drop policy if exists "equipe define minimos" on public.estoque_minimos;
+create policy "equipe define minimos" on public.estoque_minimos
+  for insert to authenticated with check (public.pode_mexer_estoque());
+drop policy if exists "equipe altera minimos" on public.estoque_minimos;
+create policy "equipe altera minimos" on public.estoque_minimos
+  for update to authenticated using (public.pode_mexer_estoque()) with check (public.pode_mexer_estoque());
+
+grant select, insert on public.estoque_movimentos to authenticated;
+grant select, insert, update on public.estoque_minimos to authenticated;
+grant select on public.estoque_saldos to authenticated;
+
+-- Para o site: só diz se a cor tem estoque (pronta entrega), sem mostrar quantidades
+create or replace function public.estoque_disponivel()
+returns table (produto_id text, cor text, disponivel boolean)
+language sql stable security definer set search_path = public
+as $$
+  select produto_id, cor, sum(case when tipo = 'saida' then -kg else kg end) > 0
+  from public.estoque_movimentos group by produto_id, cor;
+$$;
+revoke all on function public.estoque_disponivel() from public;
+grant execute on function public.estoque_disponivel() to anon, authenticated;

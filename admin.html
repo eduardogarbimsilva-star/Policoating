@@ -23,7 +23,7 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Barlow:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/style.css?v=59056e6e">
+  <link rel="stylesheet" href="assets/css/style.css?v=1a25909e">
 </head>
 <body>
   <a class="pular" href="#conteudo">Pular para o conteúdo</a>
@@ -92,7 +92,7 @@
       <div class="container">
         <div class="migalhas"><a href="index.html">Início</a> / <a href="conta.html">Minha conta</a> / Painel da empresa</div>
         <h1>Painel da empresa</h1>
-        <p>Produtos, pedidos, clientes, contato, galeria e equipe da Policoating em um só lugar.</p>
+        <p>Produtos, pedidos, clientes, estoque, contato, galeria e equipe da Policoating em um só lugar.</p>
       </div>
     </section>
 
@@ -121,6 +121,7 @@
             <button type="button" role="tab" data-aba="produtos" class="ativo"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5M12 13v8"/></svg> Produtos</button>
             <button type="button" role="tab" data-aba="pedidos"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h2l2.4 11h11L21 8H6.2"/><circle cx="9.5" cy="19.5" r="1.5"/><circle cx="17.5" cy="19.5" r="1.5"/></svg> Pedidos</button>
             <button type="button" role="tab" data-aba="clientes"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg> Clientes</button>
+            <button type="button" role="tab" data-aba="estoque"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5M12 13v8"/></svg> Estoque</button>
             <button type="button" role="tab" data-aba="contato"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/></svg> Contato e links</button>
             <button type="button" role="tab" data-aba="galeria"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18c1.1 0 2-.9 2-2 0-.5-.2-1-.5-1.3-.3-.4-.5-.8-.5-1.2 0-1.1.9-2 2-2h2.4A4.6 4.6 0 0 0 22 10c0-3.9-4.5-7-10-7"/><circle cx="7.5" cy="11.5" r="1"/><circle cx="10.5" cy="7.5" r="1"/><circle cx="15.5" cy="7.5" r="1"/></svg> Galeria</button>
             <button type="button" role="tab" data-aba="equipe"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg> Equipe</button>
@@ -202,6 +203,38 @@
             <p class="form-erro" id="clientes-erro" role="alert"></p>
           </div>
 
+          <!-- Estoque -->
+          <div class="admin-aba" data-conteudo="estoque" hidden>
+            <div class="pedidos-resumo" id="estoque-resumo"></div>
+            <div class="busca-pedidos">
+              <label for="estoque-busca">Buscar no estoque</label>
+              <div class="busca-pedidos-linha">
+                <input type="search" id="estoque-busca" placeholder="Produto, linha ou cor (ex.: RAL 9005)" autocomplete="off">
+                <select id="estoque-filtro" aria-label="Filtrar estoque">
+                  <option value="">Todos os itens</option>
+                  <option value="baixo">Abaixo do mínimo</option>
+                  <option value="zerado">Sem estoque</option>
+                  <option value="com">Com estoque</option>
+                </select>
+              </div>
+              <small>Saldo em kg por produto e cor. O pedido feito pelo site não desconta sozinho: use "Dar baixa no estoque" no pedido quando a venda fechar.</small>
+            </div>
+            <div class="admin-barra">
+              <p class="dica" style="margin:0;flex:1" id="estoque-permissao"></p>
+              <div class="admin-acoes">
+                <button type="button" class="btn btn-contorno-azul" id="estoque-historico">Histórico</button>
+                <button type="button" class="btn btn-primario" id="estoque-csv"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg> Exportar planilha</button>
+              </div>
+            </div>
+            <div class="tabela-rolagem">
+              <table class="admin-tabela tabela-estoque">
+                <thead><tr><th>Produto e cor</th><th>Saldo</th><th>Mínimo</th><th>Situação</th><th><span class="sr">Ações</span></th></tr></thead>
+                <tbody id="estoque-lista"></tbody>
+              </table>
+            </div>
+            <p class="form-erro" id="estoque-erro" role="alert"></p>
+          </div>
+
           <!-- Contato e links -->
           <form class="admin-aba admin-cfg" data-conteudo="contato" id="form-config" hidden novalidate>
             <fieldset>
@@ -255,8 +288,8 @@
           <!-- Equipe -->
           <div class="admin-aba" data-conteudo="equipe" hidden>
             <div class="cargos-info">
-              <div><b class="cargo cargo-admin">Administrador</b><span>Tudo: produtos, pedidos (inclusive excluir), clientes (inclusive exportar), contato e links, galeria e equipe.</span></div>
-              <div><b class="cargo cargo-vendedor">Vendedor</b><span>Busca de pedidos e de clientes, chamar o cliente e exportar a planilha de pedidos. Exclui pedidos e exporta a planilha de clientes só se o administrador liberar.</span></div>
+              <div><b class="cargo cargo-admin">Administrador</b><span>Tudo: produtos, pedidos (inclusive excluir), clientes (inclusive exportar), estoque, contato e links, galeria e equipe.</span></div>
+              <div><b class="cargo cargo-vendedor">Vendedor</b><span>Busca de pedidos e de clientes, consulta do estoque, chamar o cliente e exportar a planilha de pedidos. Exclui pedidos, exporta clientes e movimenta o estoque só se o administrador liberar.</span></div>
             </div>
             <p class="dica">A pessoa entra no site com o próprio e-mail (código de acesso) e vê o botão "Painel da empresa" no menu da conta.</p>
             <form class="admin-barra" id="form-equipe" novalidate>
@@ -270,6 +303,39 @@
         </div>
       </div>
     </section>
+
+    <!-- Movimentação de estoque -->
+    <div class="admin-modal" id="modal-estoque" role="dialog" aria-modal="true" aria-labelledby="mov-titulo" hidden>
+      <form class="admin-form form-estoque" id="form-estoque" novalidate>
+        <header>
+          <h2 id="mov-titulo">Movimentar estoque</h2>
+          <button type="button" class="fechar" data-fechar-mov aria-label="Fechar">×</button>
+        </header>
+        <div class="admin-form-corpo">
+          <p class="mov-item" id="mov-item"></p>
+          <div class="mov-tipos" role="radiogroup" aria-label="Tipo">
+            <label><input type="radio" name="mov-tipo" value="entrada" checked><span><b>Entrada</b>Produção ou compra</span></label>
+            <label><input type="radio" name="mov-tipo" value="saida"><span><b>Saída</b>Venda ou uso</span></label>
+            <label><input type="radio" name="mov-tipo" value="ajuste"><span><b>Inventário</b>Contagem real</span></label>
+            <label><input type="radio" name="mov-tipo" value="minimo"><span><b>Mínimo</b>Alerta de reposição</span></label>
+          </div>
+          <div class="grade-campos">
+            <label id="mov-rotulo-kg">Quantidade (kg) *<input type="number" id="mov-kg" min="0" step="0.01" inputmode="decimal"><small id="mov-dica-kg"></small></label>
+            <label id="mov-rotulo-caixas">Ou em caixas de 25 kg<input type="number" id="mov-caixas" min="0" step="1" inputmode="numeric"></label>
+            <label id="mov-rotulo-doc">Documento (NF, lote...)<input id="mov-doc" maxlength="60" placeholder="Ex.: NF 1234"></label>
+            <label id="mov-rotulo-pedido">Pedido do site (opcional)<input id="mov-pedido" maxlength="20" placeholder="PC-260926-AB12"></label>
+            <label class="largo" id="mov-rotulo-obs">Observação<input id="mov-obs" maxlength="300"></label>
+          </div>
+          <p class="resumo-qtd" id="mov-resumo" aria-live="polite"></p>
+          <div id="mov-historico"></div>
+          <p class="form-erro" id="mov-erro" role="alert"></p>
+        </div>
+        <footer>
+          <button type="button" class="btn btn-contorno-azul" data-fechar-mov>Cancelar</button>
+          <button type="submit" class="btn btn-primario" id="mov-salvar">Registrar</button>
+        </footer>
+      </form>
+    </div>
 
     <!-- Formulário do produto -->
     <div class="admin-modal" id="admin-modal" role="dialog" aria-modal="true" aria-labelledby="form-titulo" hidden>
@@ -384,16 +450,16 @@
 
   <script src="assets/js/config.js?v=fa69da5c"></script>
   <script src="assets/js/produtos.js?v=33acf86a"></script>
-  <script src="assets/js/catalogo.js?v=f451a26e"></script>
+  <script src="assets/js/catalogo.js?v=1bdd3459"></script>
   <script src="assets/js/icones.js?v=0989d2a0"></script>
   <script src="assets/js/midia.js?v=781286f8"></script>
   <script src="assets/js/fotos-reais.js?v=cd443528"></script>
   <script src="assets/js/fotos.js?v=48f81340"></script>
   <script src="assets/js/auth.js?v=c2d181c9"></script>
-  <script src="assets/js/main.js?v=53f81e88"></script>
+  <script src="assets/js/main.js?v=f9257449"></script>
   <script src="assets/js/animacoes.js?v=d458c529"></script>
   <script src="assets/js/secoes.js?v=79232704"></script>
   <script src="assets/js/assistente.js?v=ed48da65"></script>
-  <script src="assets/js/admin.js?v=2b2e3555"></script>
+  <script src="assets/js/admin.js?v=6b5e0eb4"></script>
 </body>
 </html>

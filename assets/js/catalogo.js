@@ -130,6 +130,35 @@
     }
     return eq;
   }
+  const CHAVE_ESTOQUE_DEMO = "policoating_demo_estoque", CHAVE_MIN_DEMO = "policoating_demo_estoque_min";
+  const estoqueDemo = () => ler(CHAVE_ESTOQUE_DEMO) || [];
+  const sinal = (m) => (m.tipo === "saida" ? -m.kg : +m.kg);
+  function erroEstoque(e) {
+    const msg = String((e && e.message) || "");
+    if (/estoque_baixa_unica|duplicate key/i.test(msg)) return new Error("A baixa deste pedido já foi feita.");
+    if (/Estoque insuficiente/i.test(msg)) return new Error(msg.replace(/\.?$/, "."));
+    if (/row-level security|permission denied/i.test(msg)) return new Error("Você não tem permissão para movimentar o estoque.");
+    if (/estoque_|does not exist|schema cache/i.test(msg)) return new Error("Estoque ainda não ativado: rode a PARTE J do setup.sql no Supabase.");
+    return erro(e);
+  }
+
+  /** Para o site: { "produto|cor": true/false } — só se a cor tem estoque, sem quantidade. Vazio = estoque não usado. */
+  async function disponibilidade() {
+    try {
+      if (!ONLINE) {
+        const mapa = {};
+        estoqueDemo().forEach((m) => { const k = m.produto_id + "|" + m.cor; mapa[k] = (mapa[k] || 0) + sinal(m); });
+        Object.keys(mapa).forEach((k) => (mapa[k] = mapa[k] > 0));
+        return mapa;
+      }
+      const r = await fetch(`${SB.url}/rest/v1/rpc/estoque_disponivel`, { method: "POST", headers: { apikey: SB.anonKey, "Content-Type": "application/json" }, body: "{}" });
+      if (!r.ok) return {};
+      const mapa = {};
+      (await r.json()).forEach((x) => (mapa[x.produto_id + "|" + x.cor] = !!x.disponivel));
+      return mapa;
+    } catch (e) { return {}; }
+  }
+
   async function cliente() {
     if (!window.Conta || !window.Conta.cliente) throw new Error("Login indisponível.");
     return window.Conta.cliente();
@@ -167,6 +196,19 @@
         return !!(m && m.pode_exportar);
       }
       const { data, error } = await (await cliente()).rpc("pode_exportar_clientes");
+      return !error && data === true;
+    },
+
+    /** Pode movimentar o estoque (entrada, saída, inventário, mínimo)? Administradores sempre; vendedores com a permissão. */
+    async podeMovimentarEstoque() {
+      const papel = await this.meuPapel();
+      if (!papel) return false;
+      if (papel === "admin") return true;
+      if (!ONLINE) {
+        const eu = window.Conta.usuario.email.toLowerCase(), m = equipeDemo().find((x) => x.email === eu);
+        return !!(m && m.pode_estoque);
+      }
+      const { data, error } = await (await cliente()).rpc("pode_mexer_estoque");
       return !error && data === true;
     },
 
@@ -268,12 +310,13 @@
     async listarEquipe() {
       if (!ONLINE) return equipeDemo();
       const sb = await cliente();
-      let r = await sb.from("admins").select("email, papel, pode_excluir, pode_exportar").order("email");
+      let r = await sb.from("admins").select("email, papel, pode_excluir, pode_exportar, pode_estoque").order("email");
+      if (r.error) r = await sb.from("admins").select("email, papel, pode_excluir, pode_exportar").order("email");   // sem a PARTE J ainda
       if (r.error) r = await sb.from("admins").select("email, papel, pode_excluir").order("email");   // sem a PARTE I ainda
       if (r.error) r = await sb.from("admins").select("email, papel").order("email");   // sem a PARTE G ainda
       if (r.error) r = await sb.from("admins").select("email").order("email");          // sem a PARTE F ainda
       if (r.error) throw erro(r.error);
-      return (r.data || []).map((x) => ({ email: x.email, papel: x.papel || "admin", pode_excluir: !!x.pode_excluir, pode_exportar: !!x.pode_exportar }));
+      return (r.data || []).map((x) => ({ email: x.email, papel: x.papel || "admin", pode_excluir: !!x.pode_excluir, pode_exportar: !!x.pode_exportar, pode_estoque: !!x.pode_estoque }));
     },
     async salvarMembro(email, papel) {
       email = String(email || "").trim().toLowerCase();
@@ -293,7 +336,7 @@
     async permitirExcluir(email, sim) { return this.permitir(email, "pode_excluir", sim); },
     /** Liga ou desliga uma permissão extra de um membro: "pode_excluir" (pedidos) ou "pode_exportar" (clientes) */
     async permitir(email, campo, sim) {
-      if (!["pode_excluir", "pode_exportar"].includes(campo)) throw new Error("Permissão desconhecida.");
+      if (!["pode_excluir", "pode_exportar", "pode_estoque"].includes(campo)) throw new Error("Permissão desconhecida.");
       email = String(email || "").trim().toLowerCase();
       if (!ONLINE) {
         const eq = equipeDemo(), m = eq.find((x) => x.email === email);
@@ -302,7 +345,7 @@
       }
       const sb = await cliente();
       const { error } = await sb.from("admins").update({ [campo]: !!sim }).eq("email", email);
-      if (error) throw erro(new RegExp(campo).test(error.message) ? { message: `Rode a PARTE ${campo === "pode_excluir" ? "G" : "I"} do setup.sql no Supabase para usar esta permissão.` } : error);
+      if (error) throw erro(new RegExp(campo).test(error.message) ? { message: `Rode a PARTE ${{ pode_excluir: "G", pode_exportar: "I", pode_estoque: "J" }[campo]} do setup.sql no Supabase para usar esta permissão.` } : error);
     },
 
     /** Clientes cadastrados, com o resumo das compras: pedidos, kg e data do último pedido */
@@ -374,6 +417,90 @@
       if (!data || !data.length) throw new Error("O pedido não foi excluído (sem permissão no banco — rode a PARTE G do setup.sql).");
     },
 
+    /* ---------- Estoque ---------- */
+    /** Saldos e mínimos: { "produto|cor": { saldo, minimo, ultima } } */
+    async estoqueSaldos() {
+      const chave = (p, c) => p + "|" + c, mapa = {};
+      const item = (k) => (mapa[k] = mapa[k] || { saldo: 0, minimo: 0, ultima: null });
+      if (!ONLINE) {
+        estoqueDemo().forEach((m) => { const x = item(chave(m.produto_id, m.cor)); x.saldo += sinal(m); if (!x.ultima || m.criado_em > x.ultima) x.ultima = m.criado_em; });
+        Object.entries(ler(CHAVE_MIN_DEMO) || {}).forEach(([k, v]) => (item(k).minimo = v));
+        return mapa;
+      }
+      const sb = await cliente();
+      const [rs, rm] = await Promise.all([sb.from("estoque_saldos").select("*"), sb.from("estoque_minimos").select("*")]);
+      if (rs.error) throw erroEstoque(rs.error);
+      (rs.data || []).forEach((s) => Object.assign(item(chave(s.produto_id, s.cor)), { saldo: +s.saldo_kg, ultima: s.ultima_movimentacao }));
+      (rm.data || []).forEach((m) => (item(chave(m.produto_id, m.cor)).minimo = +m.minimo_kg));
+      return mapa;
+    },
+    /** Histórico (mais recentes primeiro). Filtros opcionais: produto_id, cor, pedido_numero */
+    async estoqueMovimentos(f = {}, limite = 300) {
+      if (!ONLINE) {
+        return estoqueDemo().filter((m) => (!f.produto_id || m.produto_id === f.produto_id) && (!f.cor || m.cor === f.cor) && (!f.pedido_numero || m.pedido_numero === f.pedido_numero))
+          .sort((a, b) => String(b.criado_em).localeCompare(String(a.criado_em))).slice(0, limite);
+      }
+      let q = (await cliente()).from("estoque_movimentos").select("*").order("criado_em", { ascending: false }).limit(limite);
+      ["produto_id", "cor", "pedido_numero"].forEach((k) => { if (f[k]) q = q.eq(k, f[k]); });
+      const { data, error } = await q;
+      if (error) throw erroEstoque(error);
+      return data || [];
+    },
+    /** Registra uma movimentação: tipo "entrada" | "saida" | "ajuste" (kg negativo ou positivo) */
+    async movimentarEstoque(m) {
+      const reg = {
+        produto_id: String(m.produto_id || ""), cor: String(m.cor || "").trim(), tipo: m.tipo,
+        kg: Math.round((+m.kg || 0) * 100) / 100,
+        pedido_numero: m.pedido_numero || null,
+        documento: String(m.documento || "").replace(/\s+/g, " ").trim().slice(0, 60) || null,
+        obs: String(m.obs || "").replace(/\s+/g, " ").trim().slice(0, 300) || null
+      };
+      if (!["entrada", "saida", "ajuste"].includes(reg.tipo)) throw new Error("Tipo de movimentação inválido.");
+      if (!reg.produto_id || !reg.cor) throw new Error("Escolha o produto e a cor.");
+      if (!reg.kg || (reg.tipo !== "ajuste" && reg.kg < 0)) throw new Error("Informe a quantidade em kg.");
+      if (Math.abs(reg.kg) > 1000000) throw new Error("Quantidade muito alta.");
+      if (!(await this.podeMovimentarEstoque())) throw new Error("Você não tem permissão para movimentar o estoque. Peça a um administrador.");
+      if (!ONLINE) {
+        const lista = estoqueDemo(), k = (x) => x.produto_id + "|" + x.cor;
+        if (reg.tipo === "saida" && reg.pedido_numero && lista.some((x) => x.tipo === "saida" && x.pedido_numero === reg.pedido_numero && k(x) === k(reg)))
+          throw new Error("A baixa deste pedido já foi feita.");
+        const saldo = lista.filter((x) => k(x) === k(reg)).reduce((s, x) => s + sinal(x), 0);
+        if (saldo + sinal(reg) < 0) throw new Error(`Estoque insuficiente: saldo de ${saldo.toLocaleString("pt-BR")} kg.`);
+        lista.push(Object.assign(reg, { id: Date.now() + Math.random(), feito_por: window.Conta.usuario.email.toLowerCase(), criado_em: new Date().toISOString() }));
+        gravar(CHAVE_ESTOQUE_DEMO, lista); return reg;
+      }
+      const { data, error } = await (await cliente()).from("estoque_movimentos").insert(reg).select().single();
+      if (error) throw erroEstoque(error);
+      return data;
+    },
+    async definirMinimo(produto_id, cor, kg) {
+      kg = Math.max(0, Math.round((+kg || 0) * 100) / 100);
+      if (!(await this.podeMovimentarEstoque())) throw new Error("Você não tem permissão para alterar o estoque.");
+      if (!ONLINE) { const m = ler(CHAVE_MIN_DEMO) || {}; m[produto_id + "|" + cor] = kg; gravar(CHAVE_MIN_DEMO, m); return; }
+      const { error } = await (await cliente()).from("estoque_minimos").upsert({ produto_id, cor, minimo_kg: kg });
+      if (error) throw erroEstoque(error);
+    },
+    /** Dá baixa de um pedido: uma saída por produto e cor (soma as embalagens) */
+    async baixarPedido(pedido) {
+      const soma = {};
+      (pedido.itens || []).forEach((it) => {
+        if (!it.id) return;
+        const k = it.id + "|" + it.cor, kg = window.ColorWeg.kgDoItem({ embalagem: it.embalagem, qtd: +it.qtd || 0 });
+        soma[k] = soma[k] || { produto_id: it.id, cor: it.cor, kg: 0 }; soma[k].kg += kg;
+      });
+      const itens = Object.values(soma);
+      if (!itens.length) throw new Error("Este pedido não tem itens do catálogo para dar baixa.");
+      const feitos = new Set((await this.estoqueMovimentos({ pedido_numero: pedido.numero })).filter((m) => m.tipo === "saida").map((m) => m.produto_id + "|" + m.cor));
+      const faltam = itens.filter((i) => !feitos.has(i.produto_id + "|" + i.cor));
+      if (!faltam.length) throw new Error("A baixa deste pedido já foi feita.");
+      const erros = [];
+      for (const i of faltam) {
+        try { await this.movimentarEstoque(Object.assign({ tipo: "saida", pedido_numero: pedido.numero, obs: "Baixa do pedido" }, i)); }
+        catch (e) { erros.push(`${i.cor}: ${e.message}`); }
+      }
+      if (erros.length) throw new Error("Baixa parcial. " + erros.join(" "));
+    },
+
     /** Envia um PDF (ficha técnica) e retorna o endereço público */
     async enviarPdf(arquivo, pasta) {
       if (arquivo.type !== "application/pdf") throw new Error("Envie a ficha técnica em PDF.");
@@ -406,5 +533,5 @@
     });
   }
 
-  window.Catalogo = { pronto, atualizar: atualizarDoServidor, Admin, REDES, LOJAS };
+  window.Catalogo = { pronto, atualizar: atualizarDoServidor, Admin, REDES, LOJAS, disponibilidade };
 })();

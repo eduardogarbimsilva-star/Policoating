@@ -24,10 +24,10 @@
       document.title = "Área do vendedor | Policoating";
       $(".cabecalho-pagina h1").textContent = "Área do vendedor";
       $(".cabecalho-pagina p").textContent = "Encontre qualquer pedido pelo código ou pelo nome do cliente, e veja a carteira de clientes.";
-      $$(".admin-abas [data-aba]").forEach((b) => { if (!["pedidos", "clientes"].includes(b.dataset.aba)) b.remove(); });
+      $$(".admin-abas [data-aba]").forEach((b) => { if (!["pedidos", "clientes", "estoque"].includes(b.dataset.aba)) b.remove(); });
     }
-    const [podeExcluir, podeExportar] = await Promise.all([A.podeExcluirPedidos(), A.podeExportarClientes()]);
-    const extras = [podeExcluir && "pode excluir pedidos", podeExportar && "pode exportar clientes"].filter(Boolean);
+    const [podeExcluir, podeExportar, podeEstoque] = await Promise.all([A.podeExcluirPedidos(), A.podeExportarClientes(), A.podeMovimentarEstoque()]);
+    const extras = [podeExcluir && "pode excluir pedidos", podeExportar && "pode exportar clientes", podeEstoque && "pode movimentar estoque"].filter(Boolean);
     $("#selo-papel").textContent = (ehAdmin ? "Administrador" : "Vendedor") + (!ehAdmin && extras.length ? ` (${extras.join(", ")})` : "");
     $("#clientes-csv").hidden = !podeExportar;
 
@@ -235,6 +235,7 @@
       if (nome === "contato") carregarConfig();
       if (nome === "pedidos") carregarPedidos();
       if (nome === "clientes") carregarClientes();
+      if (nome === "estoque") carregarEstoque();
       if (nome === "galeria") carregarGaleria();
       if (nome === "equipe") carregarEquipe();
     };
@@ -245,8 +246,20 @@
     const nomeCliente = (c) => (c.tipo === "pj" ? (c.nome_fantasia || c.razao_social) : c.nome) || c.email || "Cliente";
     const kgPedido = (p) => (p.itens || []).reduce((s, it) => s + CW.kgDoItem({ embalagem: it.embalagem, qtd: +it.qtd || 0 }), 0);
     const dataBR = (d) => (d ? new Date(d).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }) : "");
+    let baixados = new Set();   // "PC-...|produto|cor" que já tiveram baixa no estoque
+    async function carregarBaixas() {
+      try { baixados = new Set((await A.estoqueMovimentos({}, 5000)).filter((m) => m.tipo === "saida" && m.pedido_numero).map((m) => m.pedido_numero + "|" + m.produto_id + "|" + m.cor)); }
+      catch (e) { baixados = new Set(); }
+    }
+    const situacaoBaixa = (p) => {
+      const itens = (p.itens || []).filter((it) => it.id);
+      if (!itens.length) return "sem-itens";
+      const feitos = itens.filter((it) => baixados.has(p.numero + "|" + it.id + "|" + it.cor)).length;
+      return feitos === itens.length ? "feita" : feitos ? "parcial" : "pendente";
+    };
     async function carregarPedidos() {
       $("#pedidos-erro").textContent = "";
+      await carregarBaixas();
       try { pedidos = await A.listarPedidos($("#pedidos-busca").value); pedidosCarregados = true; }
       catch (e) { pedidos = []; $("#pedidos-erro").textContent = e.message + " (rode as PARTES F e G do setup.sql no Supabase)"; }
       desenharPedidos();
@@ -281,7 +294,13 @@
           </div>
           <footer>
             <span>Total: <strong>${kgPedido(p).toLocaleString("pt-BR")} kg</strong></span>
-            <span class="adm-pedido-botoes">${podeExcluir ? `<button type="button" class="btn-excluir-pedido" data-excluir-pedido="${esc(p.numero)}">Excluir pedido</button>` : ""}
+            <span class="adm-pedido-botoes">${(() => {
+              const b = situacaoBaixa(p);
+              if (b === "feita") return `<b class="selo-cli ativo">Baixa no estoque feita</b>`;
+              if (b === "sem-itens" || !podeEstoque) return b === "parcial" ? `<b class="selo-cli inativo">Baixa parcial</b>` : "";
+              return `<button type="button" class="btn btn-contorno-azul" data-baixar="${esc(p.numero)}">${b === "parcial" ? "Completar baixa" : "Dar baixa no estoque"}</button>`;
+            })()}
+            ${podeExcluir ? `<button type="button" class="btn-excluir-pedido" data-excluir-pedido="${esc(p.numero)}">Excluir pedido</button>` : ""}
             ${tel ? `<a class="btn btn-whats" target="_blank" rel="noopener" href="https://wa.me/${tel.length <= 11 ? "55" + tel : tel}?text=${encodeURIComponent(`Olá, ${nomeCliente(c)}! Aqui é da Policoating, sobre o seu pedido ${p.numero}.`)}">Chamar cliente</a>` : ""}</span>
           </footer>
         </article>`;
@@ -296,6 +315,17 @@
     $("#pedidos-periodo").addEventListener("change", desenharPedidos);
     $("#pedidos-atualizar").addEventListener("click", carregarPedidos);
     $("#admin-pedidos").addEventListener("click", async (e) => {
+      const bx = e.target.closest("[data-baixar]");
+      if (bx) {
+        const ped = pedidos.find((p) => p.numero === bx.dataset.baixar); if (!ped) return;
+        const resumo = (ped.itens || []).filter((it) => it.id).map((it) => `• ${it.nome} · ${it.cor}: ${CW.kgDoItem({ embalagem: it.embalagem, qtd: +it.qtd || 0 }).toLocaleString("pt-BR")} kg`).join("\n");
+        if (!confirm(`Dar baixa no estoque do pedido ${ped.numero}?\n\n${resumo}\n\nUse quando a venda estiver fechada.`)) return;
+        bx.disabled = true;
+        try { await A.baixarPedido(ped); CW.mostrarToast(`Baixa do pedido ${ped.numero} feita.`); }
+        catch (err) { $("#pedidos-erro").textContent = err.message; }
+        await carregarBaixas(); desenharPedidos();
+        return;
+      }
       const x = e.target.closest("[data-excluir-pedido]");
       if (x) {
         const num = x.dataset.excluirPedido;
@@ -409,6 +439,160 @@
       document.body.appendChild(a); a.click(); a.remove();
     });
 
+    /* ---------- Estoque ---------- */
+    const KG_CAIXA = 25;
+    let saldos = {}, estoqueCarregado = false, movAlvo = null;
+    const fmtKg = (n) => (Math.round(n * 100) / 100).toLocaleString("pt-BR") + " kg";
+    function itensEstoque() {
+      const lista = [], vistos = new Set();
+      (window.PRODUTOS || []).forEach((p) => p.cores.forEach((c) => {
+        const k = p.id + "|" + c.nome; vistos.add(k);
+        lista.push(Object.assign({ k, produto_id: p.id, cor: c.nome, hex: c.hex, nome: p.nome, linha: p.linha || "", fora: false }, saldos[k] || { saldo: 0, minimo: 0, ultima: null }));
+      }));
+      Object.entries(saldos).forEach(([k, s]) => {           // itens com saldo que saíram do catálogo
+        if (vistos.has(k)) return;
+        const [produto_id, cor] = k.split("|");
+        lista.push(Object.assign({ k, produto_id, cor, hex: "#cccccc", nome: produto_id, linha: "", fora: true }, s));
+      });
+      return lista;
+    }
+    const situacao = (i) => (!i.ultima && !i.saldo ? "nunca" : i.saldo <= 0 ? "zerado" : i.minimo && i.saldo < i.minimo ? "baixo" : "ok");
+    const SELO_EST = { nunca: ["sem", "Sem movimentação"], zerado: ["zerado", "Sem estoque"], baixo: ["inativo", "Abaixo do mínimo"], ok: ["ativo", "Em estoque"] };
+    async function carregarEstoque() {
+      $("#estoque-erro").textContent = "";
+      $("#estoque-permissao").textContent = podeEstoque ? "Clique em \"Movimentar\" para registrar entrada, saída, inventário ou o estoque mínimo." : "Você pode consultar o estoque. Para movimentar, peça a um administrador a permissão \"Pode movimentar estoque\".";
+      try { saldos = await A.estoqueSaldos(); estoqueCarregado = true; }
+      catch (e) { saldos = {}; $("#estoque-erro").textContent = e.message; }
+      desenharEstoque();
+    }
+    function estoqueFiltrado() {
+      const termo = slug($("#estoque-busca").value || ""), f = $("#estoque-filtro").value;
+      return itensEstoque().filter((i) => {
+        const s = situacao(i);
+        if (f === "baixo" && s !== "baixo") return false;
+        if (f === "zerado" && !(s === "zerado" || s === "nunca")) return false;
+        if (f === "com" && !(i.saldo > 0)) return false;
+        return !termo || slug([i.nome, i.linha, i.cor, i.produto_id].join(" ")).includes(termo);
+      });
+    }
+    function desenharEstoque() {
+      const todos = itensEstoque(), lista = estoqueFiltrado();
+      const total = todos.reduce((s, i) => s + Math.max(0, i.saldo), 0);
+      $("#estoque-resumo").innerHTML = `<span><strong>${fmtKg(total)}</strong> em estoque (≈ ${Math.floor(total / KG_CAIXA).toLocaleString("pt-BR")} caixas)</span>
+        <span><strong>${todos.filter((i) => i.saldo > 0).length}</strong> de ${todos.length} cores com estoque</span>
+        <span class="${todos.some((i) => situacao(i) === "baixo") ? "alerta" : ""}"><strong>${todos.filter((i) => situacao(i) === "baixo").length}</strong> abaixo do mínimo</span>`;
+      $("#estoque-lista").innerHTML = lista.length ? lista.map((i) => {
+        const [cls, txt] = SELO_EST[situacao(i)];
+        return `<tr data-k="${esc(i.k)}">
+          <td><div class="est-item"><i style="background:${esc(i.hex)}"></i><div><strong>${esc(i.nome)}</strong><small>${esc(i.cor)}${i.fora ? " · fora do catálogo" : ""}</small></div></div></td>
+          <td><strong>${fmtKg(i.saldo)}</strong><small class="est-cx">≈ ${Math.floor(Math.max(0, i.saldo) / KG_CAIXA)} cx</small></td>
+          <td>${i.minimo ? fmtKg(i.minimo) : "—"}</td>
+          <td><b class="selo-cli ${cls}">${txt}</b></td>
+          <td class="est-acoes">${podeEstoque ? `<button type="button" class="btn btn-primario" data-mov>Movimentar</button>` : ""}<button type="button" class="btn btn-contorno-azul" data-hist>Histórico</button></td>
+        </tr>`;
+      }).join("") : `<tr><td colspan="5" class="dica">${estoqueCarregado ? "Nenhum item encontrado." : "Carregando..."}</td></tr>`;
+    }
+    $("#estoque-busca").addEventListener("input", desenharEstoque);
+    $("#estoque-filtro").addEventListener("change", desenharEstoque);
+    $("#estoque-lista").addEventListener("click", (e) => {
+      const tr = e.target.closest("tr[data-k]"); if (!tr) return;
+      const item = itensEstoque().find((i) => i.k === tr.dataset.k); if (!item) return;
+      if (e.target.closest("[data-mov]")) abrirMov(item, false);
+      if (e.target.closest("[data-hist]")) abrirMov(item, true);
+    });
+    $("#estoque-historico").addEventListener("click", () => abrirMov(null, true));
+
+    const modalMov = $("#modal-estoque"), formMov = $("#form-estoque");
+    const tipoMov = () => $("[name=mov-tipo]:checked", formMov).value;
+    function linhasHistorico(movs, comItem) {
+      const NOMES = { entrada: "Entrada", saida: "Saída", ajuste: "Inventário" };
+      const nomeProd = (id) => ((window.PRODUTOS || []).find((p) => p.id === id) || {}).nome || id;
+      return movs.length ? `<table class="admin-tabela tabela-mov"><thead><tr><th>Data</th>${comItem ? "<th>Item</th>" : ""}<th>Tipo</th><th>Kg</th><th>Detalhes</th><th>Por</th></tr></thead><tbody>${movs.map((m) => {
+        const kg = m.tipo === "saida" ? -m.kg : +m.kg;
+        return `<tr><td>${esc(dataBR(m.criado_em))}</td>${comItem ? `<td>${esc(nomeProd(m.produto_id))}<small>${esc(m.cor)}</small></td>` : ""}<td><b class="mov-tipo mov-${m.tipo}">${NOMES[m.tipo]}</b></td>
+          <td class="${kg < 0 ? "neg" : "pos"}">${kg > 0 ? "+" : ""}${fmtKg(kg)}</td>
+          <td>${[m.pedido_numero, m.documento, m.obs].filter(Boolean).map(esc).join(" · ") || "—"}</td><td>${esc(m.feito_por || "")}</td></tr>`;
+      }).join("")}</tbody></table>` : `<p class="dica">Nenhuma movimentação registrada.</p>`;
+    }
+    async function abrirMov(item, soHistorico) {
+      movAlvo = item;
+      formMov.classList.toggle("so-historico", soHistorico);
+      $("footer [data-fechar-mov]", formMov).textContent = soHistorico ? "Fechar" : "Cancelar";
+      $("#mov-titulo").textContent = soHistorico ? (item ? "Histórico do item" : "Histórico do estoque") : "Movimentar estoque";
+      $("#mov-item").innerHTML = item ? `<i style="background:${esc(item.hex)}"></i><span><strong>${esc(item.nome)}</strong> · ${esc(item.cor)}<small>Saldo atual: ${fmtKg(item.saldo)}${item.minimo ? " · mínimo " + fmtKg(item.minimo) : ""}</small></span>` : "";
+      $("#mov-item").hidden = !item;
+      ["#mov-kg", "#mov-caixas", "#mov-doc", "#mov-pedido", "#mov-obs"].forEach((s) => ($(s).value = ""));
+      $("[name=mov-tipo][value=entrada]", formMov).checked = true;
+      $("#mov-erro").textContent = ""; $("#mov-historico").innerHTML = `<p class="dica">Carregando histórico...</p>`;
+      ajustarMov();
+      modalMov.hidden = false; document.body.style.overflow = "hidden";
+      if (!soHistorico) $("#mov-kg").focus();
+      try {
+        const movs = await A.estoqueMovimentos(item ? { produto_id: item.produto_id, cor: item.cor } : {}, item ? 50 : 300);
+        $("#mov-historico").innerHTML = (soHistorico ? "" : `<h3 class="mov-sub">Últimas movimentações</h3>`) + linhasHistorico(soHistorico ? movs : movs.slice(0, 8), !item);
+      } catch (e) { $("#mov-historico").innerHTML = `<p class="form-erro">${esc(e.message)}</p>`; }
+    }
+    const fecharMov = () => { modalMov.hidden = true; document.body.style.overflow = ""; };
+    $$("[data-fechar-mov]", modalMov).forEach((b) => b.addEventListener("click", fecharMov));
+    modalMov.addEventListener("click", (e) => { if (e.target === modalMov) fecharMov(); });
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !modalMov.hidden) fecharMov(); });
+    function ajustarMov() {
+      if (!movAlvo) return;
+      const t = tipoMov(), kg = +$("#mov-kg").value || 0;
+      const rot = { entrada: "Quantidade que entrou (kg) *", saida: "Quantidade que saiu (kg) *", ajuste: "Quantidade contada no estoque (kg) *", minimo: "Estoque mínimo (kg) *" };
+      $("#mov-rotulo-kg").firstChild.textContent = rot[t];
+      $("#mov-dica-kg").textContent = t === "ajuste" ? "Informe o total que existe hoje. O sistema lança a diferença." : t === "minimo" ? "Abaixo disso, o item aparece como \"Abaixo do mínimo\"." : "";
+      $("#mov-rotulo-caixas").hidden = t === "minimo";
+      $("#mov-rotulo-doc").hidden = $("#mov-rotulo-obs").hidden = t === "minimo";
+      $("#mov-rotulo-pedido").hidden = t !== "saida";
+      $("#mov-salvar").textContent = t === "minimo" ? "Salvar mínimo" : "Registrar";
+      let r = "";
+      if (kg > 0 || (t === "ajuste" && $("#mov-kg").value !== "")) {
+        if (t === "entrada") r = `Saldo passa de ${fmtKg(movAlvo.saldo)} para ${fmtKg(movAlvo.saldo + kg)}.`;
+        if (t === "saida") r = kg > movAlvo.saldo ? `Saldo insuficiente: há ${fmtKg(movAlvo.saldo)}.` : `Saldo passa de ${fmtKg(movAlvo.saldo)} para ${fmtKg(movAlvo.saldo - kg)}.`;
+        if (t === "ajuste") { const d = kg - movAlvo.saldo; r = d ? `Diferença de ${d > 0 ? "+" : ""}${fmtKg(d)} (sistema tinha ${fmtKg(movAlvo.saldo)}).` : "Contagem igual ao sistema: nada a lançar."; }
+      }
+      if (t === "minimo") r = movAlvo.minimo ? `Mínimo atual: ${fmtKg(movAlvo.minimo)}.` : "Sem mínimo definido.";
+      $("#mov-resumo").textContent = r;
+    }
+    $$("[name=mov-tipo]", formMov).forEach((r) => r.addEventListener("change", ajustarMov));
+    $("#mov-kg").addEventListener("input", () => { $("#mov-caixas").value = ""; ajustarMov(); });
+    $("#mov-caixas").addEventListener("input", (e) => { const c = parseInt(e.target.value, 10); $("#mov-kg").value = c > 0 ? c * KG_CAIXA : ""; ajustarMov(); });
+    formMov.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (!movAlvo || formMov.classList.contains("so-historico")) return;
+      const t = tipoMov(), kg = Math.round((+$("#mov-kg").value || 0) * 100) / 100, pedido = $("#mov-pedido").value.trim().toUpperCase();
+      $("#mov-erro").textContent = "";
+      if ($("#mov-kg").value === "" || kg < 0 || (t !== "ajuste" && t !== "minimo" && !kg)) return ($("#mov-erro").textContent = "Informe a quantidade em kg.");
+      if (pedido && !/^PC-\d{6}-[A-Z0-9]{2,10}$/.test(pedido)) return ($("#mov-erro").textContent = "Código do pedido inválido (ex.: PC-260926-AB12).");
+      const b = $("#mov-salvar"); b.disabled = true;
+      try {
+        if (t === "minimo") { await A.definirMinimo(movAlvo.produto_id, movAlvo.cor, kg); CW.mostrarToast("Estoque mínimo salvo."); }
+        else if (t === "ajuste") {
+          const d = Math.round((kg - movAlvo.saldo) * 100) / 100;
+          if (!d) { CW.mostrarToast("Contagem igual ao sistema: nada lançado."); fecharMov(); return; }
+          await A.movimentarEstoque({ produto_id: movAlvo.produto_id, cor: movAlvo.cor, tipo: "ajuste", kg: d, documento: $("#mov-doc").value, obs: $("#mov-obs").value || `Inventário: contado ${fmtKg(kg)}` });
+          CW.mostrarToast("Inventário registrado.");
+        } else {
+          await A.movimentarEstoque({ produto_id: movAlvo.produto_id, cor: movAlvo.cor, tipo: t, kg, pedido_numero: pedido || null, documento: $("#mov-doc").value, obs: $("#mov-obs").value });
+          CW.mostrarToast(t === "entrada" ? "Entrada registrada." : "Saída registrada.");
+        }
+        fecharMov(); carregarEstoque();
+      } catch (err) { $("#mov-erro").textContent = err.message; }
+      finally { b.disabled = false; }
+    });
+    $("#estoque-csv").addEventListener("click", () => {
+      const cel = (v) => `"${String(v == null ? "" : v).replace(/"/g, '""')}"`;
+      const n = (v) => String(Math.round(v * 100) / 100).replace(".", ",");
+      const linhas = [["Produto", "Código", "Cor", "Saldo (kg)", "Caixas de 25 kg", "Mínimo (kg)", "Situação", "Última movimentação"]];
+      estoqueFiltrado().forEach((i) => linhas.push([i.nome, i.produto_id, i.cor, n(i.saldo), Math.floor(Math.max(0, i.saldo) / KG_CAIXA), n(i.minimo), SELO_EST[situacao(i)][1], i.ultima ? dataBR(i.ultima) : ""]));
+      const csv = "\ufeff" + linhas.map((l) => l.map(cel).join(";")).join("\r\n");
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+      a.download = `estoque-policoating-${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a); a.click(); a.remove();
+    });
+
     /* ---------- Contato e links ---------- */
     const formCfg = $("#form-config");
     let cfgAtual = null;
@@ -495,7 +679,8 @@
         return `<li data-email="${esc(m.email)}"><span>${icone}${esc(m.email)}${souEu ? " <em>(você)</em>" : ""}</span>
           <div class="equipe-acoes">${souEu ? `<b class="cargo cargo-${m.papel}">${CARGOS[m.papel]}</b>`
             : `${m.papel === "admin" ? "" : `<label class="check-excluir"><input type="checkbox" data-permissao="pode_excluir" ${m.pode_excluir ? "checked" : ""}> Pode excluir pedidos</label>
-               <label class="check-excluir"><input type="checkbox" data-permissao="pode_exportar" ${m.pode_exportar ? "checked" : ""}> Pode exportar clientes</label>`}
+               <label class="check-excluir"><input type="checkbox" data-permissao="pode_exportar" ${m.pode_exportar ? "checked" : ""}> Pode exportar clientes</label>
+               <label class="check-excluir"><input type="checkbox" data-permissao="pode_estoque" ${m.pode_estoque ? "checked" : ""}> Pode movimentar estoque</label>`}
                <select data-cargo aria-label="Cargo de ${esc(m.email)}">${Object.entries(CARGOS).map(([k, v]) => `<option value="${k}" ${k === m.papel ? "selected" : ""}>${v}</option>`).join("")}</select>
                <button type="button" class="perigo" data-remover-membro>Remover</button>`}</div></li>`;
       }).join("");
@@ -511,7 +696,7 @@
     $("#admin-equipe").addEventListener("change", async (e) => {
       const chk = e.target.closest("[data-permissao]");
       if (chk) {
-        const email = chk.closest("[data-email]").dataset.email, oque = chk.dataset.permissao === "pode_excluir" ? "excluir pedidos" : "exportar clientes";
+        const email = chk.closest("[data-email]").dataset.email, oque = { pode_excluir: "excluir pedidos", pode_exportar: "exportar clientes", pode_estoque: "movimentar o estoque" }[chk.dataset.permissao];
         try { await A.permitir(email, chk.dataset.permissao, chk.checked); CW.mostrarToast(chk.checked ? `${email} agora pode ${oque}.` : `${email} não pode mais ${oque}.`); }
         catch (err) { chk.checked = !chk.checked; $("#equipe-erro").textContent = err.message; }
         return;

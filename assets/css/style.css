@@ -1982,3 +1982,38 @@ main { overflow-x: clip; }
 @media (max-width: 900px) { .adm-cli { grid-template-columns: 1fr; } .adm-cli-acoes { justify-content: flex-start; } }
 @media (max-width: 480px) { .adm-cli-num { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .adm-cli-id .selo-cli { justify-self: start; margin: 2px 0; }
+/* Painel: estoque */
+.tabela-estoque td { vertical-align: middle; }
+.tabela-estoque small, .tabela-mov small { display: block; color: var(--texto-suave); font-size: .8rem; }
+.est-item { display: flex; align-items: center; gap: 10px; }
+.est-item i, .mov-item i { flex: 0 0 26px; width: 26px; height: 26px; border-radius: 6px; border: 1px solid rgba(0,0,0,.12); }
+.est-cx { font-weight: 400; }
+.est-acoes { white-space: nowrap; text-align: right; }
+.est-acoes .btn { padding: 7px 12px; font-size: .82rem; margin-left: 6px; }
+.selo-cli.zerado { background: #fdecea; color: #a1261c; }
+.pedidos-resumo span.alerta { border-color: #f7c600; background: #fffbea; }
+.form-estoque { max-width: 760px; }
+.mov-item { display: flex; align-items: center; gap: 12px; margin: 0 0 16px; padding: 12px 14px; border-radius: 8px; background: var(--fundo-alt); }
+.mov-item small { display: block; color: var(--texto-suave); font-size: .84rem; margin-top: 2px; }
+.mov-tipos { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-bottom: 16px; }
+.mov-tipos label { cursor: pointer; }
+.mov-tipos input { position: absolute; opacity: 0; pointer-events: none; }
+.mov-tipos span { display: block; height: 100%; padding: 10px 12px; border: 2px solid var(--borda); border-radius: 8px; font-size: .78rem; color: var(--texto-suave); }
+.mov-tipos b { display: block; font-size: .95rem; color: var(--texto); }
+.mov-tipos input:checked + span { border-color: var(--azul); background: var(--azul-claro); }
+.mov-tipos input:focus-visible + span { outline: 3px solid var(--azul); outline-offset: 2px; }
+.mov-sub { margin: 18px 0 8px; font-size: .95rem; }
+.tabela-mov { font-size: .85rem; }
+.tabela-mov td.pos { color: #1d6b3b; font-weight: 700; white-space: nowrap; }
+.tabela-mov td.neg { color: #a1261c; font-weight: 700; white-space: nowrap; }
+.mov-tipo { font-size: .78rem; }
+.mov-tipo.mov-entrada { color: #1d6b3b; } .mov-tipo.mov-saida { color: #a1261c; } .mov-tipo.mov-ajuste { color: #8a5a00; }
+.form-estoque.so-historico .mov-tipos, .form-estoque.so-historico .grade-campos, .form-estoque.so-historico #mov-resumo,
+.form-estoque.so-historico #mov-salvar { display: none; }
+#mov-historico { max-height: 340px; overflow: auto; }
+.form-estoque.so-historico #mov-historico { max-height: none; }
+@media (max-width: 600px) { .mov-tipos { grid-template-columns: repeat(2, minmax(0, 1fr)); } .est-acoes { white-space: normal; } .est-acoes .btn { margin: 3px 0 3px 6px; } }
+/* Site: disponibilidade no modal do produto */
+.selo-estoque { display: inline-block; margin-left: 8px; padding: 2px 9px; border-radius: 999px; font-size: .74rem; font-weight: 700; vertical-align: middle; }
+.selo-estoque.pronta { background: #e3f5ea; color: #1d6b3b; }
+.selo-estoque.encomenda { background: #eceff2; color: #4a5562; }

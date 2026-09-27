@@ -22,17 +22,32 @@
   const ler = (k) => { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } };
   const gravar = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* sem espaço/modo privado */ } };
 
+  /** Código do produto: letras, números e hífen (2 a 30). O id é o código em minúsculas. */
+  const CODIGO_RE = /^[A-Za-z0-9][A-Za-z0-9-]{1,29}$/;
+  const num = (v) => (v === "" || v == null || isNaN(+v) ? null : +v);
+  /** Cada produto é uma cor. Produto antigo com várias cores vira um produto por cor. */
+  function desmembrar(p) {
+    if (!p || !Array.isArray(p.cores) || p.cores.length <= 1) return [Object.assign({ codigo: p && p.id ? String(p.id).toUpperCase() : "" }, p)];
+    const slugCor = (t) => String(t).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+    return p.cores.map((c, i) => {
+      const id = (p.id + "-" + slugCor(c.nome)).slice(0, 60).replace(/-$/, "");
+      return Object.assign({}, p, { id, codigo: id.toUpperCase().slice(0, 30), familia: p.familia || p.id, nome: `${p.nome} ${c.nome}`, cores: [c], destaque: !!p.destaque && i === 0 });
+    });
+  }
+  const normalizarLista = (lista) => [].concat(...(lista || []).map(desmembrar));
+
   /** Confere o formato mínimo para o site conseguir exibir o produto */
   function valido(p) {
     return !!(p && typeof p.id === "string" && /^[a-z0-9-]{2,60}$/.test(p.id) && p.nome && (window.CATEGORIAS || {})[p.categoria] &&
       Array.isArray(p.cores) && p.cores.length && p.cores.every((c) => c && c.nome && /^#[0-9a-f]{6}$/i.test(c.hex) &&
         (!c.foto || /^(https:\/\/|data:image\/(jpeg|png|webp);base64,|assets\/)/.test(c.foto))) &&
-      Array.isArray(p.embalagens) && p.embalagens.length && (!p.ficha || /^https:\/\//.test(p.ficha)));
+      Array.isArray(p.embalagens) && p.embalagens.length && (!p.ficha || /^https:\/\//.test(p.ficha)) &&
+      (p.preco == null || num(p.preco) >= 0) && (p.precoPromo == null || num(p.precoPromo) >= 0));
   }
 
   /** Troca o conteúdo de PRODUTOS sem trocar o array (os outros scripts guardam a referência) */
   function aplicar(lista) {
-    const ok = (lista || []).filter(valido);
+    const ok = normalizarLista(lista).filter(valido);
     if (!ok.length) return false;
     if (JSON.stringify(ok) === JSON.stringify(window.PRODUTOS)) return false;
     window.PRODUTOS.splice(0, window.PRODUTOS.length, ...ok);
@@ -54,7 +69,7 @@
     const url = `${SB.url}/rest/v1/produtos?select=dados&ativo=eq.true&order=ordem.asc,id.asc`;
     const r = await fetch(url, { headers: { apikey: SB.anonKey } });
     if (!r.ok) throw new Error("catálogo indisponível (" + r.status + ")");
-    const lista = (await r.json()).map((x) => x.dados).filter(valido);
+    const lista = normalizarLista((await r.json()).map((x) => x.dados)).filter(valido);
     if (!lista.length) {                    // tabela ainda vazia: volta para produtos.js
       localStorage.removeItem(CHAVE_CACHE);
       return aplicar(PADRAO);
@@ -115,6 +130,15 @@
     .then((mudou) => { if (mudou) document.dispatchEvent(new CustomEvent("config-atualizada")); })
     .catch((e) => console.warn("Configurações:", e.message));
 
+  /** Depois de mexer no catálogo pelo painel: atualiza a lista usada pelo site nesta página */
+  async function recarregarCatalogo() {
+    try {
+      if (ONLINE) await atualizarDoServidor();
+      else { const demo = ler(CHAVE_DEMO) || {}; aplicar(Object.values(demo).filter((r) => r.ativo).sort((a, b) => a.ordem - b.ordem).map((r) => r.dados)); }
+      document.dispatchEvent(new CustomEvent("catalogo-atualizado"));
+    } catch (e) { /* segue com a lista atual */ }
+  }
+
   const pronto = atualizarDoServidor()
     .then((mudou) => { if (mudou) document.dispatchEvent(new CustomEvent("catalogo-atualizado")); })
     .catch((e) => console.warn("Catálogo:", e.message));
@@ -130,7 +154,13 @@
     }
     return eq;
   }
-  const CHAVE_ESTOQUE_DEMO = "policoating_demo_estoque", CHAVE_MIN_DEMO = "policoating_demo_estoque_min";
+  const CHAVE_ESTOQUE_DEMO = "policoating_demo_estoque", CHAVE_MIN_DEMO = "policoating_demo_estoque_min", CHAVE_VENDAS_DEMO = "policoating_demo_vendas";
+  function erroVenda(e) {
+    const msg = String((e && e.message) || "");
+    if (/vendas|confirmar_venda|cancelar_venda/i.test(msg) && /does not exist|schema cache|not find/i.test(msg)) return new Error("Vendas ainda não ativadas: rode a PARTE K do setup.sql no Supabase.");
+    if (/Estoque insuficiente/i.test(msg)) return new Error(msg);
+    return new Error(msg || "Não foi possível concluir. Tente novamente.");
+  }
   const estoqueDemo = () => ler(CHAVE_ESTOQUE_DEMO) || [];
   const sinal = (m) => (m.tipo === "saida" ? -m.kg : +m.kg);
   function erroEstoque(e) {
@@ -142,21 +172,25 @@
     return erro(e);
   }
 
-  /** Para o site: { "produto|cor": true/false } — só se a cor tem estoque, sem quantidade. Vazio = estoque não usado. */
-  async function disponibilidade() {
+  /** Para o site: saldo em kg de cada produto { id: kg }.
+      null = estoque não está em uso (nenhuma movimentação ainda, ou banco sem a PARTE K): o site não limita a compra. */
+  async function estoquePublico() {
     try {
+      let linhas;
       if (!ONLINE) {
         const mapa = {};
-        estoqueDemo().forEach((m) => { const k = m.produto_id + "|" + m.cor; mapa[k] = (mapa[k] || 0) + sinal(m); });
-        Object.keys(mapa).forEach((k) => (mapa[k] = mapa[k] > 0));
-        return mapa;
+        estoqueDemo().forEach((m) => (mapa[m.produto_id] = (mapa[m.produto_id] || 0) + sinal(m)));
+        linhas = Object.entries(mapa).map(([produto_id, saldo_kg]) => ({ produto_id, saldo_kg }));
+      } else {
+        const r = await fetch(`${SB.url}/rest/v1/rpc/estoque_publico`, { method: "POST", headers: { apikey: SB.anonKey, "Content-Type": "application/json" }, body: "{}" });
+        if (!r.ok) return null;
+        linhas = await r.json();
       }
-      const r = await fetch(`${SB.url}/rest/v1/rpc/estoque_disponivel`, { method: "POST", headers: { apikey: SB.anonKey, "Content-Type": "application/json" }, body: "{}" });
-      if (!r.ok) return {};
+      if (!linhas.length) return null;
       const mapa = {};
-      (await r.json()).forEach((x) => (mapa[x.produto_id + "|" + x.cor] = !!x.disponivel));
+      linhas.forEach((x) => (mapa[x.produto_id] = Math.max(0, Math.round(+x.saldo_kg * 100) / 100)));
       return mapa;
-    } catch (e) { return {}; }
+    } catch (e) { return null; }
   }
 
   async function cliente() {
@@ -233,33 +267,90 @@
       return data || [];
     },
 
-    async salvar(dados, ativo, ordem) {
-      if (!valido(dados)) throw new Error("Confira os campos obrigatórios: nome, linha, pelo menos uma cor e uma embalagem.");
+    /** Regras do cadastro: código único, uma cor, descrição, foto (produto novo) e preço ou "a combinar" */
+    validarProduto(d, novo) {
+      const erros = [];
+      if (!CODIGO_RE.test(d.codigo || "")) erros.push("código (2 a 30 letras, números ou hífen, ex.: POL-0101)");
+      if (!d.nome || String(d.nome).trim().length < 3) erros.push("nome");
+      if (!(window.CATEGORIAS || {})[d.categoria]) erros.push("linha");
+      if (!d.descricao || String(d.descricao).trim().length < 10) erros.push("descrição (mínimo 10 caracteres)");
+      if (!Array.isArray(d.cores) || d.cores.length !== 1 || !d.cores[0].nome || !/^#[0-9a-f]{6}$/i.test(d.cores[0].hex)) erros.push("cor (nome e tom)");
+      if (novo && !(d.cores && d.cores[0] && d.cores[0].foto)) erros.push("foto do produto");
+      if (!Array.isArray(d.embalagens) || !d.embalagens.length) erros.push("embalagens");
+      if (!d.precoCombinar) {
+        if (!(num(d.preco) > 0)) erros.push("preço por kg (ou marque \"Valor a combinar\")");
+        if (d.precoPromo != null && !(num(d.precoPromo) > 0 && num(d.precoPromo) < num(d.preco))) erros.push("preço promocional (menor que o preço normal)");
+        if (d.promoAte && !/^\d{4}-\d{2}-\d{2}$/.test(d.promoAte)) erros.push("data do fim da promoção");
+      }
+      if (erros.length) throw new Error("Confira: " + erros.join(", ") + ".");
+    },
+
+    async salvar(dados, ativo, ordem, novo) {
+      dados.codigo = String(dados.codigo || "").trim().toUpperCase();
+      dados.id = dados.codigo.toLowerCase();
+      this.validarProduto(dados, novo);
+      if (!valido(dados)) throw new Error("Confira os campos obrigatórios: nome, linha, cor e embalagem.");
       const registro = { id: dados.id, dados, ativo: !!ativo, ordem: Number(ordem) || 0 };
-      if (!ONLINE) { const d = lerDemo(); d[dados.id] = registro; gravar(CHAVE_DEMO, d); return registro; }
+      if (!ONLINE) {
+        const d = lerDemo();
+        if (novo && d[dados.id]) throw new Error(`Já existe um produto com o código ${dados.codigo}. Use outro código.`);
+        d[dados.id] = registro; gravar(CHAVE_DEMO, d); await recarregarCatalogo(); return registro;
+      }
       const sb = await cliente();
-      const { error } = await sb.from("produtos").upsert(Object.assign(registro, { atualizado_em: new Date().toISOString() }));
-      if (error) throw erro(error);
+      const { error } = novo
+        ? await sb.from("produtos").insert(Object.assign(registro, { atualizado_em: new Date().toISOString() }))
+        : await sb.from("produtos").upsert(Object.assign(registro, { atualizado_em: new Date().toISOString() }));
+      if (error) throw (error.code === "23505" || /duplicate key/i.test(error.message) ? new Error(`Já existe um produto com o código ${dados.codigo}. Use outro código.`) : erro(error));
       localStorage.removeItem(CHAVE_CACHE);
+      await recarregarCatalogo();
       return registro;
     },
 
     async excluir(id) {
-      if (!ONLINE) { const d = lerDemo(); delete d[id]; gravar(CHAVE_DEMO, d); return; }
+      if (!ONLINE) { const d = lerDemo(); delete d[id]; gravar(CHAVE_DEMO, d); await recarregarCatalogo(); return; }
       const sb = await cliente();
       const { error } = await sb.from("produtos").delete().eq("id", id);
       if (error) throw erro(error);
       localStorage.removeItem(CHAVE_CACHE);
+      await recarregarCatalogo();
+    },
+
+    /** Produtos salvos no formato antigo (várias cores): converte para um produto por cor, com código novo */
+    async converterCores() {
+      const regs = await this.listar(), antigos = regs.filter((r) => (r.dados.cores || []).length > 1);
+      if (!antigos.length) return 0;
+      const usados = new Set(regs.map((r) => r.id));
+      let n = 0;
+      const proximo = () => { let c; do { c = "POL-" + String(++n).padStart(4, "0"); } while (usados.has(c.toLowerCase())); usados.add(c.toLowerCase()); return c; };
+      const novos = [];
+      antigos.forEach((r) => r.dados.cores.forEach((c, i) => {
+        const codigo = proximo();
+        novos.push({ id: codigo.toLowerCase(), ativo: r.ativo, ordem: (Number(r.ordem) || 0) + i / 100,
+          dados: Object.assign({}, r.dados, { id: codigo.toLowerCase(), codigo, familia: r.dados.familia || r.id, nome: `${r.dados.nome} ${c.nome}`, cores: [c], destaque: !!r.dados.destaque && i === 0,
+            precoCombinar: r.dados.preco ? false : true }) });
+      }));
+      if (!ONLINE) {
+        const d = lerDemo(); antigos.forEach((r) => delete d[r.id]); novos.forEach((r) => (d[r.id] = r)); gravar(CHAVE_DEMO, d); await recarregarCatalogo(); return novos.length;
+      }
+      const sb = await cliente();
+      const ins = await sb.from("produtos").insert(novos.map((r) => Object.assign(r, { atualizado_em: new Date().toISOString() })));
+      if (ins.error) throw erro(ins.error);
+      const del = await sb.from("produtos").delete().in("id", antigos.map((r) => r.id));
+      if (del.error) throw erro(del.error);
+      localStorage.removeItem(CHAVE_CACHE);
+      await recarregarCatalogo();
+      return novos.length;
     },
 
     /** Copia os produtos de produtos.js para o painel (primeiro uso) */
     async importarPadrao() {
       const registros = PADRAO.map((p, i) => ({ id: p.id, dados: p, ativo: true, ordem: (i + 1) * 10 }));
-      if (!ONLINE) { const d = lerDemo(); registros.forEach((r) => { if (!d[r.id]) d[r.id] = r; }); gravar(CHAVE_DEMO, d); return registros.length; }
+      if (!ONLINE) { const d = lerDemo(); registros.forEach((r) => { if (!d[r.id]) d[r.id] = r; }); gravar(CHAVE_DEMO, d); await recarregarCatalogo(); return registros.length; }
       const sb = await cliente();
       const { error } = await sb.from("produtos").upsert(registros, { onConflict: "id", ignoreDuplicates: true });
       if (error) throw erro(error);
       localStorage.removeItem(CHAVE_CACHE);
+      await recarregarCatalogo();
       return registros.length;
     },
 
@@ -480,25 +571,73 @@
       const { error } = await (await cliente()).from("estoque_minimos").upsert({ produto_id, cor, minimo_kg: kg });
       if (error) throw erroEstoque(error);
     },
-    /** Dá baixa de um pedido: uma saída por produto e cor (soma as embalagens) */
-    async baixarPedido(pedido) {
-      const soma = {};
-      (pedido.itens || []).forEach((it) => {
-        if (!it.id) return;
-        const k = it.id + "|" + it.cor, kg = window.ColorWeg.kgDoItem({ embalagem: it.embalagem, qtd: +it.qtd || 0 });
-        soma[k] = soma[k] || { produto_id: it.id, cor: it.cor, kg: 0 }; soma[k].kg += kg;
-      });
-      const itens = Object.values(soma);
-      if (!itens.length) throw new Error("Este pedido não tem itens do catálogo para dar baixa.");
-      const feitos = new Set((await this.estoqueMovimentos({ pedido_numero: pedido.numero })).filter((m) => m.tipo === "saida").map((m) => m.produto_id + "|" + m.cor));
-      const faltam = itens.filter((i) => !feitos.has(i.produto_id + "|" + i.cor));
-      if (!faltam.length) throw new Error("A baixa deste pedido já foi feita.");
-      const erros = [];
-      for (const i of faltam) {
-        try { await this.movimentarEstoque(Object.assign({ tipo: "saida", pedido_numero: pedido.numero, obs: "Baixa do pedido" }, i)); }
-        catch (e) { erros.push(`${i.cor}: ${e.message}`); }
+    /* ---------- Vendas ---------- */
+    /** Confirma a venda de um pedido com os valores fechados. Dá baixa no estoque junto (se o estoque estiver em uso).
+        itens: [{ produto_id, codigo, nome, cor, kg, preco_kg }] */
+    async confirmarVenda(pedido, itens, obs) {
+      const limpos = (itens || []).map((i) => ({ produto_id: i.produto_id, codigo: i.codigo || "", nome: i.nome || "", cor: i.cor,
+        kg: Math.round((+i.kg || 0) * 100) / 100, preco_kg: Math.round((+i.preco_kg || 0) * 100) / 100 }));
+      if (!limpos.length) throw new Error("Informe os itens da venda.");
+      const ruim = limpos.find((i) => !(i.kg > 0) || i.preco_kg < 0);
+      if (ruim) throw new Error(`Confira a quantidade e o preço de ${ruim.nome || ruim.produto_id}.`);
+      obs = String(obs || "").replace(/\s+/g, " ").trim().slice(0, 300);
+      if (!ONLINE) {
+        if (!(await this.meuPapel())) throw new Error("Sem permissão para registrar vendas.");
+        const vendas = ler(CHAVE_VENDAS_DEMO) || [];
+        if (vendas.some((v) => v.pedido_numero === pedido.numero)) throw new Error("Este pedido já tem uma venda registrada.");
+        const estoqueEmUso = estoqueDemo().length > 0, mov = estoqueDemo();
+        if (estoqueEmUso) {
+          for (const i of limpos) {     // confere tudo antes de gravar (como a transação do banco)
+            const saldo = mov.filter((m) => m.produto_id === i.produto_id && m.cor === i.cor).reduce((s, m) => s + sinal(m), 0);
+            const jaBaixado = mov.some((m) => m.tipo === "saida" && m.pedido_numero === pedido.numero && m.produto_id === i.produto_id && m.cor === i.cor);
+            if (!jaBaixado && saldo < i.kg) throw new Error(`Estoque insuficiente para ${i.nome || i.produto_id}: saldo de ${saldo.toLocaleString("pt-BR")} kg.`);
+          }
+          limpos.forEach((i) => {
+            if (mov.some((m) => m.tipo === "saida" && m.pedido_numero === pedido.numero && m.produto_id === i.produto_id && m.cor === i.cor)) return;
+            mov.push({ id: Date.now() + Math.random(), produto_id: i.produto_id, cor: i.cor, tipo: "saida", kg: i.kg, pedido_numero: pedido.numero, obs: "Venda confirmada",
+              feito_por: window.Conta.usuario.email.toLowerCase(), criado_em: new Date().toISOString() });
+          });
+          gravar(CHAVE_ESTOQUE_DEMO, mov);
+        }
+        const c = pedido.cliente || {};
+        const itensV = limpos.map((i) => Object.assign(i, { subtotal: Math.round(i.kg * i.preco_kg * 100) / 100 }));
+        const venda = { id: vendas.reduce((m, v) => Math.max(m, v.id), 0) + 1, pedido_numero: pedido.numero, cliente_nome: (c.tipo === "pj" ? (c.nome_fantasia || c.razao_social) : c.nome) || c.email || "",
+          cliente_email: c.email || "", itens: itensV, total: Math.round(itensV.reduce((s, i) => s + i.subtotal, 0) * 100) / 100, total_kg: itensV.reduce((s, i) => s + i.kg, 0),
+          vendedor: window.Conta.usuario.email.toLowerCase(), obs: obs || null, status: "confirmada", criado_em: new Date().toISOString() };
+        vendas.push(venda); gravar(CHAVE_VENDAS_DEMO, vendas); return venda.id;
       }
-      if (erros.length) throw new Error("Baixa parcial. " + erros.join(" "));
+      const { data, error } = await (await cliente()).rpc("confirmar_venda", { p_pedido: pedido.numero, p_itens: limpos, p_obs: obs || null });
+      if (error) throw erroVenda(error);
+      return data;
+    },
+    /** Cancela a venda (só administrador). O estoque baixado volta. */
+    async cancelarVenda(id, motivo) {
+      motivo = String(motivo || "").replace(/\s+/g, " ").trim();
+      if (motivo.length < 3) throw new Error("Informe o motivo do cancelamento.");
+      if (!ONLINE) {
+        if (!(await this.ehAdmin())) throw new Error("Só o administrador cancela vendas.");
+        const vendas = ler(CHAVE_VENDAS_DEMO) || [], v = vendas.find((x) => x.id === id);
+        if (!v || v.status !== "confirmada") throw new Error("Venda não encontrada ou já cancelada.");
+        const mov = estoqueDemo();
+        mov.filter((m) => m.tipo === "saida" && m.pedido_numero === v.pedido_numero).forEach((m) =>
+          mov.push({ id: Date.now() + Math.random(), produto_id: m.produto_id, cor: m.cor, tipo: "entrada", kg: m.kg, pedido_numero: v.pedido_numero,
+            obs: "Estorno: venda cancelada", feito_por: window.Conta.usuario.email.toLowerCase(), criado_em: new Date().toISOString() }));
+        gravar(CHAVE_ESTOQUE_DEMO, mov);
+        Object.assign(v, { status: "cancelada", cancelada_em: new Date().toISOString(), cancelada_por: window.Conta.usuario.email.toLowerCase(), motivo_cancelamento: motivo.slice(0, 300) });
+        gravar(CHAVE_VENDAS_DEMO, vendas); return;
+      }
+      const { error } = await (await cliente()).rpc("cancelar_venda", { p_id: id, p_motivo: motivo });
+      if (error) throw erroVenda(error);
+    },
+    /** Vendas (mais recentes primeiro). Administrador vê todas; vendedor, as próprias. */
+    async listarVendas() {
+      if (!ONLINE) {
+        const eu = window.Conta.usuario.email.toLowerCase(), admin = await this.ehAdmin();
+        return (ler(CHAVE_VENDAS_DEMO) || []).filter((v) => admin || v.vendedor === eu).sort((a, b) => String(b.criado_em).localeCompare(String(a.criado_em)));
+      }
+      const { data, error } = await (await cliente()).from("vendas").select("*").order("criado_em", { ascending: false }).limit(5000);
+      if (error) throw erroVenda(error);
+      return (data || []).map((v) => Object.assign(v, { total: +v.total, total_kg: +v.total_kg }));
     },
 
     /** Envia um PDF (ficha técnica) e retorna o endereço público */
@@ -533,5 +672,5 @@
     });
   }
 
-  window.Catalogo = { pronto, atualizar: atualizarDoServidor, Admin, REDES, LOJAS, disponibilidade };
+  window.Catalogo = { pronto, atualizar: atualizarDoServidor, Admin, REDES, LOJAS, estoquePublico, desmembrar, CODIGO_RE };
 })();

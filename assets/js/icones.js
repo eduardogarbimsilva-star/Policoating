@@ -48,6 +48,7 @@
     seta: '<path d="M5 12h14M13 6l6 6-6 6"/>',
     industria: '<path d="M3 21V11l6 4v-4l6 4V7h6v14z"/><path d="M7 18h2M12 18h2M17 18h2"/>',
     grade: '<path d="M4 4h16v16H4zM9 4v16M15 4v16M4 12h16"/>',
+    grafico: '<path d="M4 20h16"/><path d="M7 16v-5M12 16V6M17 16v-8"/>',
     microfone: '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3M9 21h6"/>'
   };
   function Icone(nome, classe) {

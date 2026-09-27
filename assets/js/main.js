@@ -33,7 +33,27 @@
   const esc = (s) =>
     String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const buscarProduto = (id) => PRODUTOS.find((p) => p.id === id);
-  const formatarPreco = (v) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  /** Acha o produto pelo código ou pela linha de origem + cor (links e pedidos antigos, fotos de inspiração) */
+  const acharProduto = (ref, corNome) => buscarProduto(ref) ||
+    PRODUTOS.find((p) => p.familia === ref && (!corNome || p.cores[0].nome === corNome)) || PRODUTOS.find((p) => p.familia === ref);
+  const formatarPreco = (v) => (+v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  /** Preço do produto: "combinar" (a combinar com o vendedor), "normal" ou "promo" (valores por kg) */
+  function precoInfo(p) {
+    const preco = +p.preco || 0, promo = +p.precoPromo || 0;
+    if (p.precoCombinar || !(preco > 0)) return { tipo: "combinar", efetivo: 0 };
+    const hoje = new Date().toISOString().slice(0, 10);
+    if (promo > 0 && promo < preco && (!p.promoAte || hoje <= p.promoAte))
+      return { tipo: "promo", preco, promo, efetivo: promo, desconto: Math.round((1 - promo / preco) * 100), ate: p.promoAte || "" };
+    return { tipo: "normal", preco, efetivo: preco };
+  }
+  const dataCurtaBR = (iso) => (iso ? iso.split("-").reverse().join("/") : "");
+  function htmlPreco(p, detalhado) {
+    const pi = precoInfo(p);
+    if (pi.tipo === "combinar") return `<span class="preco preco-combinar"><small>Preço</small>Valor a combinar com o vendedor</span>`;
+    const caixa = detalhado ? (() => { const kg = kgDaEmbalagem(embalagemPadrao(p)); return kg ? `<small class="preco-caixa">Caixa ${kg} kg: ${formatarPreco(pi.efetivo * kg)}</small>` : ""; })() : "";
+    if (pi.tipo === "promo") return `<span class="preco preco-promo"><small><s>${formatarPreco(pi.preco)}</s> <b class="selo-off">-${pi.desconto}%</b></small>${formatarPreco(pi.promo)}<em>/kg</em>${pi.ate && detalhado ? `<small>Promoção até ${dataCurtaBR(pi.ate)}</small>` : ""}${caixa}</span>`;
+    return `<span class="preco"><small>Preço</small>${formatarPreco(pi.preco)}<em>/kg</em>${caixa}</span>`;
+  }
 
   function lerStorage(chave, padrao) {
     try {
@@ -132,16 +152,39 @@
   }
 
   /* ---------- Carrinho ---------- */
-  let carrinho = lerStorage(CHAVE_CARRINHO, []).filter((i) => buscarProduto(i.id));
+  // itens antigos (produto com várias cores) são trocados pelo produto da mesma cor
+  let carrinho = lerStorage(CHAVE_CARRINHO, []).map((i) => { const p = acharProduto(i.id, i.cor); return p ? Object.assign(i, { id: p.id, cor: p.cores[0].nome }) : null; }).filter(Boolean);
 
   const chaveItem = (i) => `${i.id}|${i.cor}|${i.embalagem}`;
   // "Sob medida": o cliente informa o total em kg (qtd = kg). Caixas: qtd = número de caixas.
   const SOB_MEDIDA = "Sob medida";
   const ehSobMedida = (emb) => emb === SOB_MEDIDA;
-  // disponibilidade do estoque (carrega uma vez por página)
-  let promessaEstoque = null;
-  const disponibilidadeEstoque = () => (promessaEstoque = promessaEstoque ||
-    (window.Catalogo && window.Catalogo.disponibilidade ? window.Catalogo.disponibilidade() : Promise.resolve({})));
+  // Estoque: { id: kg }. null = estoque ainda não usado (não limita a compra).
+  let estoqueAtual = null, promessaEstoque = null;
+  function carregarEstoque(forcar) {
+    if (!promessaEstoque || forcar) {
+      promessaEstoque = (window.Catalogo && window.Catalogo.estoquePublico ? window.Catalogo.estoquePublico() : Promise.resolve(null))
+        .then((m) => { estoqueAtual = m; document.dispatchEvent(new CustomEvent("estoque-atualizado")); return m; });
+    }
+    return promessaEstoque;
+  }
+  const controlaEstoque = () => estoqueAtual !== null;
+  const saldoDe = (id) => (controlaEstoque() ? estoqueAtual[id] || 0 : Infinity);
+  const kgNoCarrinho = (id, ignorar) => carrinho.reduce((s, i, k) => s + (i.id === id && k !== ignorar ? kgDoItem(i) : 0), 0);
+  /** Maior quantidade possível para o item (caixas ou kg), pelo estoque que ainda não está no carrinho */
+  function maxPorEstoque(id, emb, ignorar) {
+    const livre = saldoDe(id) - kgNoCarrinho(id, ignorar);
+    if (livre === Infinity) return Infinity;
+    return ehSobMedida(emb) ? Math.floor(livre) : Math.floor(livre / (kgDaEmbalagem(emb) || 1));
+  }
+  const fmtKg = (n) => (Math.round(n * 100) / 100).toLocaleString("pt-BR") + " kg";
+  function htmlEstoque(p) {
+    if (!controlaEstoque()) return "";
+    const kg = saldoDe(p.id);
+    if (kg <= 0) return `<span class="estoque esgotado">Esgotado</span>`;
+    const cx = Math.floor(kg / 25);
+    return `<span class="estoque disponivel">${fmtKg(kg)} em estoque${cx ? ` <small>(≈ ${cx} ${cx === 1 ? "caixa" : "caixas"} de 25 kg)</small>` : ""}</span>`;
+  }
   // limites por item: até 2.000 caixas ou 50.000 kg sob medida (acima disso, o vendedor atende direto)
   const QTD_MAX = { caixas: 2000, kg: 50000 };
   const limitarQtd = (emb, n) => Math.min(ehSobMedida(emb) ? QTD_MAX.kg : QTD_MAX.caixas, Math.max(1, parseInt(n, 10) || 1));
@@ -153,6 +196,14 @@
     : `${i.qtd} × ${i.embalagem}${kgDaEmbalagem(i.embalagem) ? ` (${kgDoItem(i).toLocaleString("pt-BR")} kg)` : ""}`);
   const totalItens = () => carrinho.reduce((s, i) => s + (ehSobMedida(i.embalagem) ? 1 : i.qtd), 0);
   const totalKg = () => carrinho.reduce((s, i) => s + kgDoItem(i), 0);
+  /** Valor estimado do carrinho (preço por kg × kg). Itens "a combinar" ficam de fora e são contados. */
+  function totalValor() {
+    return carrinho.reduce((t, i) => {
+      const p = buscarProduto(i.id), pi = p ? precoInfo(p) : { tipo: "combinar" };
+      if (pi.tipo === "combinar") t.combinar++; else t.valor += Math.round(pi.efetivo * kgDoItem(i) * 100) / 100;
+      return t;
+    }, { valor: 0, combinar: 0 });
+  }
 
   function salvarCarrinho() {
     gravarStorage(CHAVE_CARRINHO, carrinho);
@@ -161,20 +212,29 @@
   }
 
   function adicionarAoCarrinho(id, cor, embalagem, qtd) {
-    const p = buscarProduto(id);
-    if (!p) return;
-    const item = {
-      id,
-      cor: cor || p.cores[0].nome,
-      embalagem: embalagem || embalagemPadrao(p),
-      qtd: 1
-    };
+    const p = acharProduto(id, cor);
+    if (!p) return false;
+    const item = { id: p.id, cor: p.cores[0].nome, embalagem: embalagem || embalagemPadrao(p), qtd: 1 };
     item.qtd = limitarQtd(item.embalagem, qtd);
     const existente = carrinho.find((i) => chaveItem(i) === chaveItem(item));
-    if (existente) existente.qtd = limitarQtd(item.embalagem, existente.qtd + item.qtd);
+    // estoque: só o que ainda está disponível
+    const max = maxPorEstoque(p.id, item.embalagem, existente ? carrinho.indexOf(existente) : -1) - (existente ? 0 : 0);
+    const desejado = (existente ? existente.qtd : 0) + item.qtd;
+    if (max !== Infinity && desejado > max) {
+      if (max <= (existente ? existente.qtd : 0) || max < 1) {
+        mostrarToast(saldoDe(p.id) <= 0 ? `<strong>${esc(p.nome)}</strong> está esgotado. Peça um orçamento pelo WhatsApp.` : `Você já tem no carrinho todo o estoque disponível de <strong>${esc(p.nome)}</strong> (${fmtKg(saldoDe(p.id))}).`);
+        return false;
+      }
+      mostrarToast(`Só temos ${fmtKg(saldoDe(p.id))} de <strong>${esc(p.nome)}</strong>. Ajustamos a quantidade ao estoque.`, true);
+      if (existente) existente.qtd = max; else carrinho.push(Object.assign(item, { qtd: max }));
+      salvarCarrinho();
+      return true;
+    }
+    if (existente) existente.qtd = limitarQtd(item.embalagem, desejado);
     else carrinho.push(item);
     salvarCarrinho();
     mostrarToast(`<strong>${esc(p.nome)}</strong> adicionado ao carrinho`, true);
+    return true;
   }
 
   function atualizarContador(animar) {
@@ -200,6 +260,7 @@
   <div class="carrinho-rodape" id="carrinho-rodape">
     <div class="resumo"><span>Total de itens</span><strong id="carrinho-total">0</strong></div>
     <div class="resumo-kg" id="carrinho-kg"></div>
+    <div class="resumo-valor" id="carrinho-valor"></div>
     <div class="campos">
       <div id="carrinho-cliente"></div>
       <textarea id="cliente-obs" rows="2" maxlength="500" placeholder="Observações (opcional)"></textarea>
@@ -235,7 +296,11 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
       const idx = +btn.closest("[data-idx]").dataset.idx;
       const acao = btn.dataset.acao;
       const passo = ehSobMedida(carrinho[idx].embalagem) ? 5 : 1;       // sob medida anda de 5 em 5 kg
-      if (acao === "mais") carrinho[idx].qtd = limitarQtd(carrinho[idx].embalagem, carrinho[idx].qtd + passo);
+      if (acao === "mais") {
+        const max = maxPorEstoque(carrinho[idx].id, carrinho[idx].embalagem, idx);
+        if (carrinho[idx].qtd + passo > max) { mostrarToast(`Estoque disponível: ${fmtKg(saldoDe(carrinho[idx].id))}.`); carrinho[idx].qtd = Math.max(1, Math.min(max, carrinho[idx].qtd)); }
+        else carrinho[idx].qtd = limitarQtd(carrinho[idx].embalagem, carrinho[idx].qtd + passo);
+      }
       if (acao === "menos") carrinho[idx].qtd = limitarQtd(carrinho[idx].embalagem, carrinho[idx].qtd - passo);
       if (acao === "remover") carrinho.splice(idx, 1);
       salvarCarrinho();
@@ -243,7 +308,10 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
     $("#carrinho-itens").addEventListener("change", (e) => {
       if (!e.target.matches("input")) return;
       const idx = +e.target.closest("[data-idx]").dataset.idx;
-      carrinho[idx].qtd = limitarQtd(carrinho[idx].embalagem, e.target.value);
+      const max = maxPorEstoque(carrinho[idx].id, carrinho[idx].embalagem, idx);
+      let n = limitarQtd(carrinho[idx].embalagem, e.target.value);
+      if (n > max) { n = Math.max(1, max); mostrarToast(`Estoque disponível: ${fmtKg(saldoDe(carrinho[idx].id))}. Ajustamos a quantidade.`); }
+      carrinho[idx].qtd = n;
       salvarCarrinho();
     });
   }
@@ -254,6 +322,12 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
     $("#carrinho-total").textContent = totalItens();
     const kg = $("#carrinho-kg");
     if (kg) kg.textContent = carrinho.length ? `≈ ${totalKg().toLocaleString("pt-BR")} kg de tinta` : "";
+    const val = $("#carrinho-valor");
+    if (val) {
+      const tv = totalValor();
+      val.innerHTML = !carrinho.length ? "" : `<span>Total estimado</span><strong>${tv.valor ? formatarPreco(tv.valor) : "—"}</strong>` +
+        (tv.combinar ? `<small>${tv.valor ? "+ " : ""}${tv.combinar} ${tv.combinar === 1 ? "item" : "itens"} com valor a combinar com o vendedor</small>` : `<small>Frete e condições são confirmados pelo vendedor.</small>`);
+    }
     $("#btn-finalizar").disabled = carrinho.length === 0;
     renderClienteCarrinho();
 
@@ -265,13 +339,17 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
     lista.innerHTML = carrinho
       .map((item, idx) => {
         const p = buscarProduto(item.id);
-        const cor = p.cores.find((c) => c.nome === item.cor) || p.cores[0];
+        const cor = p.cores[0], pi = precoInfo(p);
+        const sub = pi.tipo === "combinar" ? `<span class="sub-combinar">Valor a combinar</span>` : `<span class="sub-valor">${formatarPreco(pi.efetivo * kgDoItem(item))}${pi.tipo === "promo" ? ` <b class="selo-off">-${pi.desconto}%</b>` : ""}</span>`;
+        const excede = controlaEstoque() && kgNoCarrinho(p.id) > saldoDe(p.id);
         return `
-<div class="item-carrinho" data-idx="${idx}">
+<div class="item-carrinho${excede ? " sem-estoque" : ""}" data-idx="${idx}">
   ${imgProduto(p, cor, FOTO_CARTAO, "mini-foto")}
   <div>
     <h4>${esc(p.nome)}</h4>
-    <div class="detalhes"><i style="background:${cor.hex}"></i>${esc(cor.nome)} · ${esc(ehSobMedida(item.embalagem) ? "Quantidade sob medida" : item.embalagem)}</div>
+    <div class="detalhes"><span class="codigo">Cód. ${esc(p.codigo || p.id)}</span> · ${esc(ehSobMedida(item.embalagem) ? "Quantidade sob medida" : item.embalagem)}</div>
+    <div class="detalhes">${sub}${pi.tipo !== "combinar" ? ` <small>(${formatarPreco(pi.efetivo)}/kg)</small>` : ""}</div>
+    ${excede ? `<div class="aviso-estoque">${saldoDe(p.id) <= 0 ? "Esgotado. Remova o item ou peça um orçamento." : `Estoque disponível: ${fmtKg(saldoDe(p.id))}. Diminua a quantidade.`}</div>` : ""}
     <div class="quantidade-linha">
       <div class="quantidade">
         <button data-acao="menos" aria-label="Diminuir">−</button>
@@ -364,8 +442,19 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
     return l;
   }
 
-  function finalizarPedido() {
+  async function finalizarPedido() {
     if (!carrinho.length) return;
+    // confere o estoque na hora de enviar (outro cliente pode ter comprado)
+    if (controlaEstoque() || promessaEstoque) {
+      const btn = $("#btn-finalizar"); btn.disabled = true;
+      try { await carregarEstoque(true); } finally { btn.disabled = false; }
+      renderCarrinho();
+      const acima = carrinho.map((i) => buscarProduto(i.id)).filter((p, k, a) => a.indexOf(p) === k && controlaEstoque() && kgNoCarrinho(p.id) > saldoDe(p.id));
+      if (acima.length) {
+        mostrarToast(`O estoque mudou: ${acima.map((p) => `<strong>${esc(p.nome)}</strong> (${fmtKg(saldoDe(p.id))})`).join(", ")}. Ajuste o carrinho para continuar.`);
+        return;
+      }
+    }
     if (!logado() && CFG.exigirLogin) {
       try { sessionStorage.setItem(CHAVE_VOLTAR, location.pathname.split("/").pop() || "index.html"); } catch (e) { /* ignora */ }
       location.href = "conta.html?voltar=carrinho";
@@ -383,13 +472,16 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
     linhas.push(`*Pedido nº ${numero}*`);
     linhas.push("");
     carrinho.forEach((item, i) => {
-      const p = buscarProduto(item.id);
+      const p = buscarProduto(item.id), pi = precoInfo(p);
       linhas.push(`*${i + 1}. ${p.nome}*`);
-      linhas.push(`   Cor: ${item.cor}`);
+      linhas.push(`   Código: ${p.codigo || p.id} | Cor: ${item.cor}`);
       linhas.push(`   Quantidade: ${descreverQtd(item)}`);
+      linhas.push(pi.tipo === "combinar" ? "   Valor: a combinar" : `   Valor: ${formatarPreco(pi.efetivo)}/kg${pi.tipo === "promo" ? " (promoção)" : ""} = ${formatarPreco(pi.efetivo * kgDoItem(item))}`);
     });
     linhas.push("");
     linhas.push(`*Total: ${totalKg().toLocaleString("pt-BR")} kg*`);
+    const tv = totalValor();
+    if (tv.valor) linhas.push(`*Valor estimado: ${formatarPreco(tv.valor)}*${tv.combinar ? " + itens a combinar" : ""}`);
 
     if (logado()) {
       linhas.push(...linhasCliente(Conta.perfil, Conta.usuario.email));
@@ -407,7 +499,8 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
     window.open(linkWhatsApp(linhas.join("\n")), "_blank", "noopener");
 
     if (logado()) {
-      const itens = carrinho.map((i) => ({ id: i.id, nome: buscarProduto(i.id).nome, cor: i.cor, embalagem: i.embalagem, qtd: i.qtd }));
+      const itens = carrinho.map((i) => { const p = buscarProduto(i.id), pi = precoInfo(p);
+        return { id: i.id, codigo: p.codigo || p.id, nome: p.nome, cor: i.cor, embalagem: i.embalagem, qtd: i.qtd, preco_kg: pi.efetivo || null, preco_tipo: pi.tipo }; });
       Conta.registrarPedido({ numero, itens, observacoes: obs }).catch((e) => console.warn("Pedido não registrado:", e.message));
       carrinho = [];
       $("#cliente-obs").value = "";
@@ -449,11 +542,11 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
   const caixaFoto = (classe) => `<img class="${classe || "caixa-foto"}" src="${FOTO_CAIXA}" alt="Caixa de tinta em pó Policoating" width="1072" height="1008">`;
 
   function abrirProduto(id, corNome) {
-    const p = buscarProduto(id);
+    const p = acharProduto(id, corNome);
     if (!p) return;
-    registrarVisto(id);
+    registrarVisto(p.id);
     const modal = $("#modal-produto");
-    let corSel = p.cores.find((c) => c.nome === corNome) || p.cores[0], embSel = embalagemPadrao(p);
+    let corSel = p.cores[0], embSel = embalagemPadrao(p);
     const cat = CATEGORIAS[p.categoria] || {};
 
     modal.innerHTML = `
@@ -470,18 +563,17 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
   <div class="modal-info">
     <div class="modal-topo"><span class="etiqueta" style="position:static">${esc(cat.nome || "")}</span>${botaoFav(p.id)}</div>
     <h2>${esc(p.nome)}</h2>
+    <p class="codigo-produto">Código: <strong>${esc(p.codigo || p.id)}</strong></p>
+    <div class="modal-preco">${htmlPreco(p, true)}</div>
+    <p class="modal-estoque" id="modal-estoque">${htmlEstoque(p)}</p>
     <p class="desc">${esc(p.descricao)}</p>
     <ul class="ficha">
       <li><span>Linha</span><span>${esc(p.linha)}</span></li>
       <li><span>Acabamento</span><span>${esc(p.acabamento)}</span></li>
       <li><span>Rendimento</span><span>${esc(p.rendimento)}</span></li>
       <li><span>Cura</span><span>${esc(p.cura)}</span></li>
-      ${p.preco ? `<li><span>Preço a partir de</span><span>${formatarPreco(p.preco)}</span></li>` : ""}
+      <li><span>Cor</span><span class="cor-ficha"><i style="background:${esc(corSel.hex)}"></i>${esc(corSel.nome)}</span></li>
     </ul>
-    <div class="campo-titulo">Cor: <span id="nome-cor">${esc(corSel.nome)}</span> <span class="selo-estoque" id="selo-estoque" hidden></span></div>
-    <div class="seletor-cores">
-      ${p.cores.map((c, i) => `<button class="${c === corSel ? "ativo" : ""}" data-cor="${i}" style="background:${c.hex}" title="${esc(c.nome)}" aria-label="${esc(c.nome)}"></button>`).join("")}
-    </div>
     <div class="campo-titulo">Embalagem</div>
     <div class="seletor-embalagem">
       ${p.embalagens.slice().sort((x, y) => (x === embSel ? -1 : y === embSel ? 1 : 0)).map((e) => `<button class="${e === embSel ? "ativo" : ""}" data-emb="${esc(e)}">${esc(e)}</button>`).join("")}
@@ -494,7 +586,7 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
       <label>Área a pintar (m²)<input type="number" id="calc-m2" min="1" step="1" placeholder="Ex.: 80" inputmode="decimal"></label>
       <p id="calc-resultado" aria-live="polite">Some a área das peças (as duas faces, se for pintar dos dois lados).</p>
     </div>
-    <div class="linha-compra">
+    <div class="linha-compra" id="linha-compra">
       <div class="quantidade">
         <button data-q="-1" aria-label="Diminuir">−</button>
         <input type="number" id="modal-qtd" min="1" value="1" aria-label="Quantidade">
@@ -503,6 +595,11 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
       <button class="btn btn-primario" id="modal-add" style="flex:1">Adicionar ao carrinho</button>
     </div>
     <p class="resumo-qtd" id="resumo-qtd"></p>
+    <div class="esgotado-box" id="esgotado-box" hidden>
+      <strong>Produto esgotado no momento.</strong>
+      <span>Fale com o vendedor para saber quando chega ou pedir um orçamento.</span>
+      <button type="button" class="btn btn-whats" data-extra="aviseme">${iconeWhats()} Avise-me / pedir orçamento</button>
+    </div>
     <div class="acoes-extra">
       <button type="button" data-extra="ficha">${ic("documento")}Ficha técnica</button>
       <button type="button" data-extra="orcamento">${ic("conversa")}Pedir orçamento</button>
@@ -512,19 +609,19 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
 </div>`;
 
     $(".fechar", modal).addEventListener("click", fecharTudo);
-    // estoque: só "Pronta entrega" ou "Sob encomenda" (nunca a quantidade); some se o estoque não é usado
+    // estoque: mostra a quantidade e só deixa pedir até o saldo (menos o que já está no carrinho)
     function mostrarDisponibilidade() {
-      const selo = $("#selo-estoque", modal);
-      disponibilidadeEstoque().then((mapa) => {
-        if (!selo.isConnected || !Object.keys(mapa).length) return;
-        const pronta = mapa[p.id + "|" + corSel.nome] === true;
-        selo.hidden = false;
-        selo.className = "selo-estoque " + (pronta ? "pronta" : "encomenda");
-        selo.textContent = pronta ? "Pronta entrega" : "Sob encomenda";
-        selo.title = pronta ? "Temos esta cor em estoque" : "Produzimos sob encomenda. O vendedor informa o prazo.";
-      });
+      if (!modal.classList.contains("aberto") && modal.dataset.produto !== p.id) return;
+      $("#modal-estoque").innerHTML = htmlEstoque(p);
+      const esgotado = controlaEstoque() && saldoDe(p.id) <= 0;
+      $("#esgotado-box").hidden = !esgotado;
+      $("#linha-compra").hidden = esgotado;
+      $(".seletor-embalagem", modal).hidden = esgotado;
+      $$(".campo-titulo", modal).forEach((t) => (t.hidden = esgotado && !t.id));
+      if (!esgotado) atualizarQtd();
     }
-    mostrarDisponibilidade();
+    modal.dataset.produto = p.id;
+    carregarEstoque().then(() => { if (modal.dataset.produto === p.id) mostrarDisponibilidade(); });
     let vista = "foto";
     const desenharVitrine = () => {
       const alvo = $("#modal-vitrine");
@@ -538,15 +635,7 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
       $("#modal-legenda").textContent = vista === "foto" ? `${corSel.nome} · ${p.acabamento || ""}` : "Embalagem: caixa de papelão Policoating";
     };
     $$(".modal-miniaturas button", modal).forEach((b) => b.addEventListener("click", () => { vista = b.dataset.vista; desenharVitrine(); }));
-    $$("[data-cor]", modal).forEach((b) =>
-      b.addEventListener("click", () => {
-        corSel = p.cores[+b.dataset.cor];
-        $$("[data-cor]", modal).forEach((x) => x.classList.toggle("ativo", x === b));
-        $("#nome-cor").textContent = corSel.nome;
-        mostrarDisponibilidade();
-        desenharVitrine();
-      })
-    );
+
     $$("[data-emb]", modal).forEach((b) =>
       b.addEventListener("click", () => $$("[data-emb]", modal).forEach((x) => x.classList.toggle("ativo", x === b)))
     );
@@ -554,8 +643,13 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
     // quantidade: caixas (padrão) ou kg (sob medida), com o total em kg sempre visível
     const passo = () => (ehSobMedida(embSel) ? 5 : 1);
     function atualizarQtd() {
-      const sob = ehSobMedida(embSel), n = limitarQtd(embSel, qtd.value);
-      if (qtd.value !== "" && +qtd.value > n) { qtd.value = n; mostrarToast(`Máximo de ${n.toLocaleString("pt-BR")} ${sob ? "kg" : "caixas"} por item. Para mais, fale com o vendedor.`); }
+      const sob = ehSobMedida(embSel), maxE = maxPorEstoque(p.id, embSel, -1);
+      let n = limitarQtd(embSel, qtd.value);
+      if (maxE !== Infinity && n > maxE) {
+        n = Math.max(1, maxE);
+        if (qtd.value !== "" && +qtd.value > n) { qtd.value = n; mostrarToast(maxE < 1 ? "Estoque desta embalagem já está no seu carrinho." : `Estoque disponível: ${fmtKg(saldoDe(p.id) - kgNoCarrinho(p.id))}${kgNoCarrinho(p.id) ? " (fora o que já está no carrinho)" : ""}.`); }
+      } else if (qtd.value !== "" && +qtd.value > n) { qtd.value = n; mostrarToast(`Máximo de ${n.toLocaleString("pt-BR")} ${sob ? "kg" : "caixas"} por item. Para mais, fale com o vendedor.`); }
+      $("#modal-add").disabled = maxE !== Infinity && maxE < 1;
       $("#unidade-qtd").textContent = sob ? "(kg)" : "(caixas)";
       $("#nota-sob-medida").hidden = !sob;
       qtd.setAttribute("aria-label", sob ? "Quantidade em kg" : "Quantidade de caixas");
@@ -603,15 +697,16 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
           return;
         }
         const item = { embalagem: embSel, qtd: limitarQtd(embSel, qtd.value) };
-        const msg = tipo === "orcamento"
-          ? `Olá! Gostaria de um orçamento do produto *${p.nome}*, cor *${corSel.nome}*, quantidade: *${descreverQtd(item)}*.`
+        const msg = tipo === "aviseme"
+          ? `Olá! O produto *${p.nome}* (código ${p.codigo || p.id}) está esgotado no site. Pode me avisar quando chegar ou fazer um orçamento?`
+          : tipo === "orcamento"
+          ? `Olá! Gostaria de um orçamento do produto *${p.nome}* (código ${p.codigo || p.id}), quantidade: *${descreverQtd(item)}*.`
           : `Olá! Gostaria de receber a ficha técnica (BT) e a FISPQ do produto *${p.nome}*.`;
         window.open(linkWhatsApp(msg), "_blank", "noopener");
       })
     );
     $("#modal-add").addEventListener("click", () => {
-      adicionarAoCarrinho(p.id, corSel.nome, embSel, qtd.value);
-      fecharTudo();
+      if (adicionarAoCarrinho(p.id, corSel.nome, embSel, qtd.value)) fecharTudo();
     });
 
     modal.classList.add("aberto");
@@ -630,25 +725,26 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
 
   /* ---------- Cartões de produto ---------- */
   function cartaoProduto(p) {
-    const cat = CATEGORIAS[p.categoria] || {};
-    const amostras = p.cores.slice(0, 6).map((c, i) => `<span class="amostra${i === 0 ? " ativa" : ""}" data-amostra="${i}" style="background:${c.hex}" title="${esc(c.nome)}"></span>`).join("");
-    const extra = p.cores.length > 6 ? `<small>+${p.cores.length - 6}</small>` : "";
+    const cat = CATEGORIAS[p.categoria] || {}, c = p.cores[0], pi = precoInfo(p);
+    const esgotado = controlaEstoque() && saldoDe(p.id) <= 0;
     return `
-<article class="cartao-produto revelar" data-id="${esc(p.id)}">
+<article class="cartao-produto revelar${esgotado ? " esgotado" : ""}" data-id="${esc(p.id)}">
   <div class="vitrine" data-abrir="${esc(p.id)}">
     <span class="etiqueta">${esc(cat.nome || "")}</span>
+    ${pi.tipo === "promo" ? `<span class="etiqueta-promo">-${pi.desconto}%</span>` : ""}
     ${botaoFav(p.id)}
-    ${imgProduto(p, p.cores[0], FOTO_CARTAO)}
-    <span class="ver-detalhes">Ver cores e detalhes</span>
+    ${imgProduto(p, c, FOTO_CARTAO)}
+    <span class="ver-detalhes">Ver detalhes</span>
   </div>
   <div class="info">
-    <span class="linha">${esc(p.linha)}</span>
+    <div class="linha-codigo">${p.linha ? `<span class="linha">${esc(p.linha)}</span>` : ""}<span class="codigo-cartao">Cód. ${esc(p.codigo || p.id)}</span></div>
     <h3>${esc(p.nome)}</h3>
     <p class="desc">${esc(p.descricao)}</p>
-    <div class="amostras">${amostras}${extra}</div>
+    <div class="cor-cartao"><i style="background:${esc(c.hex)}"></i>${esc(c.nome)}</div>
+    <div class="estoque-cartao" data-estoque-id="${esc(p.id)}">${htmlEstoque(p)}</div>
     <div class="rodape-cartao">
-      <span class="preco">${p.preco ? `<small>a partir de</small>${formatarPreco(p.preco)}` : `<small>Preço</small>Sob consulta`}</span>
-      <button class="btn btn-primario btn-add" data-abrir="${esc(p.id)}">+ Carrinho</button>
+      ${htmlPreco(p)}
+      <button class="btn ${esgotado ? "btn-contorno-azul" : "btn-primario"} btn-add" data-abrir="${esc(p.id)}">${esgotado ? "Ver / Avise-me" : "+ Carrinho"}</button>
     </div>
   </div>
 </article>`;
@@ -804,6 +900,7 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
     atualizarContador(false);
     observarRevelar();
     avisoLgpd();
+    carregarEstoque();
     if (location.hash.startsWith("#produto=")) abrirProduto(decodeURIComponent(location.hash.slice(9)));
     if (Conta) {
       Conta.aoMudar(() => { atualizarCabecalhoConta(); renderClienteCarrinho(); });
@@ -816,6 +913,18 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
     }
   });
 
+  // estoque carregado: atualiza os cartões e o carrinho
+  document.addEventListener("estoque-atualizado", () => {
+    $$("[data-estoque-id]").forEach((el) => {
+      const p = buscarProduto(el.dataset.estoqueId); if (!p) return;
+      el.innerHTML = htmlEstoque(p);
+      const cartao = el.closest(".cartao-produto"), esgotado = controlaEstoque() && saldoDe(p.id) <= 0, b = cartao && $(".btn-add", cartao);
+      if (cartao) cartao.classList.toggle("esgotado", esgotado);
+      if (b) { b.textContent = esgotado ? "Ver / Avise-me" : "+ Carrinho"; b.classList.toggle("btn-primario", !esgotado); b.classList.toggle("btn-contorno-azul", esgotado); }
+    });
+    renderCarrinho();
+  });
+
   /* API pública usada pelas páginas */
-  window.ColorWeg = { descreverQtd, kgDoItem, embalagemPadrao, lerVistos, iconeWhats, totalItens: () => totalItens(), itensCarrinho: () => carrinho.slice(), fotoProduto, imgProduto, lerFavoritos, alternarFavorito, gravarStorage, lerStorage, buscarProduto, $, $$, caixaSVG, renderProdutos, abrirProduto, adicionarAoCarrinho, linkWhatsApp, ehEscura, esc, observarRevelar, mostrarToast, abrirCarrinho };
+  window.ColorWeg = { acharProduto, precoInfo, htmlPreco, formatarPreco, carregarEstoque, saldoDe: (id) => saldoDe(id), controlaEstoque: () => controlaEstoque(), descreverQtd, kgDoItem, embalagemPadrao, lerVistos, iconeWhats, totalItens: () => totalItens(), itensCarrinho: () => carrinho.slice(), fotoProduto, imgProduto, lerFavoritos, alternarFavorito, gravarStorage, lerStorage, buscarProduto, $, $$, caixaSVG, renderProdutos, abrirProduto, adicionarAoCarrinho, linkWhatsApp, ehEscura, esc, observarRevelar, mostrarToast, abrirCarrinho };
 })();

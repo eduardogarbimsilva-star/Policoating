@@ -116,8 +116,9 @@
           pontos += cor ? 4 : -2;
         }
       }
-      if (q.alvos.includes(p.id)) pontos += 8;
-      if (p.id === "cor-especial" && !q.alvos.includes(p.id)) pontos -= 3;
+      const refs = [p.id, p.familia];
+      if (q.alvos.some((a) => refs.includes(a))) pontos += 8;
+      if (p.familia === "cor-especial" && !q.alvos.includes("cor-especial")) pontos -= 3;
       return { p, cor: cor || p.cores[0], pontos, corExata: !!cor };
     };
     const ordenar = (lista) => lista.filter((r) => r.pontos > 0).sort((a, b) => b.pontos - a.pontos || b.corExata - a.corExata);
@@ -320,15 +321,15 @@
     const add = e.target.closest("[data-add]");
     if (add) {
       const p = CW().buscarProduto(add.dataset.add);
-      CW().adicionarAoCarrinho(p.id, add.dataset.cor, CW().embalagemPadrao(p), 1);
-      add.textContent = "Adicionado ✓";
+      const ok = CW().adicionarAoCarrinho(p.id, add.dataset.cor, CW().embalagemPadrao(p), 1);
+      add.textContent = ok === false ? "Sem estoque" : "Adicionado ✓";
       add.disabled = true;
       return;
     }
     const rep = e.target.closest("[data-repetir]");
     if (rep) {
       const ped = pedidosMostrados[+rep.dataset.repetir];
-      (ped && ped.itens || []).forEach((it) => { if (CW().buscarProduto(it.id)) CW().adicionarAoCarrinho(it.id, it.cor, it.embalagem, it.qtd); });
+      (ped && ped.itens || []).forEach((it) => { if (CW().acharProduto(it.id, it.cor)) CW().adicionarAoCarrinho(it.id, it.cor, it.embalagem, it.qtd); });
       adicionar({ de: "bot", texto: `Pronto! Coloquei os itens do pedido ${ped.numero} no carrinho. Quer revisar e enviar?`, acoes: ["carrinho", "whatsapp"] });
       return;
     }
@@ -340,7 +341,11 @@
       const t = sug.textContent.trim();
       if (t === "Colocar no carrinho" && contexto.produto) {
         const p = CW().buscarProduto(contexto.produto);
-        if (p) { CW().adicionarAoCarrinho(p.id, p.cores[0].nome, CW().embalagemPadrao(p), 1); adicionar({ de: "bot", texto: `Adicionei **${p.nome}** ao carrinho. Ajuste a cor e a quantidade no carrinho, se precisar.`, acoes: ["carrinho"] }); }
+        if (p) {
+          const ok = CW().adicionarAoCarrinho(p.id, p.cores[0].nome, CW().embalagemPadrao(p), 1);
+          adicionar(ok !== false ? { de: "bot", texto: `Adicionei **${p.nome}** ao carrinho. Ajuste a quantidade no carrinho, se precisar.`, acoes: ["carrinho"] }
+            : { de: "bot", texto: `**${p.nome}** está sem estoque disponível agora. Posso te colocar em contato com o vendedor para um orçamento.` });
+        }
         return;
       }
       responder(t.replace(/^Produtos /, "produtos linha "));
@@ -430,10 +435,11 @@
       if (!achado) return { texto: "Qual produto você quer? Diga a peça, a cor e o acabamento, por exemplo: \"quero 3 caixas de poliéster preto fosco\"." };
       // "130 kg" → quantidade sob medida; "3 caixas" → caixas de 25 kg
       const sob = !q.qtd && q.kg, emb = sob ? "Sob medida" : CW().embalagemPadrao(achado.p), n = sob ? q.kg : q.qtd;
-      CW().adicionarAoCarrinho(achado.p.id, achado.cor.nome, emb, n);
+      const ok = CW().adicionarAoCarrinho(achado.p.id, achado.cor.nome, emb, n);
       contexto.produto = achado.p.id;
+      if (ok === false) return { texto: `**${achado.p.nome}** está sem estoque disponível agora. Quer falar com o vendedor para um orçamento?`, produtos: [{ id: achado.p.id, cor: achado.cor.nome }], acoes: ["whatsapp"] };
       const desc = sob ? `${n} kg de ${achado.p.nome} (quantidade sob medida)` : `${n} × ${achado.p.nome}, ${emb}`;
-      return { texto: `Coloquei no carrinho: **${desc}**, cor ${achado.cor.nome}. Quer revisar e enviar ao vendedor?`, produtos: [{ id: achado.p.id, cor: achado.cor.nome }], acoes: ["carrinho", "whatsapp"] };
+      return { texto: `Coloquei no carrinho: **${desc}**${CW().controlaEstoque() ? " (conferido com o estoque)" : ""}. Quer revisar e enviar ao vendedor?`, produtos: [{ id: achado.p.id, cor: achado.cor.nome }], acoes: ["carrinho", "whatsapp"] };
     }
 
     if (intencao === "carrinho") {

@@ -234,8 +234,8 @@
     function mostrar(cor) {
       const lista = FR.FOTOS.filter((f) => !cor || f.cor === cor);
       trilho.innerHTML = lista.map((f) => {
-        const p = PRODUTOS.find((x) => x.id === f.produto);
-        const c = p && (p.cores.find((x) => x.nome === f.corProduto) || p.cores[0]);
+        const p = window.ColorWeg ? window.ColorWeg.acharProduto(f.produto, f.corProduto) : PRODUTOS.find((x) => x.id === f.produto);
+        const c = p && p.cores[0];
         return `<article class="insp-card" data-card-real>
           <img data-foto-real src="${esc(FR.url(f, 700))}" alt="${esc(f.titulo)}" loading="lazy" width="700" height="933">
           <div class="insp-legenda">

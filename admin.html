@@ -23,7 +23,7 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Barlow:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/style.css?v=1a25909e">
+  <link rel="stylesheet" href="assets/css/style.css?v=4e025b18">
 </head>
 <body>
   <a class="pular" href="#conteudo">Pular para o conteúdo</a>
@@ -92,7 +92,7 @@
       <div class="container">
         <div class="migalhas"><a href="index.html">Início</a> / <a href="conta.html">Minha conta</a> / Painel da empresa</div>
         <h1>Painel da empresa</h1>
-        <p>Produtos, pedidos, clientes, estoque, contato, galeria e equipe da Policoating em um só lugar.</p>
+        <p>Produtos, pedidos, vendas, clientes, estoque, contato, galeria e equipe da Policoating em um só lugar.</p>
       </div>
     </section>
 
@@ -120,6 +120,7 @@
           <nav class="admin-abas" role="tablist" aria-label="Seções do painel">
             <button type="button" role="tab" data-aba="produtos" class="ativo"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5M12 13v8"/></svg> Produtos</button>
             <button type="button" role="tab" data-aba="pedidos"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h2l2.4 11h11L21 8H6.2"/><circle cx="9.5" cy="19.5" r="1.5"/><circle cx="17.5" cy="19.5" r="1.5"/></svg> Pedidos</button>
+            <button type="button" role="tab" data-aba="vendas"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16"/><path d="M7 16v-5M12 16V6M17 16v-8"/></svg> Vendas</button>
             <button type="button" role="tab" data-aba="clientes"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg> Clientes</button>
             <button type="button" role="tab" data-aba="estoque"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5M12 13v8"/></svg> Estoque</button>
             <button type="button" role="tab" data-aba="contato"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/></svg> Contato e links</button>
@@ -129,7 +130,7 @@
 
           <div class="admin-aba" data-conteudo="produtos">
           <div class="admin-barra">
-            <label class="busca"><input type="search" id="admin-busca" placeholder="Buscar produto..." aria-label="Buscar produto"></label>
+            <label class="busca"><input type="search" id="admin-busca" placeholder="Buscar por nome, código ou cor..." aria-label="Buscar produto"></label>
             <select id="admin-filtro" aria-label="Filtrar por linha"><option value="">Todas as linhas</option></select>
             <div class="admin-acoes">
               <button type="button" class="btn btn-contorno-azul" id="btn-importar" hidden>Importar produtos atuais do site</button>
@@ -137,10 +138,14 @@
             </div>
           </div>
 
+          <div class="admin-aviso-cores" id="aviso-cores" hidden>
+            <span><strong>Produtos no formato antigo:</strong> <span id="aviso-cores-texto"></span> Agora cada cor é um produto com código próprio.</span>
+            <button type="button" class="btn btn-primario" id="btn-converter">Converter agora</button>
+          </div>
           <p class="admin-contagem" id="admin-contagem"></p>
           <div class="tabela-rolagem">
             <table class="admin-tabela">
-              <thead><tr><th>Produto</th><th>Linha</th><th>Cores</th><th>Ordem</th><th>Situação</th><th><span class="sr">Ações</span></th></tr></thead>
+              <thead><tr><th>Produto</th><th>Linha</th><th>Preço (kg)</th><th>Estoque</th><th>Situação</th><th><span class="sr">Ações</span></th></tr></thead>
               <tbody id="admin-lista"></tbody>
             </table>
           </div>
@@ -167,6 +172,43 @@
             </div>
             <div class="admin-pedidos" id="admin-pedidos"></div>
             <p class="form-erro" id="pedidos-erro" role="alert"></p>
+          </div>
+
+          <!-- Vendas -->
+          <div class="admin-aba" data-conteudo="vendas" hidden>
+            <div class="vendas-kpis" id="vendas-kpis"></div>
+            <div class="busca-pedidos">
+              <label for="vendas-busca">Buscar venda</label>
+              <div class="busca-pedidos-linha">
+                <input type="search" id="vendas-busca" placeholder="Cliente, produto, código do produto ou do pedido" autocomplete="off">
+                <select id="vendas-periodo" aria-label="Período">
+                  <option value="hoje">Hoje</option><option value="7">Últimos 7 dias</option><option value="30" selected>Últimos 30 dias</option>
+                  <option value="mes">Este mês</option><option value="90">Últimos 90 dias</option><option value="ano">Este ano</option><option value="0">Todo o período</option>
+                </select>
+                <select id="vendas-status" aria-label="Situação">
+                  <option value="confirmada">Confirmadas</option><option value="cancelada">Canceladas</option><option value="">Todas</option>
+                </select>
+                <select id="vendas-vendedor" aria-label="Vendedor" hidden><option value="">Todos os vendedores</option></select>
+              </div>
+              <small id="vendas-dica">Uma venda é registrada quando o vendedor clica em "Confirmar venda" no pedido. A baixa no estoque é feita junto.</small>
+            </div>
+            <div class="admin-barra">
+              <div class="pedidos-resumo" id="vendas-resumo"></div>
+              <div class="admin-acoes">
+                <button type="button" class="btn btn-contorno-azul" id="vendas-atualizar">Atualizar</button>
+                <button type="button" class="btn btn-primario" id="vendas-csv"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg> Exportar planilha</button>
+              </div>
+            </div>
+            <div class="vendas-grade">
+              <div class="vendas-lista" id="vendas-lista"></div>
+              <aside class="vendas-lado">
+                <h3>Mais vendidos no período</h3>
+                <ol class="ranking" id="vendas-ranking"></ol>
+                <h3 id="vendas-titulo-vendedores">Por vendedor</h3>
+                <ol class="ranking" id="vendas-vendedores"></ol>
+              </aside>
+            </div>
+            <p class="form-erro" id="vendas-erro" role="alert"></p>
           </div>
 
           <!-- Clientes -->
@@ -217,7 +259,7 @@
                   <option value="com">Com estoque</option>
                 </select>
               </div>
-              <small>Saldo em kg por produto e cor. O pedido feito pelo site não desconta sozinho: use "Dar baixa no estoque" no pedido quando a venda fechar.</small>
+              <small>Saldo em kg por produto e cor. O pedido do site não desconta sozinho: a baixa é feita quando alguém da equipe clica em "Confirmar venda" no pedido.</small>
             </div>
             <div class="admin-barra">
               <p class="dica" style="margin:0;flex:1" id="estoque-permissao"></p>
@@ -288,8 +330,8 @@
           <!-- Equipe -->
           <div class="admin-aba" data-conteudo="equipe" hidden>
             <div class="cargos-info">
-              <div><b class="cargo cargo-admin">Administrador</b><span>Tudo: produtos, pedidos (inclusive excluir), clientes (inclusive exportar), estoque, contato e links, galeria e equipe.</span></div>
-              <div><b class="cargo cargo-vendedor">Vendedor</b><span>Busca de pedidos e de clientes, consulta do estoque, chamar o cliente e exportar a planilha de pedidos. Exclui pedidos, exporta clientes e movimenta o estoque só se o administrador liberar.</span></div>
+              <div><b class="cargo cargo-admin">Administrador</b><span>Tudo: produtos e preços, pedidos (inclusive excluir), todas as vendas (inclusive cancelar), clientes (inclusive exportar), estoque, contato e links, galeria e equipe.</span></div>
+              <div><b class="cargo cargo-vendedor">Vendedor</b><span>Pedidos, confirmar vendas e ver as próprias vendas, clientes e consulta do estoque. Exclui pedidos, exporta clientes e movimenta o estoque só se o administrador liberar.</span></div>
             </div>
             <p class="dica">A pessoa entra no site com o próprio e-mail (código de acesso) e vê o botão "Painel da empresa" no menu da conta.</p>
             <form class="admin-barra" id="form-equipe" novalidate>
@@ -303,6 +345,33 @@
         </div>
       </div>
     </section>
+
+    <!-- Confirmar venda -->
+    <div class="admin-modal" id="modal-venda" role="dialog" aria-modal="true" aria-labelledby="venda-titulo" hidden>
+      <form class="admin-form form-venda" id="form-venda" novalidate>
+        <header>
+          <h2 id="venda-titulo">Confirmar venda</h2>
+          <button type="button" class="fechar" data-fechar-venda aria-label="Fechar">×</button>
+        </header>
+        <div class="admin-form-corpo">
+          <p class="venda-cliente" id="venda-cliente"></p>
+          <p class="dica">Confira as quantidades e os valores fechados com o cliente. Itens "a combinar" precisam do preço combinado. A baixa no estoque é feita junto.</p>
+          <div class="tabela-rolagem">
+            <table class="admin-tabela tabela-venda">
+              <thead><tr><th>Produto</th><th>Kg vendidos</th><th>Preço por kg (R$)</th><th>Subtotal</th></tr></thead>
+              <tbody id="venda-itens"></tbody>
+              <tfoot><tr><td colspan="3">Total da venda</td><td id="venda-total">R$ 0,00</td></tr></tfoot>
+            </table>
+          </div>
+          <label class="venda-obs">Observação (frete, prazo, forma de pagamento...)<input id="venda-obs" maxlength="300"></label>
+          <p class="form-erro" id="venda-erro" role="alert"></p>
+        </div>
+        <footer>
+          <button type="button" class="btn btn-contorno-azul" data-fechar-venda>Cancelar</button>
+          <button type="submit" class="btn btn-primario" id="venda-salvar">Confirmar venda</button>
+        </footer>
+      </form>
+    </div>
 
     <!-- Movimentação de estoque -->
     <div class="admin-modal" id="modal-estoque" role="dialog" aria-modal="true" aria-labelledby="mov-titulo" hidden>
@@ -345,18 +414,55 @@
           <button type="button" class="fechar" data-fechar aria-label="Fechar">×</button>
         </header>
         <div class="admin-form-corpo">
+          <p class="dica">Cada produto é uma cor, com código próprio. Campos com * são obrigatórios.</p>
+          <div class="prod-topo">
+            <div class="campo-foto-produto">
+              <span>Foto do produto *</span>
+              <label class="foto-produto-caixa" id="foto-caixa">
+                <span id="foto-previa">Clique para enviar a foto<small>JPG, PNG ou WEBP</small></span>
+                <input type="file" id="foto-arquivo" accept="image/jpeg,image/png,image/webp" hidden>
+              </label>
+              <button type="button" class="cor-sem-foto" id="foto-remover" hidden>Remover foto</button>
+            </div>
+            <div class="grade-campos">
+              <label>Código do produto *<input name="codigo" required maxlength="30" autocomplete="off" placeholder="POL-0101"><small>Único. Letras, números e hífen. Não muda depois de salvo.</small></label>
+              <label>Linha *<select name="categoria" required></select></label>
+              <label class="largo">Nome do produto *<input name="nome" required maxlength="120" placeholder="Poliéster Fosco Preto RAL 9005"></label>
+              <div class="largo campo-cor">
+                <span>Cor *</span>
+                <div class="admin-cor">
+                  <input type="color" id="cor-tom" value="#1558d6" aria-label="Tom da cor">
+                  <input type="text" class="cor-hex" id="cor-hex" value="#1558d6" maxlength="7" aria-label="Código hexadecimal">
+                  <input type="text" class="cor-nome" id="cor-nome" placeholder="Nome da cor (ex.: Preto RAL 9005)" maxlength="60" aria-label="Nome da cor">
+                </div>
+              </div>
+            </div>
+          </div>
           <div class="grade-campos">
-            <label class="largo">Nome do produto *<input name="nome" required maxlength="80"></label>
-            <label>Código (id) *<input name="id" required maxlength="60"><small>Letras minúsculas, números e hífen. Não muda depois de salvo.</small></label>
-            <label>Linha *<select name="categoria" required></select></label>
+            <label class="largo">Descrição *<textarea name="descricao" rows="3" maxlength="600" placeholder="Para que serve, onde usar, diferenciais..."></textarea></label>
             <label>Nome da linha (ex.: Linha Exterior)<input name="linha" maxlength="60"></label>
             <label>Acabamento<input name="acabamento" maxlength="60" placeholder="Brilhante, Fosco, Texturizado..."></label>
-            <label class="largo">Descrição<textarea name="descricao" rows="3" maxlength="400"></textarea></label>
             <label>Rendimento<input name="rendimento" maxlength="60" placeholder="≈ 9,5 m²/kg a 70 µm"></label>
             <label>Cura<input name="cura" maxlength="60" placeholder="10 min a 200 °C"></label>
             <label>Densidade (g/cm³)<input name="densidade" type="number" step="0.01" min="0.5" max="5"></label>
-            <label>Preço por kg (opcional)<input name="preco" type="number" step="0.01" min="0" placeholder="Em branco = Sob consulta"></label>
-            <label class="largo">Embalagens * <input name="embalagens" required placeholder="Caixa 25 kg, Caixa 20 kg"><small>Separe por vírgula.</small></label>
+            <label>Embalagens *<input name="embalagens" required placeholder="Caixa 25 kg, Caixa 20 kg"><small>Separe por vírgula.</small></label>
+          </div>
+
+          <fieldset class="campo-preco">
+            <legend>Preço</legend>
+            <div class="preco-modos" role="radiogroup" aria-label="Tipo de preço">
+              <label><input type="radio" name="preco-modo" value="valor" checked><span><b>Preço por kg</b>Aparece no site</span></label>
+              <label><input type="radio" name="preco-modo" value="combinar"><span><b>Valor a combinar</b>O cliente combina com o vendedor</span></label>
+            </div>
+            <div class="grade-campos" id="precos-campos">
+              <label>Preço por kg (R$) *<input name="preco" type="number" step="0.01" min="0" inputmode="decimal" placeholder="Ex.: 32,50"></label>
+              <label>Preço promocional por kg (R$)<input name="precoPromo" type="number" step="0.01" min="0" inputmode="decimal" placeholder="Opcional"><small>Deixe em branco se não houver promoção.</small></label>
+              <label>Promoção válida até<input name="promoAte" type="date"><small>Opcional. Depois da data, volta ao preço normal.</small></label>
+              <p class="preco-previa" id="preco-previa" aria-live="polite"></p>
+            </div>
+          </fieldset>
+
+          <div class="grade-campos">
             <label>Ordem no catálogo<input name="ordem" type="number" step="1" value="100"></label>
             <div class="largo campo-ficha">
               <span>Ficha técnica (PDF)</span>
@@ -369,11 +475,6 @@
               <label class="check"><input type="checkbox" name="destaque"> Destaque na página inicial</label>
               <label class="check"><input type="checkbox" name="ativo" checked> Visível no site</label>
             </div>
-          </div>
-
-          <div class="admin-cores">
-            <div class="admin-cores-topo"><h3>Cores *</h3><button type="button" class="btn btn-contorno-azul" id="btn-cor">+ Adicionar cor</button></div>
-            <div id="lista-cores"></div>
           </div>
           <p class="form-erro" id="form-erro" role="alert"></p>
         </div>
@@ -449,17 +550,17 @@
   </footer>
 
   <script src="assets/js/config.js?v=fa69da5c"></script>
-  <script src="assets/js/produtos.js?v=33acf86a"></script>
-  <script src="assets/js/catalogo.js?v=1bdd3459"></script>
-  <script src="assets/js/icones.js?v=0989d2a0"></script>
+  <script src="assets/js/produtos.js?v=ca9df86d"></script>
+  <script src="assets/js/catalogo.js?v=3ae82e11"></script>
+  <script src="assets/js/icones.js?v=0f357f8d"></script>
   <script src="assets/js/midia.js?v=781286f8"></script>
   <script src="assets/js/fotos-reais.js?v=cd443528"></script>
   <script src="assets/js/fotos.js?v=48f81340"></script>
   <script src="assets/js/auth.js?v=c2d181c9"></script>
-  <script src="assets/js/main.js?v=f9257449"></script>
+  <script src="assets/js/main.js?v=dbcc6e7c"></script>
   <script src="assets/js/animacoes.js?v=d458c529"></script>
-  <script src="assets/js/secoes.js?v=79232704"></script>
-  <script src="assets/js/assistente.js?v=ed48da65"></script>
-  <script src="assets/js/admin.js?v=6b5e0eb4"></script>
+  <script src="assets/js/secoes.js?v=eb62ee0a"></script>
+  <script src="assets/js/assistente.js?v=70b50a87"></script>
+  <script src="assets/js/admin.js?v=35b4e89c"></script>
 </body>
 </html>

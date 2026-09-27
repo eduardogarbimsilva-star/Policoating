@@ -185,6 +185,13 @@ escolhendo o cargo. Nada é pago ou enviado pelo site: o pedido vai para o Whats
   pedidos atrasados. Também busca por empresa, CNPJ/CPF, telefone, cidade, produto ou cor, com filtro de período.
   Botões para copiar o código, chamar o cliente no WhatsApp e **Exportar planilha** (CSV/Excel).
   Precisa da **PARTE F** do `setup.sql`.
+- **Vendas:** como a área de vendas do Mercado Livre. No pedido, **Confirmar venda** abre os itens com os kg e o
+  preço por kg (já preenchido com o preço do site; itens "a combinar" pedem o preço combinado), mais uma
+  observação (frete, prazo, pagamento). Ao confirmar, a venda é registrada e o estoque baixa junto; um pedido só
+  pode virar uma venda. A aba mostra **faturamento, número de vendas, kg vendidos e ticket médio** no período
+  (hoje, 7/30/90 dias, este mês, este ano), a lista das vendas com foto, itens, valores, cliente e vendedor, os
+  **mais vendidos** e o ranking **por vendedor**, com busca e planilha. O **vendedor vê só as próprias vendas**; o
+  administrador vê todas e pode **cancelar** uma venda (com motivo), e o estoque volta. Precisa da **PARTE K**.
 - **Clientes:** todos os clientes cadastrados (só a equipe vê; nunca aparecem na parte pública do site).
   Busca por nome, empresa, CPF/CNPJ, e-mail, telefone ou cidade; filtros "compraram nos últimos 30 dias",
   "não compram há mais de 90 dias", "sem pedidos" e "cadastrados nos últimos 30 dias"; ordem por último pedido,
@@ -195,10 +202,12 @@ escolhendo o cargo. Nada é pago ou enviado pelo site: o pedido vai para o Whats
   **Saída**, **Inventário** (informe a contagem real e o sistema lança a diferença) e **Mínimo** (alerta de
   reposição). Cada item tem **Histórico** com data, tipo, kg, pedido, documento e quem fez; nada é apagado nem
   editado, correções entram como inventário. Saídas não deixam o saldo ficar negativo.
-  - **Baixa pelo pedido:** o pedido do site não desconta sozinho (a venda fecha no WhatsApp). Quando fechar, use
-    **Dar baixa no estoque** no pedido; o sistema não deixa dar baixa duas vezes.
-  - **No site:** o cliente vê só **Pronta entrega** ou **Sob encomenda** ao escolher a cor, nunca a quantidade.
-    Enquanto o estoque não tiver nenhuma movimentação, nada aparece.
+  - **Baixa pela venda:** o pedido do site não desconta sozinho (a venda fecha no WhatsApp). A baixa é feita
+    quando alguém da equipe clica em **Confirmar venda** no pedido.
+  - **No site:** o cliente vê a quantidade em estoque de cada produto (kg e caixas) e só consegue pedir até o saldo
+    (contando o que já está no carrinho). Produto com saldo zero aparece como **Esgotado**, sem carrinho, com o botão
+    **Avise-me / pedir orçamento** (WhatsApp). Na hora de enviar o pedido o site confere o estoque de novo, e o
+    banco recusa pedido acima do saldo. Enquanto o estoque não tiver nenhuma movimentação, o site não limita nada.
   - Toda a equipe consulta; movimenta quem é administrador ou tem **Pode movimentar estoque** (aba Equipe).
     Precisa da **PARTE J** do `setup.sql`.
 - **Contato e links:** WhatsApp dos pedidos, telefone, e-mail, horário, endereço, slogan, redes sociais
@@ -207,12 +216,18 @@ escolhendo o cargo. Nada é pago ou enviado pelo site: o pedido vai para o Whats
 - **Galeria:** enviar, ordenar, legendar e remover as fotos da galeria.
 - **Equipe:** adicionar pessoas como Administrador ou Vendedor, mudar o cargo ou remover o acesso.
 
-Para as abas Contato, Galeria e Equipe, rode também as **PARTES E, F, G, H, I e J** do `setup.sql`, nessa ordem.
+Para as abas Contato, Galeria e Equipe, rode também as **PARTES E, F, G, H, I, J e K** do `setup.sql`, nessa ordem.
 
-**Produtos no painel:**
-- **Novo produto:** nome, linha, acabamento, descrição, rendimento, cura, embalagens, preço opcional, destaque na
-  página inicial e cores. Cada cor pode ter uma foto real, que é reduzida e enviada automaticamente.
-- **Editar**, **Duplicar** (para criar variações) e **Excluir**.
+**Produtos no painel (cada cor é um produto):**
+- **Novo produto:** **código único** (ex.: POL-0101; não muda depois), nome, linha, **cor** (nome e tom),
+  **foto do produto**, **descrição**, acabamento, rendimento, cura, densidade, embalagens, destaque e ordem.
+  Foto, descrição e código são obrigatórios; o site não aceita dois produtos com o mesmo código.
+- **Preço:** **Preço por kg** (aparece no site, com o valor da caixa de 25 kg) e, opcionalmente, **preço
+  promocional** com data de fim (o site mostra o preço antigo riscado e a % de desconto; depois da data volta ao
+  normal). Ou **Valor a combinar**: o site mostra "Valor a combinar com o vendedor".
+- **Produtos antigos com várias cores:** o painel mostra **Converter agora**, que cria um produto por cor com
+  código novo (POL-0001, POL-0002...).
+- **Editar**, **Duplicar** (para criar outra cor do mesmo produto) e **Excluir**.
 - **Visível/Oculto:** tira o produto do site sem apagar.
 - **Ordem no catálogo:** números menores aparecem primeiro.
 - **Ficha técnica (PDF):** opcional; o botão "Ficha técnica" do produto abre o PDF.
@@ -222,9 +237,10 @@ usa a lista de [`assets/js/produtos.js`](assets/js/produtos.js). Sem Supabase co
 modo demonstração e grava só no navegador.
 
 ### Produtos
-Edite **`assets/js/produtos.js`**. Cada produto tem nome, categoria, acabamento, descrição, rendimento,
-cura, densidade (usada na calculadora), embalagens (caixas) e cores (nome/RAL + código hex). Use `destaque: true` para exibir na página inicial e,
-opcionalmente, `preco: 199.90` para mostrar um preço "a partir de" (sem preço aparece "Sob consulta").
+O normal é cadastrar pelo painel. A lista padrão fica em **`assets/js/produtos.js`**: cada produto é uma cor,
+com `codigo` único, nome, categoria, acabamento, descrição, rendimento, cura, densidade (usada na calculadora),
+embalagens e `cores` com uma única cor. Preço: `preco` (R$/kg), `precoPromo` e `promoAte` (opcionais) ou
+`precoCombinar: true`. Use `destaque: true` para exibir na página inicial.
 
 As embalagens são ilustrações da caixa de papelão Policoating, geradas automaticamente com a etiqueta
 na cor escolhida — não é preciso ter fotos. Para usar fotos reais depois, troque a função `caixaSVG`

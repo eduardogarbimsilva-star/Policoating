@@ -24,7 +24,7 @@
       document.title = "Área do vendedor | Policoating";
       $(".cabecalho-pagina h1").textContent = "Área do vendedor";
       $(".cabecalho-pagina p").textContent = "Encontre qualquer pedido pelo código ou pelo nome do cliente, e veja a carteira de clientes.";
-      $$(".admin-abas [data-aba]").forEach((b) => { if (!["pedidos", "clientes", "estoque"].includes(b.dataset.aba)) b.remove(); });
+      $$(".admin-abas [data-aba]").forEach((b) => { if (!["pedidos", "vendas", "clientes", "estoque"].includes(b.dataset.aba)) b.remove(); });
     }
     const [podeExcluir, podeExportar, podeEstoque] = await Promise.all([A.podeExcluirPedidos(), A.podeExportarClientes(), A.podeMovimentarEstoque()]);
     const extras = [podeExcluir && "pode excluir pedidos", podeExportar && "pode exportar clientes", podeEstoque && "pode movimentar estoque"].filter(Boolean);
@@ -36,33 +36,55 @@
     filtro.insertAdjacentHTML("beforeend", opcoes);
     selCat.innerHTML = opcoes;
 
-    let registros = [];
+    let registros = [], saldosProd = {};
+    const fmtR = (v) => (+v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
     async function carregar() {
       try { registros = await A.listar(); }
       catch (e) { CW.mostrarToast(e.message); registros = []; }
+      try {
+        const sal = await A.estoqueSaldos(); saldosProd = {};
+        Object.entries(sal).forEach(([k, v]) => { const id = k.split("|")[0]; saldosProd[id] = (saldosProd[id] || 0) + v.saldo; });
+      } catch (e) { saldosProd = {}; }
       $("#btn-importar").hidden = registros.length > 0;
+      const antigos = registros.filter((r) => (r.dados.cores || []).length > 1);
+      $("#aviso-cores").hidden = !antigos.length;
+      if (antigos.length) $("#aviso-cores-texto").textContent = `${antigos.length} ${antigos.length === 1 ? "produto tem" : "produtos têm"} várias cores (${antigos.reduce((n, r) => n + r.dados.cores.length, 0)} cores no total).`;
       desenhar();
     }
+    $("#btn-converter").addEventListener("click", async (e) => {
+      if (!confirm("Converter os produtos com várias cores em um produto por cor?\n\nCada cor ganha um código novo (POL-0001, POL-0002...), que você pode trocar depois duplicando o produto. O estoque lançado antes da conversão precisa ser lançado de novo nos produtos novos.")) return;
+      e.target.disabled = true;
+      try { const n = await A.converterCores(); CW.mostrarToast(`${n} produtos criados, um por cor.`); await carregar(); }
+      catch (err) { CW.mostrarToast(err.message); }
+      finally { e.target.disabled = false; }
+    });
 
     function miniatura(p) {
       const c = p.cores[0];
       return `<img src="${esc(CW.fotoProduto(p, c, { largura: 96, altura: 76 }))}" alt="" width="64" height="51" data-produto="${esc(p.id)}" data-cor="${esc(c.nome)}">`;
     }
+    function textoPreco(p) {
+      const pi = CW.precoInfo(p);
+      if (pi.tipo === "combinar") return `<span class="adm-preco combinar">A combinar</span>`;
+      if (pi.tipo === "promo") return `<span class="adm-preco"><s>${fmtR(pi.preco)}</s> <strong>${fmtR(pi.promo)}</strong> <b class="selo-off">-${pi.desconto}%</b>${pi.ate ? `<small>até ${pi.ate.split("-").reverse().join("/")}</small>` : ""}</span>`;
+      const promoVencida = p.precoPromo && p.promoAte && new Date().toISOString().slice(0, 10) > p.promoAte;
+      return `<span class="adm-preco"><strong>${fmtR(pi.preco)}</strong>${promoVencida ? `<small>promoção encerrada</small>` : ""}</span>`;
+    }
     function desenhar() {
       const termo = slug($("#admin-busca").value || "");
       const cat = filtro.value;
       const lista = registros.filter((r) => (!cat || r.dados.categoria === cat) &&
-        (!termo || slug([r.dados.nome, r.id, r.dados.linha, r.dados.cores.map((c) => c.nome).join(" ")].join(" ")).includes(termo)));
+        (!termo || slug([r.dados.nome, r.id, r.dados.codigo, r.dados.linha, (r.dados.cores || []).map((c) => c.nome).join(" ")].join(" ")).includes(termo)));
       $("#admin-contagem").textContent = registros.length
         ? `${lista.length} de ${registros.length} produtos · ${registros.filter((r) => r.ativo).length} visíveis no site`
         : "Nenhum produto cadastrado no painel. O site está usando a lista padrão (produtos.js). Clique em \"Importar produtos atuais do site\" para começar a editar.";
       $("#admin-lista").innerHTML = lista.map((r) => {
-        const p = r.dados;
+        const p = r.dados, varias = (p.cores || []).length > 1, est = saldosProd[r.id];
         return `<tr data-id="${esc(r.id)}" class="${r.ativo ? "" : "oculto"}">
-          <td><div class="admin-prod">${miniatura(p)}<div><strong>${esc(p.nome)}</strong><small>${esc(r.id)}${p.destaque ? " · ★ destaque" : ""}</small></div></div></td>
+          <td><div class="admin-prod">${miniatura(p)}<div><strong>${esc(p.nome)}</strong><small>Cód. ${esc(p.codigo || r.id.toUpperCase())}${p.destaque ? " · ★ destaque" : ""}${varias ? ` · <b class="selo-cli inativo">${p.cores.length} cores (converter)</b>` : ""}${p.cores[0] && !p.cores[0].foto ? ` · <span class="sem-foto">sem foto</span>` : ""}</small></div></div></td>
           <td>${esc((CATS[p.categoria] || {}).nome || p.categoria)}</td>
-          <td><div class="admin-bolinhas">${p.cores.slice(0, 8).map((c) => `<i style="background:${esc(c.hex)}" title="${esc(c.nome)}"></i>`).join("")}${p.cores.length > 8 ? `<small>+${p.cores.length - 8}</small>` : ""}</div></td>
-          <td>${esc(r.ordem)}</td>
+          <td>${textoPreco(p)}</td>
+          <td>${est == null ? "—" : `<strong class="${est > 0 ? "" : "zerado"}">${(Math.round(est * 100) / 100).toLocaleString("pt-BR")} kg</strong>`}</td>
           <td><button type="button" class="admin-status ${r.ativo ? "on" : ""}" data-acao="alternar">${r.ativo ? "Visível" : "Oculto"}</button></td>
           <td class="admin-botoes">
             <button type="button" data-acao="editar">Editar</button>
@@ -84,11 +106,12 @@
     $("#admin-lista").addEventListener("click", async (e) => {
       const b = e.target.closest("[data-acao]"); if (!b) return;
       const id = b.closest("tr").dataset.id, r = registros.find((x) => x.id === id); if (!r) return;
+      if ((r.dados.cores || []).length > 1 && b.dataset.acao !== "excluir") { CW.mostrarToast("Este produto tem várias cores. Clique em \"Converter agora\" (acima da lista) antes de editar."); return; }
       if (b.dataset.acao === "editar") abrir(r, false);
       if (b.dataset.acao === "duplicar") abrir(r, true);
       if (b.dataset.acao === "alternar") {
         b.disabled = true;
-        try { await A.salvar(r.dados, !r.ativo, r.ordem); await carregar(); CW.mostrarToast(r.ativo ? "Produto oculto do site." : "Produto visível no site."); }
+        try { await A.salvar(r.dados, !r.ativo, r.ordem, false); await carregar(); CW.mostrarToast(r.ativo ? "Produto oculto do site." : "Produto visível no site."); }
         catch (err) { CW.mostrarToast(err.message); b.disabled = false; }
       }
       if (b.dataset.acao === "excluir") {
@@ -99,102 +122,99 @@
     });
 
     /* ---------- Formulário ---------- */
-    const modal = $("#admin-modal"), form = $("#admin-form"), listaCores = $("#lista-cores");
-    let editando = null, idManual = false, fichaAtual = "";
+    const modal = $("#admin-modal"), form = $("#admin-form");
+    let editando = null, fichaAtual = "", fotoAtual = "";
+    const codigoAtual = () => form.codigo.value.trim().toUpperCase();
+    const codigoOk = () => window.Catalogo.CODIGO_RE.test(codigoAtual());
     function mostrarFicha(url) {
       fichaAtual = url || "";
       const a = $("#ficha-link");
       a.hidden = !fichaAtual; if (fichaAtual) a.href = fichaAtual;
       $("#ficha-remover").hidden = !fichaAtual;
     }
+    function mostrarFoto(url) {
+      fotoAtual = url || "";
+      $("#foto-previa").innerHTML = fotoAtual ? `<img src="${esc(fotoAtual)}" alt="Foto do produto">` : `Clique para enviar a foto<small>JPG, PNG ou WEBP</small>`;
+      $("#foto-caixa").classList.toggle("com-foto", !!fotoAtual);
+      $("#foto-remover").hidden = !fotoAtual;
+    }
     $("#ficha-remover").addEventListener("click", () => mostrarFicha(""));
+    $("#foto-remover").addEventListener("click", () => mostrarFoto(""));
     $("#ficha-arquivo").addEventListener("change", async (e) => {
       const arq = e.target.files[0]; if (!arq) return;
-      const id = form.id.value.trim();
-      if (!/^[a-z0-9-]{2,60}$/.test(id)) { erro("Preencha o código (id) do produto antes de enviar o PDF."); e.target.value = ""; return; }
-      try { mostrarFicha(await A.enviarPdf(arq, id)); erro(""); } catch (err) { erro(err.message); }
+      if (!codigoOk()) { erro("Preencha o código do produto antes de enviar o PDF."); e.target.value = ""; return; }
+      try { mostrarFicha(await A.enviarPdf(arq, codigoAtual().toLowerCase())); erro(""); } catch (err) { erro(err.message); }
       e.target.value = "";
     });
+    $("#foto-arquivo").addEventListener("change", async (e) => {
+      const arq = e.target.files[0]; if (!arq) return;
+      if (!codigoOk()) { erro("Preencha o código do produto antes de enviar a foto."); e.target.value = ""; return; }
+      $("#foto-previa").textContent = "Enviando...";
+      try { mostrarFoto(await A.enviarFoto(arq, codigoAtual().toLowerCase())); erro(""); }
+      catch (err) { mostrarFoto(fotoAtual); erro(err.message); }
+      e.target.value = "";
+    });
+    const tom = $("#cor-tom"), hex = $("#cor-hex");
+    tom.addEventListener("input", () => (hex.value = tom.value));
+    hex.addEventListener("input", () => { if (/^#[0-9a-f]{6}$/i.test(hex.value)) tom.value = hex.value; });
+    form.codigo.addEventListener("input", () => { const p = form.codigo.selectionStart; form.codigo.value = form.codigo.value.toUpperCase().replace(/[^A-Z0-9-]/g, ""); form.codigo.setSelectionRange(p, p); });
 
-    function linhaCor(c = { nome: "", hex: "#1558d6" }) {
-      const div = document.createElement("div");
-      div.className = "admin-cor";
-      div.dataset.foto = c.foto || "";
-      div.innerHTML = `
-        <input type="color" value="${esc(c.hex)}" aria-label="Cor">
-        <input type="text" class="cor-hex" value="${esc(c.hex)}" maxlength="7" aria-label="Código hexadecimal">
-        <input type="text" class="cor-nome" value="${esc(c.nome)}" placeholder="Nome (ex.: Preto RAL 9005)" maxlength="60" aria-label="Nome da cor">
-        <label class="cor-foto" title="Foto real desta cor (opcional)">
-          <span class="cor-previa">${c.foto ? `<img src="${esc(c.foto)}" alt="">` : "Foto"}</span>
-          <input type="file" accept="image/jpeg,image/png,image/webp" hidden>
-        </label>
-        <button type="button" class="cor-sem-foto" ${c.foto ? "" : "hidden"}>Tirar foto</button>
-        <button type="button" class="cor-remover" aria-label="Remover cor">×</button>`;
-      const cor = $("input[type=color]", div), hex = $(".cor-hex", div);
-      cor.addEventListener("input", () => (hex.value = cor.value));
-      hex.addEventListener("input", () => { if (/^#[0-9a-f]{6}$/i.test(hex.value)) cor.value = hex.value; });
-      $(".cor-remover", div).addEventListener("click", () => div.remove());
-      $(".cor-sem-foto", div).addEventListener("click", (e) => { div.dataset.foto = ""; $(".cor-previa", div).textContent = "Foto"; e.target.hidden = true; });
-      $("input[type=file]", div).addEventListener("change", async (e) => {
-        const arq = e.target.files[0]; if (!arq) return;
-        const id = form.id.value.trim();
-        if (!/^[a-z0-9-]{2,60}$/.test(id)) { erro("Preencha o código (id) do produto antes de enviar fotos."); return; }
-        $(".cor-previa", div).textContent = "Enviando...";
-        try {
-          const url = await A.enviarFoto(arq, id);
-          div.dataset.foto = url;
-          $(".cor-previa", div).innerHTML = `<img src="${esc(url)}" alt="">`;
-          $(".cor-sem-foto", div).hidden = false;
-        } catch (err) { $(".cor-previa", div).textContent = "Foto"; erro(err.message); }
-        e.target.value = "";
-      });
-      listaCores.appendChild(div);
+    const modoPreco = () => $("[name=preco-modo]:checked", form).value;
+    function previaPreco() {
+      const combinar = modoPreco() === "combinar";
+      $("#precos-campos").hidden = combinar;
+      if (combinar) return;
+      const d = { preco: +form.preco.value || 0, precoPromo: +form.precoPromo.value || 0, promoAte: form.promoAte.value };
+      const pi = CW.precoInfo(d);
+      $("#preco-previa").innerHTML = !d.preco ? "" : pi.tipo === "promo"
+        ? `No site: <s>${fmtR(pi.preco)}</s> <strong>${fmtR(pi.promo)}/kg</strong> <b class="selo-off">-${pi.desconto}%</b> · caixa 25 kg: ${fmtR(pi.promo * 25)}`
+        : `No site: <strong>${fmtR(d.preco)}/kg</strong> · caixa 25 kg: ${fmtR(d.preco * 25)}${d.precoPromo ? (d.precoPromo >= d.preco ? " · <span class=\"form-erro\">a promoção precisa ser menor que o preço</span>" : " · promoção encerrada") : ""}`;
     }
+    $$("[name=preco-modo]", form).forEach((r) => r.addEventListener("change", previaPreco));
+    ["preco", "precoPromo", "promoAte"].forEach((n) => form[n].addEventListener("input", previaPreco));
 
     function abrir(r, duplicar) {
       editando = r && !duplicar ? r.id : null;
-      const p = r ? JSON.parse(JSON.stringify(r.dados)) : { categoria: Object.keys(CATS)[0], embalagens: ["Caixa 25 kg", "Caixa 20 kg"], cores: [] };
-      if (duplicar) { p.nome = p.nome + " (cópia)"; p.id = p.id + "-copia"; }
-      $("#form-titulo").textContent = editando ? "Editar produto" : "Novo produto";
-      ["nome", "id", "linha", "acabamento", "descricao", "rendimento", "cura"].forEach((k) => (form[k].value = p[k] || ""));
+      const p = r ? JSON.parse(JSON.stringify(r.dados)) : { categoria: Object.keys(CATS)[0], embalagens: ["Caixa 25 kg", "Caixa 20 kg"], cores: [{ nome: "", hex: "#1558d6" }] };
+      $("#form-titulo").textContent = editando ? "Editar produto" : duplicar ? "Novo produto (cópia)" : "Novo produto";
+      form.codigo.value = duplicar ? "" : (p.codigo || (r ? r.id.toUpperCase() : ""));
+      form.codigo.readOnly = !!editando;
+      ["nome", "linha", "acabamento", "descricao", "rendimento", "cura"].forEach((k) => (form[k].value = p[k] || ""));
+      if (duplicar) form.nome.value = "";
       form.categoria.value = p.categoria;
       form.densidade.value = p.densidade || "";
-      form.preco.value = p.preco || "";
       form.embalagens.value = (p.embalagens || []).join(", ");
+      const c = (p.cores || [])[0] || { nome: "", hex: "#1558d6" };
+      $("#cor-nome").value = duplicar ? "" : c.nome; hex.value = tom.value = c.hex || "#1558d6";
+      mostrarFoto(duplicar ? "" : c.foto);
+      $$("[name=preco-modo]", form).forEach((x) => (x.checked = x.value === (r && (p.precoCombinar || !(+p.preco > 0)) ? "combinar" : "valor")));
+      form.preco.value = p.preco || ""; form.precoPromo.value = p.precoPromo || ""; form.promoAte.value = p.promoAte || "";
+      previaPreco();
       form.ordem.value = r ? r.ordem + (duplicar ? 1 : 0) : (registros.reduce((m, x) => Math.max(m, x.ordem), 0) + 10);
-      form.destaque.checked = !!p.destaque;
+      form.destaque.checked = !!p.destaque && !duplicar;
       form.ativo.checked = r ? r.ativo : true;
-      form.id.readOnly = !!editando;
       mostrarFicha(p.ficha);
-      idManual = !!r;
-      listaCores.innerHTML = "";
-      (p.cores.length ? p.cores : [undefined]).forEach((c) => linhaCor(c));
       erro("");
       modal.hidden = false;
       document.body.style.overflow = "hidden";
-      form.nome.focus();
+      (editando ? form.nome : form.codigo).focus();
     }
     function fechar() { modal.hidden = true; document.body.style.overflow = ""; }
     function erro(msg) { $("#form-erro").textContent = msg; }
 
     $("#btn-novo").addEventListener("click", () => abrir(null));
-    $("#btn-cor").addEventListener("click", () => { linhaCor(); $(".admin-cor:last-child .cor-nome", listaCores).focus(); });
     $$("[data-fechar]", modal).forEach((b) => b.addEventListener("click", fechar));
     modal.addEventListener("click", (e) => { if (e.target === modal) fechar(); });
     document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !modal.hidden) fechar(); });
-    form.nome.addEventListener("input", () => { if (!idManual && !editando) form.id.value = slug(form.nome.value).slice(0, 60); });
-    form.id.addEventListener("input", () => (idManual = true));
 
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
-      const cores = $$(".admin-cor", listaCores).map((d) => {
-        const c = { nome: $(".cor-nome", d).value.trim(), hex: $(".cor-hex", d).value.trim() };
-        if (d.dataset.foto) c.foto = d.dataset.foto;
-        return c;
-      }).filter((c) => c.nome);
+      const cor = { nome: $("#cor-nome").value.replace(/\s+/g, " ").trim(), hex: hex.value.trim() };
+      if (fotoAtual) cor.foto = fotoAtual;
+      const combinar = modoPreco() === "combinar";
       const dados = {
-        id: form.id.value.trim(),
-        nome: form.nome.value.trim(),
+        codigo: codigoAtual(),
+        nome: form.nome.value.replace(/\s+/g, " ").trim(),
         categoria: form.categoria.value,
         linha: form.linha.value.trim(),
         acabamento: form.acabamento.value.trim(),
@@ -202,22 +222,23 @@
         rendimento: form.rendimento.value.trim(),
         cura: form.cura.value.trim(),
         embalagens: form.embalagens.value.split(",").map((x) => x.trim()).filter(Boolean),
-        cores,
+        cores: [cor],
         destaque: form.destaque.checked,
+        precoCombinar: combinar
       };
+      const antigo = editando && registros.find((x) => x.id === editando);
+      if (antigo && antigo.dados.familia) dados.familia = antigo.dados.familia;
       if (form.densidade.value) dados.densidade = Number(form.densidade.value);
       if (fichaAtual) dados.ficha = fichaAtual;
-      if (form.preco.value) dados.preco = Number(form.preco.value);
-      if (!dados.nome) return erro("Informe o nome do produto.");
-      if (!/^[a-z0-9-]{2,60}$/.test(dados.id)) return erro("Código (id) inválido: use letras minúsculas, números e hífen.");
-      if (!editando && registros.some((r) => r.id === dados.id)) return erro("Já existe um produto com este código.");
-      if (!cores.length) return erro("Adicione pelo menos uma cor com nome.");
-      const hexRuim = cores.find((c) => !/^#[0-9a-f]{6}$/i.test(c.hex));
-      if (hexRuim) return erro(`Cor "${hexRuim.nome}": código inválido (use o formato #RRGGBB).`);
-      if (!dados.embalagens.length) return erro("Informe pelo menos uma embalagem.");
+      if (!combinar) {
+        dados.preco = Math.round(Number(form.preco.value) * 100) / 100;
+        if (form.precoPromo.value) dados.precoPromo = Math.round(Number(form.precoPromo.value) * 100) / 100;
+        if (form.promoAte.value && dados.precoPromo) dados.promoAte = form.promoAte.value;
+      }
+      if (!editando && registros.some((r) => r.id === dados.codigo.toLowerCase())) return erro(`Já existe um produto com o código ${dados.codigo}. Use outro código.`);
       const botao = $("#btn-salvar"); botao.disabled = true;
       try {
-        await A.salvar(dados, form.ativo.checked, form.ordem.value);
+        await A.salvar(dados, form.ativo.checked, form.ordem.value, !editando);
         fechar();
         await carregar();
         CW.mostrarToast("Produto salvo. Ele já aparece no catálogo do site.");
@@ -235,6 +256,7 @@
       if (nome === "contato") carregarConfig();
       if (nome === "pedidos") carregarPedidos();
       if (nome === "clientes") carregarClientes();
+      if (nome === "vendas") carregarVendas();
       if (nome === "estoque") carregarEstoque();
       if (nome === "galeria") carregarGaleria();
       if (nome === "equipe") carregarEquipe();
@@ -257,9 +279,14 @@
       const feitos = itens.filter((it) => baixados.has(p.numero + "|" + it.id + "|" + it.cor)).length;
       return feitos === itens.length ? "feita" : feitos ? "parcial" : "pendente";
     };
+    let vendasPorPedido = {};
+    async function carregarVendasDosPedidos() {
+      try { vendasPorPedido = {}; (await A.listarVendas()).forEach((v) => (vendasPorPedido[v.pedido_numero] = v)); }
+      catch (e) { vendasPorPedido = {}; }
+    }
     async function carregarPedidos() {
       $("#pedidos-erro").textContent = "";
-      await carregarBaixas();
+      await Promise.all([carregarBaixas(), carregarVendasDosPedidos()]);
       try { pedidos = await A.listarPedidos($("#pedidos-busca").value); pedidosCarregados = true; }
       catch (e) { pedidos = []; $("#pedidos-erro").textContent = e.message + " (rode as PARTES F e G do setup.sql no Supabase)"; }
       desenharPedidos();
@@ -295,10 +322,11 @@
           <footer>
             <span>Total: <strong>${kgPedido(p).toLocaleString("pt-BR")} kg</strong></span>
             <span class="adm-pedido-botoes">${(() => {
-              const b = situacaoBaixa(p);
-              if (b === "feita") return `<b class="selo-cli ativo">Baixa no estoque feita</b>`;
-              if (b === "sem-itens" || !podeEstoque) return b === "parcial" ? `<b class="selo-cli inativo">Baixa parcial</b>` : "";
-              return `<button type="button" class="btn btn-contorno-azul" data-baixar="${esc(p.numero)}">${b === "parcial" ? "Completar baixa" : "Dar baixa no estoque"}</button>`;
+              const v = vendasPorPedido[p.numero];
+              if (v) return v.status === "cancelada" ? `<b class="selo-cli zerado">Venda cancelada</b>` : `<b class="selo-cli ativo">Vendido · ${fmtR(v.total)}</b>`;
+              if (situacaoBaixa(p) === "feita") return `<b class="selo-cli ativo">Vendido</b>`;
+              if (situacaoBaixa(p) === "sem-itens") return "";
+              return `<button type="button" class="btn btn-primario" data-vender="${esc(p.numero)}">Confirmar venda</button>`;
             })()}
             ${podeExcluir ? `<button type="button" class="btn-excluir-pedido" data-excluir-pedido="${esc(p.numero)}">Excluir pedido</button>` : ""}
             ${tel ? `<a class="btn btn-whats" target="_blank" rel="noopener" href="https://wa.me/${tel.length <= 11 ? "55" + tel : tel}?text=${encodeURIComponent(`Olá, ${nomeCliente(c)}! Aqui é da Policoating, sobre o seu pedido ${p.numero}.`)}">Chamar cliente</a>` : ""}</span>
@@ -315,17 +343,8 @@
     $("#pedidos-periodo").addEventListener("change", desenharPedidos);
     $("#pedidos-atualizar").addEventListener("click", carregarPedidos);
     $("#admin-pedidos").addEventListener("click", async (e) => {
-      const bx = e.target.closest("[data-baixar]");
-      if (bx) {
-        const ped = pedidos.find((p) => p.numero === bx.dataset.baixar); if (!ped) return;
-        const resumo = (ped.itens || []).filter((it) => it.id).map((it) => `• ${it.nome} · ${it.cor}: ${CW.kgDoItem({ embalagem: it.embalagem, qtd: +it.qtd || 0 }).toLocaleString("pt-BR")} kg`).join("\n");
-        if (!confirm(`Dar baixa no estoque do pedido ${ped.numero}?\n\n${resumo}\n\nUse quando a venda estiver fechada.`)) return;
-        bx.disabled = true;
-        try { await A.baixarPedido(ped); CW.mostrarToast(`Baixa do pedido ${ped.numero} feita.`); }
-        catch (err) { $("#pedidos-erro").textContent = err.message; }
-        await carregarBaixas(); desenharPedidos();
-        return;
-      }
+      const vd = e.target.closest("[data-vender]");
+      if (vd) { const ped = pedidos.find((p) => p.numero === vd.dataset.vender); if (ped) abrirVenda(ped); return; }
       const x = e.target.closest("[data-excluir-pedido]");
       if (x) {
         const num = x.dataset.excluirPedido;
@@ -354,6 +373,163 @@
       document.body.appendChild(a); a.click(); a.remove();
     });
     if (!ehAdmin) abrirAba("pedidos");
+
+    /* ---------- Confirmar venda (a partir do pedido) ---------- */
+    const modalVenda = $("#modal-venda"), formVenda = $("#form-venda");
+    let pedidoVenda = null;
+    const produtoDoItem = (it) => (CW.acharProduto ? CW.acharProduto(it.id, it.cor) : CW.buscarProduto(it.id));
+    function abrirVenda(ped) {
+      pedidoVenda = ped;
+      // um item por produto (soma as embalagens)
+      const soma = {};
+      (ped.itens || []).forEach((it) => {
+        if (!it.id) return;
+        const k = it.id + "|" + it.cor, prod = produtoDoItem(it);
+        const kg = CW.kgDoItem({ embalagem: it.embalagem, qtd: +it.qtd || 0 });
+        const preco = it.preco_kg != null ? +it.preco_kg : prod ? CW.precoInfo(prod).efetivo : 0;
+        if (!soma[k]) soma[k] = { produto_id: it.id, codigo: it.codigo || (prod && prod.codigo) || it.id.toUpperCase(), nome: it.nome, cor: it.cor, kg: 0, preco_kg: preco || "", combinar: !preco };
+        soma[k].kg += kg;
+      });
+      const itens = Object.values(soma);
+      $("#venda-titulo").textContent = `Confirmar venda · ${ped.numero}`;
+      $("#venda-cliente").innerHTML = `Cliente: <strong>${esc(nomeCliente(ped.cliente || {}))}</strong>${ped.cliente && ped.cliente.cidade ? ` · ${esc(ped.cliente.cidade)}/${esc(ped.cliente.uf || "")}` : ""}`;
+      $("#venda-itens").innerHTML = itens.map((i, k) => `<tr data-k="${k}" data-produto="${esc(i.produto_id)}" data-cor="${esc(i.cor)}" data-codigo="${esc(i.codigo)}" data-nome="${esc(i.nome)}">
+        <td><strong>${esc(i.nome)}</strong><small>Cód. ${esc(i.codigo)}${i.combinar ? ` · <b class="selo-cli inativo">a combinar</b>` : ""}</small></td>
+        <td><input type="number" class="v-kg" min="0.01" step="0.01" value="${i.kg}" aria-label="Kg vendidos"></td>
+        <td><input type="number" class="v-preco" min="0" step="0.01" value="${i.preco_kg}" placeholder="Combinado" aria-label="Preço por kg"></td>
+        <td class="v-sub">—</td></tr>`).join("");
+      $("#venda-obs").value = ""; $("#venda-erro").textContent = "";
+      totalVenda();
+      modalVenda.hidden = false; document.body.style.overflow = "hidden";
+      const vazio = $(".v-preco:placeholder-shown", modalVenda); (vazio || $(".v-kg", modalVenda)).focus();
+    }
+    function totalVenda() {
+      let t = 0;
+      $$("#venda-itens tr").forEach((tr) => {
+        const kg = +$(".v-kg", tr).value || 0, pr = +$(".v-preco", tr).value || 0, sub = Math.round(kg * pr * 100) / 100;
+        $(".v-sub", tr).textContent = $(".v-preco", tr).value === "" ? "—" : fmtR(sub); t += sub;
+      });
+      $("#venda-total").textContent = fmtR(t);
+    }
+    $("#venda-itens").addEventListener("input", totalVenda);
+    const fecharVenda = () => { modalVenda.hidden = true; document.body.style.overflow = ""; };
+    $$("[data-fechar-venda]", modalVenda).forEach((b) => b.addEventListener("click", fecharVenda));
+    modalVenda.addEventListener("click", (e) => { if (e.target === modalVenda) fecharVenda(); });
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !modalVenda.hidden) fecharVenda(); });
+    formVenda.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const itens = $$("#venda-itens tr").map((tr) => ({ produto_id: tr.dataset.produto, cor: tr.dataset.cor, codigo: tr.dataset.codigo, nome: tr.dataset.nome,
+        kg: +$(".v-kg", tr).value, preco_kg: $(".v-preco", tr).value === "" ? null : +$(".v-preco", tr).value }));
+      const semPreco = itens.find((i) => i.preco_kg == null);
+      if (semPreco) return ($("#venda-erro").textContent = `Informe o preço combinado de ${semPreco.nome}.`);
+      const semKg = itens.find((i) => !(i.kg > 0));
+      if (semKg) return ($("#venda-erro").textContent = `Informe os kg vendidos de ${semKg.nome}.`);
+      const b = $("#venda-salvar"); b.disabled = true;
+      try {
+        await A.confirmarVenda(pedidoVenda, itens, $("#venda-obs").value);
+        fecharVenda();
+        CW.mostrarToast(`Venda do pedido ${pedidoVenda.numero} confirmada.`);
+        await carregarPedidos();
+      } catch (err) { $("#venda-erro").textContent = err.message; }
+      finally { b.disabled = false; }
+    });
+
+    /* ---------- Vendas ---------- */
+    let vendas = [], vendasCarregadas = false;
+    function inicioPeriodo(v) {
+      const d = new Date(); d.setHours(0, 0, 0, 0);
+      if (v === "hoje") return d.getTime();
+      if (v === "mes") return new Date(d.getFullYear(), d.getMonth(), 1).getTime();
+      if (v === "ano") return new Date(d.getFullYear(), 0, 1).getTime();
+      return +v ? Date.now() - +v * 864e5 : 0;
+    }
+    async function carregarVendas() {
+      $("#vendas-erro").textContent = "";
+      try { vendas = await A.listarVendas(); vendasCarregadas = true; }
+      catch (e) { vendas = []; $("#vendas-erro").textContent = e.message; }
+      const vend = [...new Set(vendas.map((v) => v.vendedor))].sort();
+      const sel = $("#vendas-vendedor"), atual = sel.value;
+      sel.hidden = !ehAdmin;
+      sel.innerHTML = `<option value="">Todos os vendedores</option>` + vend.map((v) => `<option ${v === atual ? "selected" : ""}>${esc(v)}</option>`).join("");
+      $("#vendas-dica").textContent = ehAdmin ? "Uma venda é registrada quando alguém da equipe clica em \"Confirmar venda\" no pedido. A baixa no estoque é feita junto."
+        : "Aqui aparecem as vendas que você confirmou. Para registrar uma venda, clique em \"Confirmar venda\" no pedido.";
+      $("#vendas-titulo-vendedores").hidden = $("#vendas-vendedores").hidden = !ehAdmin;
+      desenharVendas();
+    }
+    function vendasFiltradas() {
+      const termo = slug($("#vendas-busca").value || ""), desde = inicioPeriodo($("#vendas-periodo").value);
+      const st = $("#vendas-status").value, vend = $("#vendas-vendedor").value;
+      return vendas.filter((v) => (!desde || new Date(v.criado_em).getTime() >= desde) && (!st || v.status === st) && (!vend || v.vendedor === vend) &&
+        (!termo || slug([v.pedido_numero, v.cliente_nome, v.vendedor, v.obs, (v.itens || []).map((i) => [i.nome, i.codigo, i.cor].join(" ")).join(" ")].join(" ")).includes(termo)));
+    }
+    function desenharVendas() {
+      const lista = vendasFiltradas(), ok = lista.filter((v) => v.status === "confirmada");
+      const fat = ok.reduce((s, v) => s + +v.total, 0), kg = ok.reduce((s, v) => s + +v.total_kg, 0);
+      $("#vendas-kpis").innerHTML = `
+        <div><span>Faturamento</span><strong>${fmtR(fat)}</strong></div>
+        <div><span>Vendas</span><strong>${ok.length}</strong></div>
+        <div><span>Kg vendidos</span><strong>${(Math.round(kg * 100) / 100).toLocaleString("pt-BR")} kg</strong></div>
+        <div><span>Ticket médio</span><strong>${ok.length ? fmtR(fat / ok.length) : "—"}</strong></div>`;
+      $("#vendas-resumo").innerHTML = vendas.length ? `<span><strong>${lista.length}</strong> ${lista.length === 1 ? "venda" : "vendas"} na lista</span>` : "";
+      // ranking de produtos e de vendedores (só vendas confirmadas)
+      const porProd = {}, porVend = {};
+      ok.forEach((v) => {
+        (v.itens || []).forEach((i) => { const k = i.codigo || i.produto_id; porProd[k] = porProd[k] || { nome: i.nome, codigo: k, kg: 0, valor: 0 }; porProd[k].kg += +i.kg; porProd[k].valor += +i.subtotal; });
+        porVend[v.vendedor] = porVend[v.vendedor] || { n: 0, valor: 0 }; porVend[v.vendedor].n++; porVend[v.vendedor].valor += +v.total;
+      });
+      $("#vendas-ranking").innerHTML = Object.values(porProd).sort((a, b) => b.kg - a.kg).slice(0, 8)
+        .map((r) => `<li><span>${esc(r.nome)}<small>Cód. ${esc(r.codigo)}</small></span><b>${(Math.round(r.kg * 100) / 100).toLocaleString("pt-BR")} kg<small>${fmtR(r.valor)}</small></b></li>`).join("") || `<li class="dica">Sem vendas no período.</li>`;
+      $("#vendas-vendedores").innerHTML = Object.entries(porVend).sort((a, b) => b[1].valor - a[1].valor)
+        .map(([e, r]) => `<li><span>${esc(e)}<small>${r.n} ${r.n === 1 ? "venda" : "vendas"}</small></span><b>${fmtR(r.valor)}</b></li>`).join("") || `<li class="dica">Sem vendas no período.</li>`;
+      $("#vendas-lista").innerHTML = lista.length ? lista.map((v) => {
+        const primeiro = (v.itens || [])[0] || {}, prod = CW.acharProduto ? CW.acharProduto(primeiro.produto_id, primeiro.cor) : null;
+        const foto = prod ? `<img src="${esc(CW.fotoProduto(prod, prod.cores[0], { largura: 160, altura: 128 }))}" alt="" width="80" height="64" data-produto="${esc(prod.id)}" data-cor="${esc(prod.cores[0].nome)}">` : `<span class="venda-sem-foto">${window.Icone ? window.Icone("caixa") : ""}</span>`;
+        return `<article class="venda ${v.status}" data-venda="${v.id}">
+          <header>
+            <div><strong>Venda #${v.id}</strong><small>${esc(dataBR(v.criado_em))} · pedido ${esc(v.pedido_numero)}</small></div>
+            <b class="selo-cli ${v.status === "confirmada" ? "ativo" : "zerado"}">${v.status === "confirmada" ? "Confirmada" : "Cancelada"}</b>
+          </header>
+          <div class="venda-corpo">
+            ${foto}
+            <ul>${(v.itens || []).map((i) => `<li><span>${esc(i.nome)}<small>Cód. ${esc(i.codigo || i.produto_id)} · ${(+i.kg).toLocaleString("pt-BR")} kg × ${fmtR(i.preco_kg)}</small></span><b>${fmtR(i.subtotal)}</b></li>`).join("")}</ul>
+            <div class="venda-total"><span>Total</span><strong>${fmtR(v.total)}</strong><small>${(+v.total_kg).toLocaleString("pt-BR")} kg</small></div>
+          </div>
+          <footer>
+            <span>Cliente: <strong>${esc(v.cliente_nome || "—")}</strong> · Vendedor: ${esc(v.vendedor)}${v.obs ? ` · ${esc(v.obs)}` : ""}
+              ${v.status === "cancelada" ? `<br><small class="motivo">Cancelada por ${esc(v.cancelada_por || "")} em ${esc(dataBR(v.cancelada_em))}: ${esc(v.motivo_cancelamento || "")}</small>` : ""}</span>
+            <span class="adm-pedido-botoes">
+              <button type="button" class="btn btn-contorno-azul" data-ver-pedido="${esc(v.pedido_numero)}">Ver pedido</button>
+              ${ehAdmin && v.status === "confirmada" ? `<button type="button" class="btn-excluir-pedido" data-cancelar-venda="${v.id}">Cancelar venda</button>` : ""}
+            </span>
+          </footer>
+        </article>`;
+      }).join("") : `<p class="dica">${!vendasCarregadas ? "Carregando..." : vendas.length ? "Nenhuma venda com esses filtros." : "Nenhuma venda registrada ainda. Confirme a venda no pedido quando o cliente fechar a compra."}</p>`;
+    }
+    ["vendas-busca", "vendas-periodo", "vendas-status", "vendas-vendedor"].forEach((id) => $("#" + id).addEventListener(id === "vendas-busca" ? "input" : "change", desenharVendas));
+    $("#vendas-atualizar").addEventListener("click", carregarVendas);
+    $("#vendas-lista").addEventListener("click", async (e) => {
+      const ver = e.target.closest("[data-ver-pedido]");
+      if (ver) { $("#pedidos-busca").value = ver.dataset.verPedido; $("#pedidos-periodo").value = "0"; abrirAba("pedidos"); return; }
+      const c = e.target.closest("[data-cancelar-venda]");
+      if (c) {
+        const motivo = prompt("Motivo do cancelamento (obrigatório). O estoque baixado nesta venda volta para o saldo.");
+        if (motivo == null) return;
+        c.disabled = true;
+        try { await A.cancelarVenda(+c.dataset.cancelarVenda, motivo); CW.mostrarToast("Venda cancelada. O estoque foi devolvido."); await carregarVendas(); }
+        catch (err) { c.disabled = false; $("#vendas-erro").textContent = err.message; }
+      }
+    });
+    $("#vendas-csv").addEventListener("click", () => {
+      const cel = (x) => `"${String(x == null ? "" : x).replace(/"/g, '""')}"`, n = (x) => String(Math.round(+x * 100) / 100).replace(".", ",");
+      const linhas = [["Venda", "Data", "Situação", "Pedido", "Cliente", "Vendedor", "Código", "Produto", "Kg", "Preço/kg", "Subtotal", "Total da venda", "Observação"]];
+      vendasFiltradas().forEach((v) => (v.itens || []).forEach((i) => linhas.push([v.id, dataBR(v.criado_em), v.status, v.pedido_numero, v.cliente_nome || "", v.vendedor,
+        i.codigo || i.produto_id, i.nome, n(i.kg), n(i.preco_kg), n(i.subtotal), n(v.total), v.obs || ""])));
+      const csv = "\ufeff" + linhas.map((l) => l.map(cel).join(";")).join("\r\n");
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+      a.download = `vendas-policoating-${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a); a.click(); a.remove();
+    });
 
     /* ---------- Clientes (administradores e vendedores) ---------- */
     let clientes = [], clientesCarregados = false;
@@ -445,7 +621,9 @@
     const fmtKg = (n) => (Math.round(n * 100) / 100).toLocaleString("pt-BR") + " kg";
     function itensEstoque() {
       const lista = [], vistos = new Set();
-      (window.PRODUTOS || []).forEach((p) => p.cores.forEach((c) => {
+      // administrador: todos os produtos do painel (inclusive ocultos); vendedor: os do site
+      const fonte = registros.length ? registros.map((r) => r.dados) : (window.PRODUTOS || []);
+      fonte.forEach((p) => (p.cores || []).forEach((c) => {
         const k = p.id + "|" + c.nome; vistos.add(k);
         lista.push(Object.assign({ k, produto_id: p.id, cor: c.nome, hex: c.hex, nome: p.nome, linha: p.linha || "", fora: false }, saldos[k] || { saldo: 0, minimo: 0, ultima: null }));
       }));

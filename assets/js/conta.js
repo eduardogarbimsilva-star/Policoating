@@ -303,8 +303,8 @@
     const total = itens.length;
     const kg = itens.reduce((s, it) => s + CW.kgDoItem({ embalagem: it.embalagem, qtd: +it.qtd || 0 }), 0);
     const lista = itens.map((it) => {
-      const prod = CW.buscarProduto(it.id);
-      const cor = prod && (prod.cores.find((c) => c.nome === it.cor) || prod.cores[0]);
+      const prod = CW.acharProduto(it.id, it.cor);
+      const cor = prod && prod.cores[0];
       return `<li>${cor ? `<i class="bolinha" style="background:${cor.hex}"></i>` : ""}<span>${esc(it.nome)}<small>${esc(it.cor)} · ${esc(CW.descreverQtd({ embalagem: it.embalagem, qtd: +it.qtd || 0 }))}</small></span></li>`;
     }).join("");
     return `<article class="pedido">

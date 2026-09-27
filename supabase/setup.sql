@@ -549,3 +549,151 @@ as $$
 $$;
 revoke all on function public.estoque_disponivel() from public;
 grant execute on function public.estoque_disponivel() to anon, authenticated;
+
+-- ===========================================================
+-- PARTE K — Produto por cor, estoque no site e Vendas
+-- (rode depois da PARTE J; pode rodar de novo sem problema)
+--   • O site mostra a quantidade em estoque e só deixa pedir até o saldo
+--   • O banco recusa pedidos acima do estoque (quando o estoque está em uso)
+--   • Produtos: um código único por produto, uma cor, descrição obrigatória
+--   • Vendas: o vendedor confirma a venda de um pedido (com os valores fechados);
+--     a baixa no estoque é feita junto. Só o administrador cancela (o estoque volta).
+--     Vendedor vê as próprias vendas; administrador vê todas.
+-- ===========================================================
+
+-- Estoque para o site: saldo em kg por produto (visitantes podem ver)
+create or replace function public.estoque_publico()
+returns table (produto_id text, saldo_kg numeric)
+language sql stable security definer set search_path = public
+as $$
+  select produto_id, greatest(sum(case when tipo = 'saida' then -kg else kg end), 0)
+  from public.estoque_movimentos group by produto_id;
+$$;
+revoke all on function public.estoque_publico() from public;
+grant execute on function public.estoque_publico() to anon, authenticated;
+
+-- Produtos novos e alterados: código = id, uma cor, descrição (NOT VALID = não trava os antigos até serem convertidos)
+alter table public.produtos drop constraint if exists produtos_formato;
+alter table public.produtos add constraint produtos_formato check (
+  id ~ '^[a-z0-9][a-z0-9-]{1,29}$'
+  and id = lower(dados ->> 'codigo')
+  and jsonb_typeof(dados -> 'cores') = 'array' and jsonb_array_length(dados -> 'cores') = 1
+  and length(btrim(coalesce(dados ->> 'descricao', ''))) >= 10
+) not valid;
+
+-- Quilos de um item do pedido ("Sob medida" = kg; caixa = quantidade × kg da caixa)
+create or replace function public.kg_do_item(it jsonb)
+returns numeric language sql immutable as $$
+  select case when it ->> 'embalagem' = 'Sob medida' then coalesce((it ->> 'qtd')::numeric, 0)
+         else coalesce((it ->> 'qtd')::numeric, 0)
+              * coalesce(replace(substring(it ->> 'embalagem' from '(\d+(?:[.,]\d+)?)\s*kg'), ',', '.')::numeric, 0) end
+$$;
+
+-- Pedido acima do estoque é recusado (só quando o estoque já está em uso)
+create or replace function public.pedidos_conferir_estoque()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare r record; saldo numeric;
+begin
+  if not exists (select 1 from public.estoque_movimentos) then return new; end if;
+  for r in select it ->> 'id' as produto_id, max(it ->> 'nome') as nome, sum(public.kg_do_item(it)) as kg
+           from jsonb_array_elements(new.itens) it group by it ->> 'id' loop
+    select coalesce(sum(case when tipo = 'saida' then -kg else kg end), 0) into saldo
+      from public.estoque_movimentos where produto_id = r.produto_id;
+    if r.kg > saldo then
+      raise exception 'Estoque insuficiente para %: disponível % kg', coalesce(r.nome, r.produto_id), greatest(saldo, 0) using errcode = 'P0001';
+    end if;
+  end loop;
+  return new;
+end $$;
+drop trigger if exists pedidos_conferir_estoque on public.pedidos;
+create trigger pedidos_conferir_estoque before insert on public.pedidos
+  for each row execute function public.pedidos_conferir_estoque();
+
+-- Vendas
+create table if not exists public.vendas (
+  id                  bigint generated always as identity primary key,
+  pedido_numero       text not null unique,
+  cliente_id          uuid,
+  cliente_nome        text,
+  itens               jsonb not null,
+  total               numeric(14, 2) not null,
+  total_kg            numeric(12, 2) not null,
+  vendedor            text not null,
+  obs                 text,
+  status              text not null default 'confirmada' check (status in ('confirmada', 'cancelada')),
+  cancelada_em        timestamptz,
+  cancelada_por       text,
+  motivo_cancelamento text,
+  criado_em           timestamptz not null default now()
+);
+create index if not exists vendas_data_idx on public.vendas (criado_em desc);
+create index if not exists vendas_vendedor_idx on public.vendas (lower(vendedor), criado_em desc);
+
+alter table public.vendas enable row level security;
+drop policy if exists "vendedor ve as proprias vendas" on public.vendas;
+create policy "vendedor ve as proprias vendas" on public.vendas
+  for select to authenticated
+  using (public.eh_admin() or (public.eh_equipe() and lower(vendedor) = lower(auth.jwt() ->> 'email')));
+grant select on public.vendas to authenticated;   -- gravar só pelas funções abaixo
+
+-- Confirmar venda: registra os valores fechados e dá baixa no estoque (tudo junto)
+-- p_itens: [{ "produto_id", "codigo", "nome", "cor", "kg", "preco_kg" }]
+create or replace function public.confirmar_venda(p_pedido text, p_itens jsonb, p_obs text default null)
+returns bigint language plpgsql security definer set search_path = public as $$
+declare
+  v_email text := lower(auth.jwt() ->> 'email');
+  v_ped public.pedidos; v_nome text; v_id bigint; it jsonb;
+  v_kg numeric; v_preco numeric; v_total numeric := 0; v_total_kg numeric := 0; v_itens jsonb := '[]'::jsonb;
+  v_estoque boolean := exists (select 1 from public.estoque_movimentos);
+begin
+  if not public.eh_equipe() then raise exception 'Sem permissão para registrar vendas.' using errcode = '42501'; end if;
+  select * into v_ped from public.pedidos where numero = p_pedido;
+  if not found then raise exception 'Pedido % não encontrado.', p_pedido; end if;
+  if exists (select 1 from public.vendas where pedido_numero = p_pedido) then
+    raise exception 'Este pedido já tem uma venda registrada.' using errcode = 'P0001';
+  end if;
+  if jsonb_typeof(p_itens) <> 'array' or jsonb_array_length(p_itens) not between 1 and 100 then
+    raise exception 'Informe os itens da venda.';
+  end if;
+  for it in select * from jsonb_array_elements(p_itens) loop
+    v_kg := round((it ->> 'kg')::numeric, 2); v_preco := round(coalesce((it ->> 'preco_kg')::numeric, 0), 2);
+    if v_kg is null or v_kg <= 0 or v_kg > 1000000 or v_preco < 0 or v_preco > 100000 then
+      raise exception 'Quantidade ou preço inválido em %.', coalesce(it ->> 'nome', it ->> 'produto_id');
+    end if;
+    if v_estoque and not exists (select 1 from public.estoque_movimentos
+        where tipo = 'saida' and pedido_numero = p_pedido and produto_id = it ->> 'produto_id' and cor = btrim(it ->> 'cor')) then
+      insert into public.estoque_movimentos (produto_id, cor, tipo, kg, pedido_numero, obs)
+      values (it ->> 'produto_id', it ->> 'cor', 'saida', v_kg, p_pedido, 'Venda confirmada');
+    end if;
+    v_itens := v_itens || jsonb_build_object('produto_id', it ->> 'produto_id', 'codigo', left(it ->> 'codigo', 30),
+      'nome', left(it ->> 'nome', 150), 'cor', left(it ->> 'cor', 80), 'kg', v_kg, 'preco_kg', v_preco, 'subtotal', round(v_kg * v_preco, 2));
+    v_total := v_total + round(v_kg * v_preco, 2); v_total_kg := v_total_kg + v_kg;
+  end loop;
+  select coalesce(case when tipo = 'pj' then coalesce(nullif(nome_fantasia, ''), razao_social) else nome end, email)
+    into v_nome from public.clientes where id = v_ped.cliente_id;
+  insert into public.vendas (pedido_numero, cliente_id, cliente_nome, itens, total, total_kg, vendedor, obs)
+  values (p_pedido, v_ped.cliente_id, v_nome, v_itens, v_total, v_total_kg, v_email, left(nullif(btrim(p_obs), ''), 300))
+  returning id into v_id;
+  return v_id;
+end $$;
+revoke all on function public.confirmar_venda(text, jsonb, text) from public;
+grant execute on function public.confirmar_venda(text, jsonb, text) to authenticated;
+
+-- Cancelar venda (só administrador): o estoque baixado volta como entrada
+create or replace function public.cancelar_venda(p_id bigint, p_motivo text)
+returns void language plpgsql security definer set search_path = public as $$
+declare v public.vendas; m record;
+begin
+  if not public.eh_admin() then raise exception 'Só o administrador cancela vendas.' using errcode = '42501'; end if;
+  select * into v from public.vendas where id = p_id for update;
+  if not found or v.status <> 'confirmada' then raise exception 'Venda não encontrada ou já cancelada.'; end if;
+  if length(btrim(coalesce(p_motivo, ''))) < 3 then raise exception 'Informe o motivo do cancelamento.'; end if;
+  for m in select produto_id, cor, kg from public.estoque_movimentos where tipo = 'saida' and pedido_numero = v.pedido_numero loop
+    insert into public.estoque_movimentos (produto_id, cor, tipo, kg, pedido_numero, obs)
+    values (m.produto_id, m.cor, 'entrada', m.kg, v.pedido_numero, 'Estorno: venda cancelada');
+  end loop;
+  update public.vendas set status = 'cancelada', cancelada_em = now(), cancelada_por = lower(auth.jwt() ->> 'email'),
+    motivo_cancelamento = left(btrim(p_motivo), 300) where id = p_id;
+end $$;
+revoke all on function public.cancelar_venda(bigint, text) from public;
+grant execute on function public.cancelar_venda(bigint, text) to authenticated;

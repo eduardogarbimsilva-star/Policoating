@@ -196,20 +196,12 @@
 
   function aposEntrar() {
     if (voltarAoCarrinhoSePreciso()) return;
-    const compra = location.hash.startsWith("#compra=") ? decodeURIComponent(location.hash.slice(8)) : "";
-    abrirPainel(compra ? "pedidos" : Conta.perfilCompleto() ? (location.hash.slice(1) || "resumo") : "dados");
-    if (compra) abrirCompra(compra, true);
-  }
-  function abrirCompra(numero, recemFeita) {
-    if (!window.PedidoUI) return;
-    if (recemFeita) CW.mostrarToast(`Pedido <strong>${esc(numero)}</strong> registrado e enviado pelo WhatsApp! Acompanhe por aqui.`);
-    window.PedidoUI.abrir(numero, { lado: "cliente", aoMudar: () => { pedidosCache = null; if (!$("#painel-pedidos").hidden) renderPedidos(); } });
+    abrirPainel(Conta.perfilCompleto() ? (location.hash.slice(1) || "resumo") : "dados");
   }
 
   // links do menu da conta (conta.html#pedidos etc.) trocam de aba sem recarregar
   window.addEventListener("hashchange", () => {
     const aba = location.hash.slice(1);
-    if (Conta.usuario && aba.startsWith("compra=")) { abrirPainel("pedidos"); abrirCompra(decodeURIComponent(aba.slice(7))); return; }
     if (Conta.usuario && PAINEIS.includes(aba)) abrirPainel(aba);
   });
 
@@ -275,7 +267,7 @@
       b.setAttribute("aria-selected", ativo);
     });
     $$(".painel").forEach((el) => (el.hidden = el.id !== "painel-" + aba));
-    if (!location.hash.startsWith("#compra=")) history.replaceState(null, "", location.pathname + location.search + "#" + aba);
+    history.replaceState(null, "", location.pathname + location.search + "#" + aba);
     if (aba === "resumo") renderResumo();
     if (aba === "pedidos") renderPedidos();
     if (aba === "dados") preencherDados();
@@ -307,29 +299,28 @@
   }
 
   function cartaoPedido(p, i, compacto) {
-    const itens = p.itens || [], L = window.Loja, st = (L && L.STATUS[p.status]) || { cliente: "Enviado ao vendedor" };
-    const kg = p.total_kg != null ? +p.total_kg : itens.reduce((s, it) => s + CW.kgDoItem({ embalagem: it.embalagem, qtd: +it.qtd || 0 }), 0);
-    const naoLida = p.ultima_msg_lado && p.ultima_msg_lado !== "cliente" && (!p.msg_lida_cliente_em || p.msg_lida_cliente_em < p.msg_ultima_em);
+    const itens = p.itens || [], R = (v) => (+v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+    const kgIt = (it) => (it.kg != null ? +it.kg : CW.kgDoItem({ embalagem: it.embalagem, qtd: +it.qtd || 0 }));
+    const kg = p.total_kg != null ? +p.total_kg : itens.reduce((s, it) => s + kgIt(it), 0);
+    const valor = p.total != null ? +p.total : itens.reduce((s, it) => s + (it.preco_kg != null ? (+it.preco_kg) * kgIt(it) : 0), 0);
+    const combinar = itens.some((it) => it.preco_kg == null);
     const lista = itens.map((it) => {
       const prod = CW.acharProduto(it.id, it.cor), foto = it.foto || (prod && ((prod.fotos || [])[0] || prod.cores[0].foto));
-      return `<li>${foto ? `<img class="mini" src="${esc(foto)}" alt="" width="40" height="32">` : `<i class="bolinha" style="background:${prod ? prod.cores[0].hex : "#ccc"}"></i>`}<span>${esc(it.nome)}<small>${esc(it.codigo ? "Cód. " + it.codigo + " · " : "")}${esc(CW.descreverQtd({ embalagem: it.embalagem, qtd: +it.qtd || 0 }))}</small></span></li>`;
+      return `<li>${foto ? `<img class="mini" src="${esc(foto)}" alt="" width="40" height="32">` : `<i class="bolinha" style="background:${prod ? prod.cores[0].hex : "#ccc"}"></i>`}<span>${esc(it.nome)}<small>${esc(it.codigo ? "Cód. " + it.codigo + " · " : "")}${esc(CW.descreverQtd({ embalagem: it.embalagem, qtd: +it.qtd || 0 }))}${it.preco_kg != null ? " · " + R(it.preco_kg) + "/kg" : " · valor a combinar"}</small></span></li>`;
     }).join("");
-    const prev = !L || ["cancelado", "reembolsado", "entregue"].includes(p.status) || !p.previsao_entrega_min ? ""
-      : `<p class="prev">${window.Icone("relogio")}${p.status === "enviado" ? "A caminho: chega" : "Chega"} entre <strong>${esc(L.dataBR(p.previsao_entrega_min))}</strong> e <strong>${esc(L.dataBR(p.previsao_entrega_max))}</strong></p>`;
-    return `<article class="pedido${naoLida ? " com-msg" : ""}">
+    return `<article class="pedido">
       <header>
-        <div><strong>Pedido ${esc(p.numero)}</strong><small>${dataHora(p.criado_em)} · ${itens.length} ${itens.length === 1 ? "produto" : "produtos"}${kg ? ` · ${kg.toLocaleString("pt-BR")} kg` : ""}${p.total ? ` · ${(+p.total).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}` : ""}</small></div>
-        <span class="status pp-status ${esc(p.status || "")}">${esc(st.cliente)}</span>
+        <div><strong>Pedido ${esc(p.numero)}</strong><small>${dataHora(p.criado_em)} · ${itens.length} ${itens.length === 1 ? "produto" : "produtos"}${kg ? ` · ${kg.toLocaleString("pt-BR")} kg` : ""}${valor ? ` · ${R(valor)}${combinar ? " + a combinar" : ""}` : ""}</small></div>
+        <span class="status">Enviado ao vendedor</span>
       </header>
-      ${prev}
       <ul>${lista}</ul>
-      ${compacto ? `<footer><button type="button" class="btn btn-contorno-azul" data-ver-compra="${esc(p.numero)}">Ver pedido</button></footer>` : `<footer>
-        <button type="button" class="btn btn-primario" data-ver-compra="${esc(p.numero)}">${window.Icone("conversa")}Ver pedido e conversar${naoLida ? ` <b class="badge-nova">nova mensagem</b>` : ""}</button>
-        <button type="button" class="btn btn-contorno-azul" data-repetir="${i}">↻ Repetir pedido</button>
+      ${p.observacoes ? `<p class="obs">${window.Icone("nota")}${esc(p.observacoes)}</p>` : ""}
+      ${compacto ? "" : `<footer>
+        <button type="button" class="btn btn-primario" data-repetir="${i}">↻ Repetir pedido</button>
+        <button type="button" class="btn btn-contorno-azul" data-falar="${i}">${window.Icone("conversa")}Falar sobre este pedido</button>
       </footer>`}
     </article>`;
   }
-  document.addEventListener("click", (e) => { const b = e.target.closest("[data-ver-compra]"); if (b) abrirCompra(b.dataset.verCompra); });
 
   async function renderResumo() {
     const p = Conta.perfil || {};
@@ -368,6 +359,10 @@
       return;
     }
     box.innerHTML = pedidos.map((p, i) => cartaoPedido(p, i, false)).join("");
+    $$("[data-falar]", box).forEach((b) => b.addEventListener("click", () => {
+      const num = pedidos[+b.dataset.falar].numero;
+      window.open(CW.linkWhatsApp(`Olá! Gostaria de falar sobre o meu pedido nº *${num}*.`), "_blank", "noopener");
+    }));
     $$("[data-repetir]", box).forEach((b) => b.addEventListener("click", () => {
       (pedidos[+b.dataset.repetir].itens || []).forEach((it) => {
         if (CW.acharProduto(it.id, it.cor)) CW.adicionarAoCarrinho(it.id, it.cor, it.embalagem, it.qtd);

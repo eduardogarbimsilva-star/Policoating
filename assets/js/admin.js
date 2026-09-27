@@ -23,12 +23,12 @@
     if (!ehAdmin) {
       document.title = "Área do vendedor | Policoating";
       $(".cabecalho-pagina h1").textContent = "Área do vendedor";
-      $(".cabecalho-pagina p").textContent = "Suas vendas, a conversa com os clientes, promoções, carteira de clientes e estoque.";
-      $$(".admin-abas [data-aba]").forEach((b) => { if (!["produtos", "vendas", "clientes", "estoque"].includes(b.dataset.aba)) b.remove(); });
+      $(".cabecalho-pagina p").textContent = "Pedidos feitos pelo site, promoções e carteira de clientes.";
+      $$(".admin-abas [data-aba]").forEach((b) => { if (!["produtos", "pedidos", "clientes"].includes(b.dataset.aba)) b.remove(); });
       document.body.classList.add("so-vendedor");
     }
-    const [podeExcluir, podeExportar, podeEstoque] = await Promise.all([A.podeExcluirPedidos(), A.podeExportarClientes(), A.podeMovimentarEstoque()]);
-    const extras = [podeExcluir && "pode excluir pedidos", podeExportar && "pode exportar clientes", podeEstoque && "pode movimentar estoque"].filter(Boolean);
+    const [podeExcluir, podeExportar] = await Promise.all([A.podeExcluirPedidos(), A.podeExportarClientes()]);
+    const extras = [podeExcluir && "pode excluir pedidos", podeExportar && "pode exportar clientes"].filter(Boolean);
     $("#selo-papel").textContent = (ehAdmin ? "Administrador" : "Vendedor") + (!ehAdmin && extras.length ? ` (${extras.join(", ")})` : "");
     $("#clientes-csv").hidden = !podeExportar;
 
@@ -46,22 +46,18 @@
     preencherListas();
     document.addEventListener("config-atualizada", preencherListas);
 
-    let registros = [], saldosProd = {};
+    let registros = [];
     const fmtR = (v) => (+v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
     async function carregar() {
       try { registros = await A.listar(); }
       catch (e) { CW.mostrarToast(e.message); registros = []; }
-      try {
-        const sal = await A.estoqueSaldos(); saldosProd = {};
-        Object.entries(sal).forEach(([k, v]) => { const id = k.split("|")[0]; saldosProd[id] = (saldosProd[id] || 0) + v.saldo; });
-      } catch (e) { saldosProd = {}; }
       const antigos = registros.filter((r) => (r.dados.cores || []).length > 1);
       $("#aviso-cores").hidden = !antigos.length || !ehAdmin;
       if (antigos.length) $("#aviso-cores-texto").textContent = `${antigos.length} ${antigos.length === 1 ? "produto tem" : "produtos têm"} várias cores (${antigos.reduce((n, r) => n + r.dados.cores.length, 0)} cores no total).`;
       desenhar();
     }
     $("#btn-converter").addEventListener("click", async (e) => {
-      if (!confirm("Converter os produtos com várias cores em um produto por cor?\n\nCada cor ganha um código novo (POL-0001, POL-0002...), que você pode trocar depois duplicando o produto. O estoque lançado antes da conversão precisa ser lançado de novo nos produtos novos.")) return;
+      if (!confirm("Converter os produtos com várias cores em um produto por cor?\n\nCada cor ganha um código novo (POL-0001, POL-0002...), que você pode trocar depois duplicando o produto.")) return;
       e.target.disabled = true;
       try { const n = await A.converterCores(); CW.mostrarToast(`${n} produtos criados, um por cor.`); await carregar(); }
       catch (err) { CW.mostrarToast(err.message); }
@@ -88,13 +84,12 @@
         ? `${lista.length} de ${registros.length} produtos · ${registros.filter((r) => r.ativo).length} visíveis no site`
         : "Nenhum produto cadastrado. Clique em \"+ Novo produto\" para cadastrar o primeiro. Só aparece no site o que estiver cadastrado aqui.";
       $("#admin-lista").innerHTML = lista.map((r) => {
-        const p = r.dados, varias = (p.cores || []).length > 1, est = saldosProd[r.id];
+        const p = r.dados, varias = (p.cores || []).length > 1;
         return `<tr data-id="${esc(r.id)}" class="${r.ativo ? "" : "oculto"}${selecionados.has(r.id) ? " selecionado" : ""}">
           <td class="col-sel"><input type="checkbox" data-sel ${selecionados.has(r.id) ? "checked" : ""} aria-label="Selecionar ${esc(p.nome)}"></td>
           <td><div class="admin-prod">${miniatura(p)}<div><strong>${esc(p.nome)}</strong><small>Cód. ${esc(p.codigo || r.id.toUpperCase())}${p.destaque ? " · ★ destaque" : ""}${varias ? ` · <b class="selo-cli inativo">${p.cores.length} cores (converter)</b>` : ""}${p.cores[0] && !p.cores[0].foto ? ` · <span class="sem-foto">sem foto</span>` : ""}</small></div></div></td>
           <td>${esc(((window.CATEGORIAS || {})[p.categoria] || {}).nome || p.categoria)}${p.marca ? `<small class="marca-lista">${esc(p.marca)}</small>` : ""}</td>
           <td>${textoPreco(p)}</td>
-          <td>${est == null ? "—" : `<strong class="${est > 0 ? "" : "zerado"}">${(Math.round(est * 100) / 100).toLocaleString("pt-BR")} kg</strong>`}</td>
           <td>${ehAdmin ? `<button type="button" class="admin-status ${r.ativo ? "on" : ""}" data-acao="alternar">${r.ativo ? "Visível" : "Oculto"}</button>` : (r.ativo ? "Visível" : "Oculto")}</td>
           <td class="admin-botoes">${ehAdmin ? `
             <button type="button" data-acao="editar">Editar</button>
@@ -277,7 +272,7 @@
 
     async function abrir(r, duplicar) {
       editando = r && !duplicar ? r.id : null;
-      const p = r ? JSON.parse(JSON.stringify(r.dados)) : { categoria: Object.keys(window.CATEGORIAS || {})[0], marca: marcas[0], embalagens: ["Caixa 25 kg", "Caixa 20 kg"], cores: [{ nome: "", hex: "#1558d6" }] };
+      const p = r ? JSON.parse(JSON.stringify(r.dados)) : { categoria: Object.keys(window.CATEGORIAS || {})[0], marca: marcas[0], cores: [{ nome: "", hex: "#1558d6" }] };
       $("#form-titulo").textContent = editando ? "Editar produto" : duplicar ? "Novo produto (cópia)" : "Novo produto";
       form.codigo.value = editando ? (p.codigo || r.id.toUpperCase()) : "…";
       $("#codigo-dica").textContent = editando ? "O código não muda." : "Gerado automaticamente pelo sistema.";
@@ -289,7 +284,6 @@
       if (duplicar) form.nome.value = "";
       form.categoria.value = p.categoria;
       form.densidade.value = p.densidade || "";
-      form.embalagens.value = (p.embalagens || []).join(", ");
       const c = (p.cores || [])[0] || { nome: "", hex: "#1558d6" };
       $("#cor-nome").value = duplicar ? "" : c.nome; hex.value = tom.value = c.hex || "#1558d6";
       fotos = duplicar ? [] : (Array.isArray(p.fotos) && p.fotos.length ? p.fotos.slice() : c.foto ? [c.foto] : []);
@@ -331,7 +325,6 @@
         descricao: form.descricao.value.trim(),
         rendimento: form.rendimento.value.trim(),
         cura: form.cura.value.trim(),
-        embalagens: form.embalagens.value.split(",").map((x) => x.trim()).filter(Boolean),
         cores: [cor],
         destaque: form.destaque.checked,
         precoCombinar: combinar
@@ -365,144 +358,96 @@
       $$(".admin-aba").forEach((c) => (c.hidden = c.dataset.conteudo !== nome));
       if (nome === "contato") carregarConfig();
       if (nome === "clientes") carregarClientes();
-      if (nome === "vendas") carregarVendas();
-      if (nome === "estoque") carregarEstoque();
+      if (nome === "pedidos") carregarPedidos();
       if (nome === "galeria") carregarGaleria();
       if (nome === "equipe") carregarEquipe();
     };
     abas.forEach((b) => b.addEventListener("click", () => abrirAba(b.dataset.aba)));
 
-    /* ---------- Vendas (estilo Mercado Livre): pedidos feitos pelo site ---------- */
+    /* ---------- Pedidos feitos pelo site (enviados pelo WhatsApp) ---------- */
     const nomeCliente = (c) => (c.tipo === "pj" ? (c.nome_fantasia || c.razao_social) : c.nome) || c.email || "Cliente";
     const dataBR = (d) => (d ? new Date(d).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }) : "");
-    const LJ = window.Loja, hojeISO = () => LJ.iso(new Date());
-    let vendas = [], vendasCarregadas = false, solicAbertas = {}, filtroVenda = "novas", esperaBusca = 0;
-    const eu = String(window.Conta.usuario.email).toLowerCase();
-    const naoLida = (p) => p.ultima_msg_lado === "cliente" && (!p.msg_lida_equipe_em || p.msg_lida_equipe_em < p.msg_ultima_em);
-    const FILTROS = {
-      novas: ["Novas", (p) => p.status === "recebido"],
-      hoje: ["Enviar hoje", (p) => p.status === "confirmado" && p.previsao_envio <= hojeISO()],
-      proximos: ["Próximos envios", (p) => p.status === "confirmado" && p.previsao_envio > hojeISO()],
-      caminho: ["A caminho", (p) => p.status === "enviado"],
-      entregues: ["Entregues", (p) => p.status === "entregue"],
-      mensagens: ["Mensagens", (p) => naoLida(p)],
-      solicitacoes: ["Solicitações", (p) => !!solicAbertas[p.numero]],
-      canceladas: ["Canceladas", (p) => ["cancelado", "reembolsado"].includes(p.status)],
-      todas: ["Todas", () => true]
-    };
-    async function carregarVendas() {
-      $("#vendas-erro").textContent = "";
-      try {
-        [vendas, solicAbertas] = await Promise.all([A.listarPedidos($("#vendas-busca").value), LJ.solicitacoesAbertas()]);
-        vendas = vendas.map((p) => Object.assign({ status: "recebido" }, p));
-        vendasCarregadas = true;
-      } catch (e) { vendas = []; $("#vendas-erro").textContent = e.message; }
-      desenharVendas();
-      document.dispatchEvent(new CustomEvent("notificacoes-atualizar"));
+    const kgItem = (i) => (i.kg != null ? +i.kg : CW.kgDoItem({ embalagem: i.embalagem, qtd: +i.qtd || 0 }));
+    const kgPedido = (p) => (p.total_kg != null ? +p.total_kg : (p.itens || []).reduce((s, i) => s + kgItem(i), 0));
+    const valorPedido = (p) => (p.total != null ? +p.total : (p.itens || []).reduce((s, i) => s + (i.preco_kg != null ? (+i.preco_kg) * kgItem(i) : 0), 0));
+    let pedidos = [], pedidosCarregados = false, esperaBusca = 0;
+    async function carregarPedidos() {
+      $("#pedidos-erro").textContent = "";
+      try { pedidos = await A.listarPedidos($("#pedidos-busca").value); pedidosCarregados = true; }
+      catch (e) { pedidos = []; $("#pedidos-erro").textContent = e.message; }
+      desenharPedidos();
     }
-    function vendasFiltradas(ignorarChip) {
-      const termo = slug($("#vendas-busca").value || ""), desde = inicioPeriodo($("#vendas-periodo").value), meu = $("#vendas-dono").value;
-      return vendas.filter((p) => (!desde || new Date(p.criado_em).getTime() >= desde) && (!meu || p.vendedor === eu || (meu === "livres" && !p.vendedor)) &&
-        (ignorarChip || FILTROS[filtroVenda][1](p)) &&
-        (!termo || slug([p.numero, nomeCliente(p.cliente || {}), (p.cliente || {}).razao_social, (p.cliente || {}).email, (p.cliente || {}).cnpj, (p.cliente || {}).cpf, (p.cliente || {}).telefone,
-          p.destino_cidade, p.vendedor, (p.itens || []).map((i) => [i.nome, i.codigo, i.cor].join(" ")).join(" ")].join(" ")).includes(termo)));
+    function inicioPeriodo(v) { return +v ? Date.now() - +v * 864e5 : 0; }
+    function pedidosFiltrados() {
+      const termo = slug($("#pedidos-busca").value || ""), desde = inicioPeriodo($("#pedidos-periodo").value);
+      return pedidos.filter((p) => (!desde || new Date(p.criado_em).getTime() >= desde) &&
+        (!termo || slug([p.numero, nomeCliente(p.cliente || {}), (p.cliente || {}).razao_social, (p.cliente || {}).responsavel, (p.cliente || {}).email,
+          (p.cliente || {}).telefone, (p.cliente || {}).cnpj, (p.cliente || {}).cpf, (p.cliente || {}).cidade, (p.itens || []).map((i) => [i.nome, i.codigo, i.cor].join(" ")).join(" ")].join(" ")).includes(termo)));
     }
-    function inicioPeriodo(v) {
-      const d = new Date(); d.setHours(0, 0, 0, 0);
-      if (v === "hoje") return d.getTime();
-      if (v === "mes") return new Date(d.getFullYear(), d.getMonth(), 1).getTime();
-      if (v === "ano") return new Date(d.getFullYear(), 0, 1).getTime();
-      return +v ? Date.now() - +v * 864e5 : 0;
-    }
-    function linhaPrazo(p) {
-      if (p.status === "recebido") return `<span class="prazo alerta">Confirme para enviar ${esc(LJ.textoEnvio(p.previsao_envio || hojeISO()))}</span>`;
-      if (p.status === "confirmado") return p.previsao_envio <= hojeISO() ? `<span class="prazo urgente">Enviar hoje até ${LJ.EMPRESA.horaCorte}h</span>` : `<span class="prazo">Envio ${esc(LJ.dataBR(p.previsao_envio))}</span>`;
-      if (p.status === "enviado") return `<span class="prazo">Chega entre ${esc(LJ.dataBR(p.previsao_entrega_min))} e ${esc(LJ.dataBR(p.previsao_entrega_max))}</span>`;
-      if (p.status === "entregue") return `<span class="prazo ok">Entregue em ${esc(dataBR(p.entregue_em))}</span>`;
-      return `<span class="prazo">${esc(p.motivo_cancelamento || "")}</span>`;
-    }
-    function desenharVendas() {
-      const base = vendasFiltradas(true), lista = vendasFiltradas(false);
-      $("#vendas-filtros").innerHTML = Object.entries(FILTROS).map(([k, [rot, f]]) => {
-        const n = base.filter(f).length, alerta = ["novas", "hoje", "mensagens", "solicitacoes"].includes(k) && n;
-        return `<button type="button" role="tab" data-filtro-venda="${k}" class="${k === filtroVenda ? "ativo" : ""}${alerta ? " alerta" : ""}" aria-selected="${k === filtroVenda}">${rot}${k === "todas" ? "" : ` <b>${n}</b>`}</button>`;
-      }).join("");
-      const validas = base.filter((p) => ["confirmado", "enviado", "entregue"].includes(p.status));
-      const fat = validas.reduce((s, p) => s + (+p.total || 0), 0), kg = validas.reduce((s, p) => s + (+p.total_kg || 0), 0);
-      $("#vendas-kpis").innerHTML = `
-        <div><span>Faturamento</span><strong>${fmtR(fat)}</strong><small>vendas confirmadas no período</small></div>
-        <div><span>Vendas</span><strong>${validas.length}</strong><small>${base.filter((p) => p.status === "recebido").length} aguardando confirmação</small></div>
-        <div><span>Kg vendidos</span><strong>${(Math.round(kg * 100) / 100).toLocaleString("pt-BR")} kg</strong></div>
-        <div><span>Ticket médio</span><strong>${validas.length ? fmtR(fat / validas.length) : "—"}</strong></div>`;
-      const porProd = {}, porVend = {};
-      validas.forEach((p) => {
-        (p.itens || []).forEach((i) => { const k = i.codigo || i.id; porProd[k] = porProd[k] || { nome: i.nome, codigo: k, kg: 0, valor: 0 }; porProd[k].kg += +i.kg || 0; porProd[k].valor += +i.subtotal || 0; });
-        const v = p.vendedor || "—"; porVend[v] = porVend[v] || { n: 0, valor: 0 }; porVend[v].n++; porVend[v].valor += +p.total || 0;
-      });
-      $("#vendas-ranking").innerHTML = Object.values(porProd).sort((a, b) => b.kg - a.kg).slice(0, 8)
-        .map((r) => `<li><span>${esc(r.nome)}<small>Cód. ${esc(r.codigo)}</small></span><b>${(Math.round(r.kg * 100) / 100).toLocaleString("pt-BR")} kg<small>${fmtR(r.valor)}</small></b></li>`).join("") || `<li class="dica">Sem vendas no período.</li>`;
-      $("#vendas-vendedores").innerHTML = Object.entries(porVend).sort((a, b) => b[1].valor - a[1].valor)
-        .map(([e, r]) => `<li><span>${esc(e)}<small>${r.n} ${r.n === 1 ? "venda" : "vendas"}</small></span><b>${fmtR(r.valor)}</b></li>`).join("") || `<li class="dica">Sem vendas no período.</li>`;
-      $("#vendas-resumo").innerHTML = vendas.length ? `<span><strong>${lista.length}</strong> ${lista.length === 1 ? "venda" : "vendas"} em "${FILTROS[filtroVenda][0]}"</span>` : "";
-      $("#vendas-lista").innerHTML = lista.length ? lista.map((p) => {
-        const c = p.cliente || {}, st = LJ.STATUS[p.status] || { equipe: p.status }, it = (p.itens || [])[0] || {};
-        const prod = it.id && CW.acharProduto ? CW.acharProduto(it.id, it.cor) : null;
-        const foto = it.foto || (prod && ((prod.fotos || [])[0] || CW.fotoProduto(prod, prod.cores[0], { largura: 160, altura: 128 })));
-        const sol = solicAbertas[p.numero] || [];
-        return `<article class="venda ${esc(p.status)}${naoLida(p) ? " com-msg" : ""}" data-numero="${esc(p.numero)}" tabindex="0">
+    function desenharPedidos() {
+      const lista = pedidosFiltrados(), termo = $("#pedidos-busca").value.trim();
+      $("#pedidos-resumo").innerHTML = pedidos.length ? `<span><strong>${lista.length}</strong> ${lista.length === 1 ? "pedido" : "pedidos"}</span><span><strong>${(Math.round(lista.reduce((s, p) => s + kgPedido(p), 0) * 100) / 100).toLocaleString("pt-BR")}</strong> kg</span>` : "";
+      $("#admin-pedidos").innerHTML = lista.length ? lista.map((p) => {
+        const c = p.cliente || {}, tel = String(c.telefone || "").replace(/\D/g, ""), valor = valorPedido(p), combinar = (p.itens || []).some((i) => i.preco_kg == null);
+        return `<article class="adm-pedido" data-numero="${esc(p.numero)}">
           <header>
-            <div><strong>Venda ${esc(p.numero)}</strong><small>${esc(dataBR(p.criado_em))} · ${esc(nomeCliente(c))}${p.destino_cidade ? ` · ${esc(p.destino_cidade)}/${esc(p.destino_uf || "")}` : ""}</small></div>
-            <b class="pp-status ${esc(p.status)}">${esc(st.equipe)}</b>
+            <div><strong>${esc(p.numero)}</strong><small>${esc(dataBR(p.criado_em))}</small></div>
+            <button type="button" class="btn-copiar" data-copiar="${esc(p.numero)}" title="Copiar código">${window.Icone ? window.Icone("link") : ""}Copiar código</button>
           </header>
-          <div class="venda-corpo">
-            ${foto ? `<img src="${esc(foto)}" alt="" width="80" height="64">` : `<span class="venda-sem-foto">${window.Icone ? window.Icone("caixa") : ""}</span>`}
-            <div><strong>${esc(it.nome || "")}</strong>${(p.itens || []).length > 1 ? `<small>+ ${(p.itens || []).length - 1} ${(p.itens || []).length === 2 ? "produto" : "produtos"}</small>` : ""}
-              <small>${(+p.total_kg || 0).toLocaleString("pt-BR")} kg${p.vendedor ? ` · vendedor ${esc(p.vendedor)}` : ""}</small>
-              <div class="venda-sinais">${linhaPrazo(p)}${naoLida(p) ? `<span class="sinal msg">Mensagem nova</span>` : ""}${sol.map((t) => `<span class="sinal sol">${esc(LJ.TIPOS_SOLIC[t])}</span>`).join("")}</div></div>
-            <div class="venda-total"><span>Total</span><strong>${fmtR(p.total)}</strong>${p.tem_combinar ? `<small>+ itens a combinar</small>` : ""}</div>
+          <div class="adm-pedido-corpo">
+            <div class="adm-cliente">
+              <strong>${esc(nomeCliente(c))}</strong>
+              ${c.tipo === "pj" && c.cnpj ? `<small>CNPJ ${esc(c.cnpj)}${c.responsavel ? " · " + esc(c.responsavel) : ""}</small>` : c.cpf ? `<small>CPF ${esc(c.cpf)}</small>` : ""}
+              <small>${esc(c.email || "")}${c.telefone ? " · " + esc(c.telefone) : ""}</small>
+              ${c.cidade ? `<small>${esc([c.logradouro, c.numero].filter(Boolean).join(", "))} — ${esc(c.cidade)}/${esc(c.uf || "")} · CEP ${esc(c.cep || "")}</small>` : ""}
+            </div>
+            <ul>${(p.itens || []).map((i) => `<li><strong>${esc(i.nome)}</strong>${i.codigo ? ` <small class="cod">Cód. ${esc(i.codigo)}</small>` : ""}
+              <small>${esc(CW.descreverQtd({ embalagem: i.embalagem, qtd: +i.qtd || 0 }))} · ${i.preco_kg != null ? `${fmtR(i.preco_kg)}/kg = ${fmtR((+i.preco_kg) * kgItem(i))}` : "valor a combinar"}</small></li>`).join("")}</ul>
+            ${p.observacoes ? `<p class="obs">Obs.: ${esc(p.observacoes)}</p>` : ""}
           </div>
+          <footer>
+            <span>Total: <strong>${(Math.round(kgPedido(p) * 100) / 100).toLocaleString("pt-BR")} kg</strong>${valor ? ` · <strong>${fmtR(valor)}</strong>${combinar ? " + itens a combinar" : ""}` : combinar ? " · valor a combinar" : ""}</span>
+            <span class="adm-pedido-botoes">
+              ${podeExcluir ? `<button type="button" class="btn-excluir-pedido" data-excluir-pedido="${esc(p.numero)}">Excluir</button>` : ""}
+              ${tel ? `<a class="btn btn-whats" target="_blank" rel="noopener" href="https://wa.me/${tel.length <= 11 ? "55" + tel : tel}?text=${encodeURIComponent(`Olá, ${nomeCliente(c)}! Aqui é da Policoating, sobre o seu pedido ${p.numero}.`)}">Chamar cliente</a>` : ""}
+            </span>
+          </footer>
         </article>`;
-      }).join("") : `<p class="dica">${!vendasCarregadas ? "Carregando..." : vendas.length ? `Nenhuma venda em "${FILTROS[filtroVenda][0]}".` : "Nenhuma venda ainda. As compras feitas no site aparecem aqui na hora."}</p>`;
+      }).join("") : `<p class="dica">${!pedidosCarregados ? "Carregando..." : pedidos.length ? `Nenhum pedido encontrado para "${esc(termo)}".` : "Nenhum pedido ainda. Os pedidos enviados pelo site aparecem aqui."}</p>`;
     }
-    function abrirVenda(numero) {
-      if (!window.PedidoUI) return;
-      history.replaceState(null, "", "#venda=" + encodeURIComponent(numero));
-      window.PedidoUI.abrir(numero, { lado: "equipe", podeExcluir, aoMudar: () => { if (location.hash.startsWith("#venda=")) history.replaceState(null, "", "#vendas"); carregarVendas(); } });
-    }
-    $("#vendas-filtros").addEventListener("click", (e) => { const b = e.target.closest("[data-filtro-venda]"); if (b) { filtroVenda = b.dataset.filtroVenda; desenharVendas(); } });
-    $("#vendas-lista").addEventListener("click", (e) => { const v = e.target.closest("[data-numero]"); if (v) abrirVenda(v.dataset.numero); });
-    $("#vendas-lista").addEventListener("keydown", (e) => { const v = e.target.closest("[data-numero]"); if (v && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); abrirVenda(v.dataset.numero); } });
-    $("#vendas-busca").addEventListener("input", () => {
-      desenharVendas();
+    $("#pedidos-busca").addEventListener("input", () => {
+      desenharPedidos();
       clearTimeout(esperaBusca);   // código completo que não está na lista: procura no histórico inteiro
-      if (/^pc-\S{6,}/i.test($("#vendas-busca").value.trim()) && !vendasFiltradas(true).length) esperaBusca = setTimeout(carregarVendas, 500);
+      if (/^pc-\S{6,}/i.test($("#pedidos-busca").value.trim()) && !pedidosFiltrados().length) esperaBusca = setTimeout(carregarPedidos, 500);
     });
-    ["vendas-periodo", "vendas-dono"].forEach((id) => $("#" + id).addEventListener("change", desenharVendas));
-    $("#vendas-atualizar").addEventListener("click", carregarVendas);
-    $("#vendas-csv").addEventListener("click", () => {
+    $("#pedidos-periodo").addEventListener("change", desenharPedidos);
+    $("#pedidos-atualizar").addEventListener("click", carregarPedidos);
+    $("#admin-pedidos").addEventListener("click", async (e) => {
+      const x = e.target.closest("[data-excluir-pedido]");
+      if (x) {
+        const num = x.dataset.excluirPedido;
+        if (!confirm(`Excluir o pedido ${num}?\n\nEle some do painel e de Meus pedidos do cliente. Isso não pode ser desfeito.`)) return;
+        x.disabled = true;
+        try { await A.excluirPedido(num); pedidos = pedidos.filter((p) => p.numero !== num); desenharPedidos(); CW.mostrarToast(`Pedido ${num} excluído.`); }
+        catch (err) { x.disabled = false; $("#pedidos-erro").textContent = err.message; }
+        return;
+      }
+      const b = e.target.closest("[data-copiar]"); if (!b) return;
+      (navigator.clipboard ? navigator.clipboard.writeText(b.dataset.copiar) : Promise.reject()).then(() => CW.mostrarToast("Código copiado."), () => {});
+    });
+    $("#pedidos-csv").addEventListener("click", () => {
       const cel = (x) => `"${String(x == null ? "" : x).replace(/"/g, '""')}"`, n = (x) => (x == null || x === "" ? "" : String(Math.round(+x * 100) / 100).replace(".", ","));
-      const linhas = [["Pedido", "Data", "Situação", "Cliente", "Documento", "E-mail", "Telefone", "Cidade", "UF", "Vendedor", "Envio previsto", "Código", "Produto", "Embalagem", "Qtd", "Kg", "Preço/kg", "Subtotal", "Total do pedido", "Observações"]];
-      vendasFiltradas(false).forEach((p) => (p.itens || []).forEach((i) => {
+      const linhas = [["Pedido", "Data", "Cliente", "Documento", "E-mail", "Telefone", "Cidade", "UF", "Código", "Produto", "Quantidade", "Kg", "Preço/kg", "Subtotal", "Observações"]];
+      pedidosFiltrados().forEach((p) => (p.itens || []).forEach((i) => {
         const c = p.cliente || {};
-        linhas.push([p.numero, dataBR(p.criado_em), (LJ.STATUS[p.status] || {}).equipe || p.status, nomeCliente(c), c.cnpj || c.cpf || "", c.email || "", c.telefone || "", c.cidade || p.destino_cidade || "", c.uf || p.destino_uf || "",
-          p.vendedor || "", p.previsao_envio || "", i.codigo || i.id, i.nome, i.embalagem, i.qtd, n(i.kg), n(i.preco_kg), n(i.subtotal), n(p.total), p.observacoes || ""]);
+        linhas.push([p.numero, dataBR(p.criado_em), nomeCliente(c), c.cnpj || c.cpf || "", c.email || "", c.telefone || "", c.cidade || "", c.uf || "",
+          i.codigo || i.id, i.nome, CW.descreverQtd({ embalagem: i.embalagem, qtd: +i.qtd || 0 }), n(kgItem(i)), n(i.preco_kg), i.preco_kg != null ? n((+i.preco_kg) * kgItem(i)) : "a combinar", p.observacoes || ""]);
       }));
       const csv = "\ufeff" + linhas.map((l) => l.map(cel).join(";")).join("\r\n");
       const a = document.createElement("a");
       a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
-      a.download = `vendas-policoating-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.download = `pedidos-policoating-${new Date().toISOString().slice(0, 10)}.csv`;
       document.body.appendChild(a); a.click(); a.remove();
-    });
-    // novas vendas e mensagens chegando: atualiza a lista se a aba estiver aberta
-    let ultimoResumo = "";
-    document.addEventListener("notificacoes", (e) => {
-      const r = JSON.stringify(e.detail.equipe || {});
-      $$('.admin-abas [data-aba="vendas"] .badge-aba').forEach((b) => b.remove());
-      const eq = e.detail.equipe, n = eq ? (+eq.novas || 0) + (+eq.mensagens || 0) + (+eq.solicitacoes || 0) : 0;
-      const aba = $('.admin-abas [data-aba="vendas"]'); if (aba && n) aba.insertAdjacentHTML("beforeend", `<b class="badge-aba">${n}</b>`);
-      const painelAberto = $("#pedido-painel") && !$("#pedido-painel").hidden;
-      if (ultimoResumo && r !== ultimoResumo && !$('[data-conteudo="vendas"]').hidden && !painelAberto) carregarVendas();
-      ultimoResumo = r;
     });
 
     /* ---------- Clientes (administradores e vendedores) ---------- */
@@ -572,8 +517,8 @@
     $("#clientes-atualizar").addEventListener("click", carregarClientes);
     $("#admin-clientes").addEventListener("click", (e) => {
       const b = e.target.closest("[data-ver-pedidos]"); if (!b) return;
-      $("#vendas-busca").value = b.dataset.verPedidos; $("#vendas-periodo").value = "0"; filtroVenda = "todas";
-      abrirAba("vendas");
+      $("#pedidos-busca").value = b.dataset.verPedidos; $("#pedidos-periodo").value = "0";
+      abrirAba("pedidos");
     });
     $("#clientes-csv").addEventListener("click", () => {
       if (!podeExportar) return;
@@ -586,162 +531,6 @@
       const a = document.createElement("a");
       a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
       a.download = `clientes-policoating-${new Date().toISOString().slice(0, 10)}.csv`;
-      document.body.appendChild(a); a.click(); a.remove();
-    });
-
-    /* ---------- Estoque ---------- */
-    const KG_CAIXA = 25;
-    let saldos = {}, estoqueCarregado = false, movAlvo = null;
-    const fmtKg = (n) => (Math.round(n * 100) / 100).toLocaleString("pt-BR") + " kg";
-    function itensEstoque() {
-      const lista = [], vistos = new Set();
-      // administrador: todos os produtos do painel (inclusive ocultos); vendedor: os do site
-      const fonte = registros.length ? registros.map((r) => r.dados) : (window.PRODUTOS || []);
-      fonte.forEach((p) => (p.cores || []).forEach((c) => {
-        const k = p.id + "|" + c.nome; vistos.add(k);
-        lista.push(Object.assign({ k, produto_id: p.id, cor: c.nome, hex: c.hex, nome: p.nome, linha: p.linha || "", fora: false }, saldos[k] || { saldo: 0, minimo: 0, ultima: null }));
-      }));
-      Object.entries(saldos).forEach(([k, s]) => {           // itens com saldo que saíram do catálogo
-        if (vistos.has(k)) return;
-        const [produto_id, cor] = k.split("|");
-        lista.push(Object.assign({ k, produto_id, cor, hex: "#cccccc", nome: produto_id, linha: "", fora: true }, s));
-      });
-      return lista;
-    }
-    const situacao = (i) => (!i.ultima && !i.saldo ? "nunca" : i.saldo <= 0 ? "zerado" : i.minimo && i.saldo < i.minimo ? "baixo" : "ok");
-    const SELO_EST = { nunca: ["sem", "Sem movimentação"], zerado: ["zerado", "Sem estoque"], baixo: ["inativo", "Abaixo do mínimo"], ok: ["ativo", "Em estoque"] };
-    async function carregarEstoque() {
-      $("#estoque-erro").textContent = "";
-      $("#estoque-permissao").textContent = podeEstoque ? "Clique em \"Movimentar\" para registrar entrada, saída, inventário ou o estoque mínimo." : "Você pode consultar o estoque. Para movimentar, peça a um administrador a permissão \"Pode movimentar estoque\".";
-      try { saldos = await A.estoqueSaldos(); estoqueCarregado = true; }
-      catch (e) { saldos = {}; $("#estoque-erro").textContent = e.message; }
-      desenharEstoque();
-    }
-    function estoqueFiltrado() {
-      const termo = slug($("#estoque-busca").value || ""), f = $("#estoque-filtro").value;
-      return itensEstoque().filter((i) => {
-        const s = situacao(i);
-        if (f === "baixo" && s !== "baixo") return false;
-        if (f === "zerado" && !(s === "zerado" || s === "nunca")) return false;
-        if (f === "com" && !(i.saldo > 0)) return false;
-        return !termo || slug([i.nome, i.linha, i.cor, i.produto_id].join(" ")).includes(termo);
-      });
-    }
-    function desenharEstoque() {
-      const todos = itensEstoque(), lista = estoqueFiltrado();
-      const total = todos.reduce((s, i) => s + Math.max(0, i.saldo), 0);
-      $("#estoque-resumo").innerHTML = `<span><strong>${fmtKg(total)}</strong> em estoque (≈ ${Math.floor(total / KG_CAIXA).toLocaleString("pt-BR")} caixas)</span>
-        <span><strong>${todos.filter((i) => i.saldo > 0).length}</strong> de ${todos.length} cores com estoque</span>
-        <span class="${todos.some((i) => situacao(i) === "baixo") ? "alerta" : ""}"><strong>${todos.filter((i) => situacao(i) === "baixo").length}</strong> abaixo do mínimo</span>`;
-      $("#estoque-lista").innerHTML = lista.length ? lista.map((i) => {
-        const [cls, txt] = SELO_EST[situacao(i)];
-        return `<tr data-k="${esc(i.k)}">
-          <td><div class="est-item"><i style="background:${esc(i.hex)}"></i><div><strong>${esc(i.nome)}</strong><small>${esc(i.cor)}${i.fora ? " · fora do catálogo" : ""}</small></div></div></td>
-          <td><strong>${fmtKg(i.saldo)}</strong><small class="est-cx">≈ ${Math.floor(Math.max(0, i.saldo) / KG_CAIXA)} cx</small></td>
-          <td>${i.minimo ? fmtKg(i.minimo) : "—"}</td>
-          <td><b class="selo-cli ${cls}">${txt}</b></td>
-          <td class="est-acoes">${podeEstoque ? `<button type="button" class="btn btn-primario" data-mov>Movimentar</button>` : ""}<button type="button" class="btn btn-contorno-azul" data-hist>Histórico</button></td>
-        </tr>`;
-      }).join("") : `<tr><td colspan="5" class="dica">${estoqueCarregado ? "Nenhum item encontrado." : "Carregando..."}</td></tr>`;
-    }
-    $("#estoque-busca").addEventListener("input", desenharEstoque);
-    $("#estoque-filtro").addEventListener("change", desenharEstoque);
-    $("#estoque-lista").addEventListener("click", (e) => {
-      const tr = e.target.closest("tr[data-k]"); if (!tr) return;
-      const item = itensEstoque().find((i) => i.k === tr.dataset.k); if (!item) return;
-      if (e.target.closest("[data-mov]")) abrirMov(item, false);
-      if (e.target.closest("[data-hist]")) abrirMov(item, true);
-    });
-    $("#estoque-historico").addEventListener("click", () => abrirMov(null, true));
-
-    const modalMov = $("#modal-estoque"), formMov = $("#form-estoque");
-    const tipoMov = () => $("[name=mov-tipo]:checked", formMov).value;
-    function linhasHistorico(movs, comItem) {
-      const NOMES = { entrada: "Entrada", saida: "Saída", ajuste: "Inventário" };
-      const nomeProd = (id) => ((window.PRODUTOS || []).find((p) => p.id === id) || {}).nome || id;
-      return movs.length ? `<table class="admin-tabela tabela-mov"><thead><tr><th>Data</th>${comItem ? "<th>Item</th>" : ""}<th>Tipo</th><th>Kg</th><th>Detalhes</th><th>Por</th></tr></thead><tbody>${movs.map((m) => {
-        const kg = m.tipo === "saida" ? -m.kg : +m.kg;
-        return `<tr><td>${esc(dataBR(m.criado_em))}</td>${comItem ? `<td>${esc(nomeProd(m.produto_id))}<small>${esc(m.cor)}</small></td>` : ""}<td><b class="mov-tipo mov-${m.tipo}">${NOMES[m.tipo]}</b></td>
-          <td class="${kg < 0 ? "neg" : "pos"}">${kg > 0 ? "+" : ""}${fmtKg(kg)}</td>
-          <td>${[m.pedido_numero, m.documento, m.obs].filter(Boolean).map(esc).join(" · ") || "—"}</td><td>${esc(m.feito_por || "")}</td></tr>`;
-      }).join("")}</tbody></table>` : `<p class="dica">Nenhuma movimentação registrada.</p>`;
-    }
-    async function abrirMov(item, soHistorico) {
-      movAlvo = item;
-      formMov.classList.toggle("so-historico", soHistorico);
-      $("footer [data-fechar-mov]", formMov).textContent = soHistorico ? "Fechar" : "Cancelar";
-      $("#mov-titulo").textContent = soHistorico ? (item ? "Histórico do item" : "Histórico do estoque") : "Movimentar estoque";
-      $("#mov-item").innerHTML = item ? `<i style="background:${esc(item.hex)}"></i><span><strong>${esc(item.nome)}</strong> · ${esc(item.cor)}<small>Saldo atual: ${fmtKg(item.saldo)}${item.minimo ? " · mínimo " + fmtKg(item.minimo) : ""}</small></span>` : "";
-      $("#mov-item").hidden = !item;
-      ["#mov-kg", "#mov-caixas", "#mov-doc", "#mov-pedido", "#mov-obs"].forEach((s) => ($(s).value = ""));
-      $("[name=mov-tipo][value=entrada]", formMov).checked = true;
-      $("#mov-erro").textContent = ""; $("#mov-historico").innerHTML = `<p class="dica">Carregando histórico...</p>`;
-      ajustarMov();
-      modalMov.hidden = false; document.body.style.overflow = "hidden";
-      if (!soHistorico) $("#mov-kg").focus();
-      try {
-        const movs = await A.estoqueMovimentos(item ? { produto_id: item.produto_id, cor: item.cor } : {}, item ? 50 : 300);
-        $("#mov-historico").innerHTML = (soHistorico ? "" : `<h3 class="mov-sub">Últimas movimentações</h3>`) + linhasHistorico(soHistorico ? movs : movs.slice(0, 8), !item);
-      } catch (e) { $("#mov-historico").innerHTML = `<p class="form-erro">${esc(e.message)}</p>`; }
-    }
-    const fecharMov = () => { modalMov.hidden = true; document.body.style.overflow = ""; };
-    $$("[data-fechar-mov]", modalMov).forEach((b) => b.addEventListener("click", fecharMov));
-    modalMov.addEventListener("click", (e) => { if (e.target === modalMov) fecharMov(); });
-    document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !modalMov.hidden) fecharMov(); });
-    function ajustarMov() {
-      if (!movAlvo) return;
-      const t = tipoMov(), kg = +$("#mov-kg").value || 0;
-      const rot = { entrada: "Quantidade que entrou (kg) *", saida: "Quantidade que saiu (kg) *", ajuste: "Quantidade contada no estoque (kg) *", minimo: "Estoque mínimo (kg) *" };
-      $("#mov-rotulo-kg").firstChild.textContent = rot[t];
-      $("#mov-dica-kg").textContent = t === "ajuste" ? "Informe o total que existe hoje. O sistema lança a diferença." : t === "minimo" ? "Abaixo disso, o item aparece como \"Abaixo do mínimo\"." : "";
-      $("#mov-rotulo-caixas").hidden = t === "minimo";
-      $("#mov-rotulo-doc").hidden = $("#mov-rotulo-obs").hidden = t === "minimo";
-      $("#mov-rotulo-pedido").hidden = t !== "saida";
-      $("#mov-salvar").textContent = t === "minimo" ? "Salvar mínimo" : "Registrar";
-      let r = "";
-      if (kg > 0 || (t === "ajuste" && $("#mov-kg").value !== "")) {
-        if (t === "entrada") r = `Saldo passa de ${fmtKg(movAlvo.saldo)} para ${fmtKg(movAlvo.saldo + kg)}.`;
-        if (t === "saida") r = kg > movAlvo.saldo ? `Saldo insuficiente: há ${fmtKg(movAlvo.saldo)}.` : `Saldo passa de ${fmtKg(movAlvo.saldo)} para ${fmtKg(movAlvo.saldo - kg)}.`;
-        if (t === "ajuste") { const d = kg - movAlvo.saldo; r = d ? `Diferença de ${d > 0 ? "+" : ""}${fmtKg(d)} (sistema tinha ${fmtKg(movAlvo.saldo)}).` : "Contagem igual ao sistema: nada a lançar."; }
-      }
-      if (t === "minimo") r = movAlvo.minimo ? `Mínimo atual: ${fmtKg(movAlvo.minimo)}.` : "Sem mínimo definido.";
-      $("#mov-resumo").textContent = r;
-    }
-    $$("[name=mov-tipo]", formMov).forEach((r) => r.addEventListener("change", ajustarMov));
-    $("#mov-kg").addEventListener("input", () => { $("#mov-caixas").value = ""; ajustarMov(); });
-    $("#mov-caixas").addEventListener("input", (e) => { const c = parseInt(e.target.value, 10); $("#mov-kg").value = c > 0 ? c * KG_CAIXA : ""; ajustarMov(); });
-    formMov.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      if (!movAlvo || formMov.classList.contains("so-historico")) return;
-      const t = tipoMov(), kg = Math.round((+$("#mov-kg").value || 0) * 100) / 100, pedido = $("#mov-pedido").value.trim().toUpperCase();
-      $("#mov-erro").textContent = "";
-      if ($("#mov-kg").value === "" || kg < 0 || (t !== "ajuste" && t !== "minimo" && !kg)) return ($("#mov-erro").textContent = "Informe a quantidade em kg.");
-      if (pedido && !/^PC-\d{6}-[A-Z0-9]{2,10}$/.test(pedido)) return ($("#mov-erro").textContent = "Código do pedido inválido (ex.: PC-260926-AB12).");
-      const b = $("#mov-salvar"); b.disabled = true;
-      try {
-        if (t === "minimo") { await A.definirMinimo(movAlvo.produto_id, movAlvo.cor, kg); CW.mostrarToast("Estoque mínimo salvo."); }
-        else if (t === "ajuste") {
-          const d = Math.round((kg - movAlvo.saldo) * 100) / 100;
-          if (!d) { CW.mostrarToast("Contagem igual ao sistema: nada lançado."); fecharMov(); return; }
-          await A.movimentarEstoque({ produto_id: movAlvo.produto_id, cor: movAlvo.cor, tipo: "ajuste", kg: d, documento: $("#mov-doc").value, obs: $("#mov-obs").value || `Inventário: contado ${fmtKg(kg)}` });
-          CW.mostrarToast("Inventário registrado.");
-        } else {
-          await A.movimentarEstoque({ produto_id: movAlvo.produto_id, cor: movAlvo.cor, tipo: t, kg, pedido_numero: pedido || null, documento: $("#mov-doc").value, obs: $("#mov-obs").value });
-          CW.mostrarToast(t === "entrada" ? "Entrada registrada." : "Saída registrada.");
-        }
-        fecharMov(); carregarEstoque();
-      } catch (err) { $("#mov-erro").textContent = err.message; }
-      finally { b.disabled = false; }
-    });
-    $("#estoque-csv").addEventListener("click", () => {
-      const cel = (v) => `"${String(v == null ? "" : v).replace(/"/g, '""')}"`;
-      const n = (v) => String(Math.round(v * 100) / 100).replace(".", ",");
-      const linhas = [["Produto", "Código", "Cor", "Saldo (kg)", "Caixas de 25 kg", "Mínimo (kg)", "Situação", "Última movimentação"]];
-      estoqueFiltrado().forEach((i) => linhas.push([i.nome, i.produto_id, i.cor, n(i.saldo), Math.floor(Math.max(0, i.saldo) / KG_CAIXA), n(i.minimo), SELO_EST[situacao(i)][1], i.ultima ? dataBR(i.ultima) : ""]));
-      const csv = "\ufeff" + linhas.map((l) => l.map(cel).join(";")).join("\r\n");
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
-      a.download = `estoque-policoating-${new Date().toISOString().slice(0, 10)}.csv`;
       document.body.appendChild(a); a.click(); a.remove();
     });
 
@@ -831,8 +620,7 @@
         return `<li data-email="${esc(m.email)}"><span>${icone}${esc(m.email)}${souEu ? " <em>(você)</em>" : ""}</span>
           <div class="equipe-acoes">${souEu ? `<b class="cargo cargo-${m.papel}">${CARGOS[m.papel]}</b>`
             : `${m.papel === "admin" ? "" : `<label class="check-excluir"><input type="checkbox" data-permissao="pode_excluir" ${m.pode_excluir ? "checked" : ""}> Pode excluir pedidos</label>
-               <label class="check-excluir"><input type="checkbox" data-permissao="pode_exportar" ${m.pode_exportar ? "checked" : ""}> Pode exportar clientes</label>
-               <label class="check-excluir"><input type="checkbox" data-permissao="pode_estoque" ${m.pode_estoque ? "checked" : ""}> Pode movimentar estoque</label>`}
+               <label class="check-excluir"><input type="checkbox" data-permissao="pode_exportar" ${m.pode_exportar ? "checked" : ""}> Pode exportar clientes</label>`}
                <select data-cargo aria-label="Cargo de ${esc(m.email)}">${Object.entries(CARGOS).map(([k, v]) => `<option value="${k}" ${k === m.papel ? "selected" : ""}>${v}</option>`).join("")}</select>
                <button type="button" class="perigo" data-remover-membro>Remover</button>`}</div></li>`;
       }).join("");
@@ -848,7 +636,7 @@
     $("#admin-equipe").addEventListener("change", async (e) => {
       const chk = e.target.closest("[data-permissao]");
       if (chk) {
-        const email = chk.closest("[data-email]").dataset.email, oque = { pode_excluir: "excluir pedidos", pode_exportar: "exportar clientes", pode_estoque: "movimentar o estoque" }[chk.dataset.permissao];
+        const email = chk.closest("[data-email]").dataset.email, oque = { pode_excluir: "excluir pedidos", pode_exportar: "exportar clientes" }[chk.dataset.permissao];
         try { await A.permitir(email, chk.dataset.permissao, chk.checked); CW.mostrarToast(chk.checked ? `${email} agora pode ${oque}.` : `${email} não pode mais ${oque}.`); }
         catch (err) { chk.checked = !chk.checked; $("#equipe-erro").textContent = err.message; }
         return;
@@ -866,9 +654,7 @@
       catch (err) { $("#equipe-erro").textContent = err.message; }
     });
 
-    // atalhos: admin.html#vendas (menu) e admin.html#venda=PC-... ; vendedor abre direto nas vendas
-    const h = location.hash;
-    if (h.startsWith("#venda=")) { abrirAba("vendas"); abrirVenda(decodeURIComponent(h.slice(7))); }
-    else if (h === "#vendas" || !ehAdmin) abrirAba("vendas");
+    // vendedor abre direto nos pedidos
+    if (location.hash === "#pedidos" || !ehAdmin) abrirAba("pedidos");
   });
 })();

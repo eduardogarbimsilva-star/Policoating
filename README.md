@@ -4,7 +4,7 @@ Site estático (HTML, CSS e JavaScript puro — sem build, sem servidor) inspira
 com a identidade visual da **Policoating** (tinta eletrostática em pó).
 Funciona como porta de entrada da empresa: mostra a variedade de produtos, a história, recursos úteis e permite ao
 cliente montar o carrinho e **enviar o pedido para o WhatsApp do vendedor**; o pedido fica registrado em Meus pedidos
-e na aba Vendas do painel.
+e na aba Pedidos do painel.
 
 ## Páginas
 
@@ -30,9 +30,9 @@ O layout é responsivo (celular, tablet e computador).
 - **Entrar:** sem senha — a cada acesso um novo código é enviado ao e-mail.
 - **Cadastro:** CNPJ com botão **Buscar** (preenche razão social e endereço pela Receita, via BrasilAPI),
   CPF/CNPJ validados, **CEP que preenche o endereço automaticamente** (ViaCEP), telefone e endereço de entrega.
-- **Minha conta:** **Meus pedidos** (situação, previsão de entrega, chat com o vendedor, cancelamento,
-  reembolso e atendimento) com **Repetir pedido**, edição dos dados e **Favoritos**.
-- Para comprar, o cliente entra na conta e completa o cadastro (faturamento e endereço de entrega).
+- **Minha conta:** **Meus pedidos** (itens, valores, **Repetir pedido** e **Falar sobre este pedido** no WhatsApp),
+  edição dos dados e **Favoritos**.
+- Para enviar pedido, o cliente entra na conta e completa o cadastro (faturamento e endereço de entrega).
 
 ### Modo demonstração x modo real
 
@@ -87,8 +87,8 @@ O site confere os dados antes de salvar, e o banco confere de novo (assim ningu�
   **inscrição estadual** só números ou ISENTO; tamanho máximo em todos os campos.
 - **E-mail digitado errado** (gmial.com, hotmail.con...): o site sugere o correto.
 - O e-mail do cadastro é sempre o do login, e as datas dos pedidos são do servidor.
-- **Pedidos:** até 2.000 caixas ou 50.000 kg sob medida por item; observação até 500 caracteres; preço, estoque
-  e prazo conferidos pelo banco na compra (PARTE L).
+- **Pedidos:** até 2.000 caixas ou 50.000 kg sob medida por item; observação até 500 caracteres; preços
+  conferidos pelo banco ao registrar o pedido (PARTE L).
 
 Cadastros antigos não são bloqueados; as regras valem para novos cadastros e alterações. Se ao rodar a
 PARTE H aparecer erro de "duplicate key", já existem cadastros repetidos: use a consulta do fim da PARTE H
@@ -101,32 +101,22 @@ O bloco "Receba nossa Newsletter" da página inicial grava o e-mail na tabela `n
 Para ver a lista: **Table Editor → newsletter**. Enquanto a tabela não existir, o botão abre o e-mail do cliente
 já preenchido para `contato@...`.
 
-## Quantidade: caixas ou sob medida
+## Quantidade: caixa de 25 kg ou sob medida
 
-Na janela do produto, a **Caixa 25 kg** vem selecionada. O cliente também pode escolher **Sob medida (kg)** e digitar o
-total em quilos; o vendedor confirma a combinação de embalagens. O atalho **Calcular pela área** transforma m² em kg
-(rendimento do produto + 15% de perda) e preenche a quantidade. O carrinho e o pedido mostram o total em kg.
+Todo produto é vendido em **Caixa 25 kg** (padrão) ou **Sob medida (kg)**, em que o cliente digita o total em quilos.
+O atalho **Calcular pela área** transforma m² em kg (rendimento do produto + 15% de perda) e preenche a quantidade.
+O carrinho e o pedido mostram o total em kg e o valor pelo preço por kg. Não há estoque, frete nem prazo pelo site.
 
 ## Como funciona o pedido
 
-1. O cliente abre um produto (fotos, código, marca, preço, estoque e **prazo de entrega pelo CEP**), escolhe
-   embalagem e quantidade e adiciona ao carrinho. Só dá para pedir até o estoque disponível.
-2. No carrinho aparecem o valor estimado e a previsão de entrega. **Enviar pedido pelo WhatsApp** exige conta com
-   cadastro completo: o pedido é **registrado** (Meus pedidos do cliente e aba Vendas da equipe) e o **WhatsApp do
-   vendedor abre sozinho** com o número do pedido, itens, códigos, quantidades, valores, previsão de entrega, dados
-   do cliente e endereço. O banco confere preço e calcula o prazo; se o estoque estiver em uso (PARTES J e K),
-   também confere e reserva o estoque. Sem a PARTE L no banco, o pedido é registrado do jeito antigo.
-3. **Prazo (simulação a partir de Matão-SP):** pedido até 14h em dia útil sai no mesmo dia; depois, no próximo dia
-   útil. Entrega em dias úteis após o envio: região de Matão (CEP 13000–16999) 1–2; resto de SP 2–3; MG, RJ, ES e PR
-   3–5; SC, RS, GO, DF e MS 4–7; MT, TO, BA e SE 6–9; demais do Nordeste 7–11; Norte 9–15. Os valores ficam em
-   [`assets/js/loja.js`](assets/js/loja.js) e na função `prazo_regiao` do banco (PARTE L) — mude nos dois.
-4. Em **Minha conta → Meus pedidos** o cliente acompanha a situação (recebido → preparando o envio → a caminho →
-   entregue), vê itens, valores e previsão, **conversa com o vendedor** pelo chat do pedido e pode **cancelar a
-   compra** (na hora, se ainda não foi confirmada; depois, o vendedor analisa), **pedir reembolso/devolução** ou
-   **falar com o atendimento** (ou abrir o WhatsApp do vendedor). Frete e pagamento são combinados com o vendedor.
-5. A equipe recebe a venda na aba **Vendas** do painel (com aviso no menu), confirma (informando o preço dos itens
-   "a combinar"), marca como enviado (transportadora e rastreio) e como entregue, responde o chat e as
-   solicitações. Cancelamentos devolvem o estoque; no reembolso dá para escolher devolver ao estoque.
+1. O cliente abre um produto (fotos, código, marca, preço por kg), escolhe **Caixa 25 kg** ou **Sob medida** e a
+   quantidade e adiciona ao carrinho.
+2. No carrinho aparece o valor estimado dos produtos (itens "a combinar" ficam de fora). **Enviar pedido pelo
+   WhatsApp** exige conta com cadastro completo: o pedido é **registrado** (Meus pedidos do cliente e aba
+   **Pedidos** do painel) e o **WhatsApp do vendedor abre sozinho** com o número do pedido, itens, códigos,
+   quantidades, valores, dados do cliente e endereço. Frete e pagamento são combinados com o vendedor.
+3. Se não for possível salvar o pedido no banco (por exemplo, sem a PARTE L), o WhatsApp abre mesmo assim, para a
+   venda não se perder.
 
 ## Personalização
 
@@ -154,7 +144,7 @@ da equipe; clientes comuns não veem nem acessam.
 
 **Cargos da equipe:**
 - **Administrador:** tudo (produtos, pedidos, contato e links, galeria e equipe).
-- **Vendedor:** só a **Área do vendedor**, com as abas Pedidos e Clientes (busca, chamar o cliente e planilha de pedidos).
+- **Vendedor:** só a **Área do vendedor**, com as abas Produtos (só promoções), Pedidos e Clientes.
 - **Excluir pedidos:** administradores sempre podem. Vendedores só quando um administrador marca
   **Pode excluir pedidos** na aba Equipe (e pode desmarcar a qualquer momento). O pedido excluído some do painel e
   de Minha conta do cliente. Precisa da **PARTE G** do `setup.sql`.
@@ -162,56 +152,38 @@ da equipe; clientes comuns não veem nem acessam.
   Equipe. Precisa da **PARTE I** do `setup.sql`.
 
 O primeiro administrador é liberado pelo SQL (PARTE D); os demais são adicionados no site, na aba **Equipe**,
-escolhendo o cargo. O pagamento ainda não é feito pelo site: frete e pagamento são combinados no chat do pedido.
+escolhendo o cargo. Nada é pago nem faturado pelo site: o pedido vai para o WhatsApp e o atendimento segue por lá.
 
 **Ativar (uma vez), no Supabase → SQL Editor:**
 1. Cole a **PARTE D** do [`supabase/setup.sql`](supabase/setup.sql) e clique em **Run**.
    Ela cria a tabela `produtos`, a lista `admins` e a pasta de fotos `produtos`.
 2. Na última linha da PARTE D, troque o e-mail de exemplo pelo e-mail da empresa, tire os `--` do começo e rode
    só essa linha. Repita a linha com outros e-mails para liberar mais pessoas.
-3. Entre no site com esse e-mail (código por e-mail), abra o painel e clique em
-   **Importar produtos atuais do site**. A partir daí, tudo é editado pelo painel.
+3. Entre no site com esse e-mail (código por e-mail), abra o painel e cadastre os produtos em **+ Novo produto**.
 
 **Abas do painel:**
 - **Produtos:** veja abaixo.
-- **Vendas (estilo Mercado Livre):** todo pedido enviado pelo site aparece na hora, com aviso no menu (número em vermelho)
-  para vendedores e administradores. Filtros: **Novas**, **Enviar hoje**, **Próximos envios**, **A caminho**,
-  **Entregues**, **Mensagens** (cliente escreveu), **Solicitações** (cancelamento, reembolso, atendimento),
-  **Canceladas** e **Todas**; busca por código, cliente, produto ou cidade; período; "minhas vendas". Mostra
-  faturamento, número de vendas, kg, ticket médio, mais vendidos e ranking por vendedor, e exporta planilha.
-  Cada venda abre com itens e valores, cliente e endereço, WhatsApp do cliente, chat e as ações (confirmar,
-  enviar, entregar, cancelar, responder solicitações; excluir para quem tem permissão). Precisa da **PARTE L**.
+- **Pedidos:** todos os pedidos enviados pelo site, com dados do cliente, itens, códigos, valores, total em kg e
+  observações. Busca por código do pedido, cliente, produto ou cidade, filtro de período, **Copiar código**,
+  **Chamar cliente** (WhatsApp), **Exportar planilha** e **Excluir** (para quem tem permissão).
 - **Clientes:** todos os clientes cadastrados (só a equipe vê; nunca aparecem na parte pública do site).
   Busca por nome, empresa, CPF/CNPJ, e-mail, telefone ou cidade; filtros "compraram nos últimos 30 dias",
   "não compram há mais de 90 dias", "sem pedidos" e "cadastrados nos últimos 30 dias"; ordem por último pedido,
   kg comprados, número de pedidos ou nome. Cada cliente mostra pedidos, total em kg, último pedido e desde quando é
   cliente, com os botões **Ver pedidos** e **WhatsApp**. A planilha de clientes só aparece para quem pode exportar.
-- **Estoque:** saldo em kg (e em caixas de 25 kg) de cada produto e cor, com busca e filtros "abaixo do mínimo",
-  "sem estoque" e "com estoque". Em **Movimentar**: **Entrada** (produção ou compra, com número da NF),
-  **Saída**, **Inventário** (informe a contagem real e o sistema lança a diferença) e **Mínimo** (alerta de
-  reposição). Cada item tem **Histórico** com data, tipo, kg, pedido, documento e quem fez; nada é apagado nem
-  editado, correções entram como inventário. Saídas não deixam o saldo ficar negativo.
-  - **Reserva no pedido:** o pedido enviado pelo site já desconta (reserva) o estoque; se a venda for cancelada ou o pedido
-    excluído, o estoque volta.
-  - **No site:** o cliente vê a quantidade em estoque de cada produto (kg e caixas) e só consegue pedir até o saldo
-    (contando o que já está no carrinho). Produto com saldo zero aparece como **Esgotado**, sem carrinho, com o botão
-    **Avise-me / pedir orçamento** (WhatsApp). Na hora de enviar o pedido o site confere o estoque de novo, e o
-    banco recusa pedido acima do saldo. Enquanto o estoque não tiver nenhuma movimentação, o site não limita nada.
-  - Toda a equipe consulta; movimenta quem é administrador ou tem **Pode movimentar estoque** (aba Equipe).
-    Precisa da **PARTE J** do `setup.sql`.
 - **Contato e links:** WhatsApp dos pedidos, telefone, e-mail, horário, endereço, slogan, redes sociais
   (Instagram, Facebook, WhatsApp Business, YouTube, TikTok, LinkedIn) e lojas (Mercado Livre, Shopee, AliExpress,
   Amazon, Magalu). Cada link só aparece no site depois de preenchido.
 - **Galeria:** enviar, ordenar, legendar e remover as fotos da galeria.
 - **Equipe:** adicionar pessoas como Administrador ou Vendedor, mudar o cargo ou remover o acesso.
 
-Para as abas Contato, Galeria e Equipe, rode também as **PARTES E, F, G, H, I, J, K e L** do `setup.sql`, nessa ordem.
+Para as abas Contato, Galeria e Equipe, rode também as **PARTES E, F, G, H, I e L** do `setup.sql`, nessa ordem (as PARTES J e K, de estoque e vendas, não são mais usadas pelo site).
 
 **Produtos no painel (cada cor é um produto):**
 - **Novo produto:** o **código é gerado pelo sistema** (POL-0001, POL-0002...). Informe **no mínimo 3 fotos**
   (até 10; a primeira é a capa e as setas mudam a ordem; fotos do celular são convertidas), **tipo** e **marca**
   (com **+ Novo** / **+ Nova** para cadastrar outros), nome, **cor**, **descrição**, acabamento, rendimento, cura,
-  densidade, embalagens, destaque e ordem.
+  densidade, destaque e ordem. A embalagem é sempre a caixa de 25 kg (ou sob medida, escolhida pelo cliente).
 - **Preço:** preço por kg (o site mostra também o valor da caixa de 25 kg) e, se quiser, preço promocional com data
   de fim (preço riscado e % de desconto), ou **Valor a combinar com o vendedor**.
 - **Seleção múltipla:** marque vários produtos (ou todos) e aplique de uma vez: promoção em %, remover promoção,
@@ -345,16 +317,9 @@ O guia **"Qual pó usar?"** (em Recursos) usa essas mesmas linhas para indicar p
    profissional (Resend, Brevo ou Amazon SES) em **Authentication → Emails → SMTP Settings**, com remetente do
    domínio da empresa (ex.: `nao-responda@policoating.com.br`) e registros SPF/DKIM no domínio, e aumentar o
    limite em **Authentication → Rate Limits**.
-2. **Parte fiscal (NF-e).** O estoque já guarda o número do documento em cada movimentação e liga a saída ao
-   pedido. O próximo passo é emitir a NF-e por um serviço autorizado (ex.: Focus NFe, eNotas, PlugNotas ou o ERP
-   da empresa), com certificado digital A1 da empresa e os dados fiscais dos produtos (NCM, CFOP, CST/CSOSN) e do
-   cliente (já validados no cadastro). A emissão precisa rodar no servidor (função do Supabase), nunca no navegador.
-3. **Pagamento e frete pelo site.** Hoje são combinados no chat do pedido. Depois: pagamento online (Pix, cartão,
-   boleto por um intermediador como Mercado Pago, Pagar.me ou Asaas) e cálculo de frete real por transportadora,
-   substituindo a simulação de prazo por região.
-4. **Chat em tempo real e avisos por e-mail/WhatsApp.** O chat atualiza a cada poucos segundos com a janela aberta;
-   para avisar o cliente e o vendedor fora do site (nova mensagem, pedido enviado), ligar notificações por e-mail
-   (depende do item 1) e, se quiser, Supabase Realtime.
+2. **Parte fiscal (NF-e)**, quando for o momento: emissão por um serviço autorizado (ex.: Focus NFe, eNotas,
+   PlugNotas ou o ERP da empresa), com certificado digital A1 e os dados fiscais dos produtos (NCM, CFOP,
+   CST/CSOSN). A emissão precisa rodar no servidor (função do Supabase), nunca no navegador.
 
 ## Rodar localmente
 

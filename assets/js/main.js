@@ -160,38 +160,14 @@
   // "Sob medida": o cliente informa o total em kg (qtd = kg). Caixas: qtd = número de caixas.
   const SOB_MEDIDA = "Sob medida";
   const ehSobMedida = (emb) => emb === SOB_MEDIDA;
-  // Estoque: { id: kg }. null = estoque ainda não usado (não limita a compra).
-  let estoqueAtual = null, promessaEstoque = null;
-  function carregarEstoque(forcar) {
-    if (!promessaEstoque || forcar) {
-      promessaEstoque = (window.Catalogo && window.Catalogo.estoquePublico ? window.Catalogo.estoquePublico() : Promise.resolve(null))
-        .then((m) => { estoqueAtual = m; document.dispatchEvent(new CustomEvent("estoque-atualizado")); return m; });
-    }
-    return promessaEstoque;
-  }
-  const controlaEstoque = () => estoqueAtual !== null;
-  const saldoDe = (id) => (controlaEstoque() ? estoqueAtual[id] || 0 : Infinity);
-  const kgNoCarrinho = (id, ignorar) => carrinho.reduce((s, i, k) => s + (i.id === id && k !== ignorar ? kgDoItem(i) : 0), 0);
-  /** Maior quantidade possível para o item (caixas ou kg), pelo estoque que ainda não está no carrinho */
-  function maxPorEstoque(id, emb, ignorar) {
-    const livre = saldoDe(id) - kgNoCarrinho(id, ignorar);
-    if (livre === Infinity) return Infinity;
-    return ehSobMedida(emb) ? Math.floor(livre) : Math.floor(livre / (kgDaEmbalagem(emb) || 1));
-  }
-  const fmtKg = (n) => (Math.round(n * 100) / 100).toLocaleString("pt-BR") + " kg";
-  function htmlEstoque(p) {
-    if (!controlaEstoque()) return "";
-    const kg = saldoDe(p.id);
-    if (kg <= 0) return `<span class="estoque esgotado">Esgotado</span>`;
-    const cx = Math.floor(kg / 25);
-    return `<span class="estoque disponivel">${fmtKg(kg)} em estoque${cx ? ` <small>(≈ ${cx} ${cx === 1 ? "caixa" : "caixas"} de 25 kg)</small>` : ""}</span>`;
-  }
   // limites por item: até 2.000 caixas ou 50.000 kg sob medida (acima disso, o vendedor atende direto)
   const QTD_MAX = { caixas: 2000, kg: 50000 };
   const limitarQtd = (emb, n) => Math.min(ehSobMedida(emb) ? QTD_MAX.kg : QTD_MAX.caixas, Math.max(1, parseInt(n, 10) || 1));
   const kgDaEmbalagem = (emb) => { const m = String(emb || "").match(/(\d+(?:[.,]\d+)?)\s*kg/i); return m ? parseFloat(m[1].replace(",", ".")) : 0; };
   const kgDoItem = (i) => (ehSobMedida(i.embalagem) ? i.qtd : i.qtd * kgDaEmbalagem(i.embalagem));
-  const embalagemPadrao = (p) => p.embalagens.find((e) => kgDaEmbalagem(e) === 25) || p.embalagens[0];
+  // embalagem única: caixa de 25 kg (ou "Sob medida", em kg)
+  const CAIXA = "Caixa 25 kg";
+  const embalagemPadrao = () => CAIXA;
   const descreverQtd = (i) => (ehSobMedida(i.embalagem)
     ? `${i.qtd} kg (quantidade sob medida)`
     : `${i.qtd} × ${i.embalagem}${kgDaEmbalagem(i.embalagem) ? ` (${kgDoItem(i).toLocaleString("pt-BR")} kg)` : ""}`);
@@ -215,22 +191,10 @@
   function adicionarAoCarrinho(id, cor, embalagem, qtd) {
     const p = acharProduto(id, cor);
     if (!p) return false;
-    const item = { id: p.id, cor: p.cores[0].nome, embalagem: embalagem || embalagemPadrao(p), qtd: 1 };
+    const item = { id: p.id, cor: p.cores[0].nome, embalagem: ehSobMedida(embalagem) ? SOB_MEDIDA : CAIXA, qtd: 1 };
     item.qtd = limitarQtd(item.embalagem, qtd);
     const existente = carrinho.find((i) => chaveItem(i) === chaveItem(item));
-    // estoque: só o que ainda está disponível
-    const max = maxPorEstoque(p.id, item.embalagem, existente ? carrinho.indexOf(existente) : -1) - (existente ? 0 : 0);
     const desejado = (existente ? existente.qtd : 0) + item.qtd;
-    if (max !== Infinity && desejado > max) {
-      if (max <= (existente ? existente.qtd : 0) || max < 1) {
-        mostrarToast(saldoDe(p.id) <= 0 ? `<strong>${esc(p.nome)}</strong> está esgotado. Peça um orçamento pelo WhatsApp.` : `Você já tem no carrinho todo o estoque disponível de <strong>${esc(p.nome)}</strong> (${fmtKg(saldoDe(p.id))}).`);
-        return false;
-      }
-      mostrarToast(`Só temos ${fmtKg(saldoDe(p.id))} de <strong>${esc(p.nome)}</strong>. Ajustamos a quantidade ao estoque.`, true);
-      if (existente) existente.qtd = max; else carrinho.push(Object.assign(item, { qtd: max }));
-      salvarCarrinho();
-      return true;
-    }
     if (existente) existente.qtd = limitarQtd(item.embalagem, desejado);
     else carrinho.push(item);
     salvarCarrinho();
@@ -262,7 +226,6 @@
     <div class="resumo"><span>Total de itens</span><strong id="carrinho-total">0</strong></div>
     <div class="resumo-kg" id="carrinho-kg"></div>
     <div class="resumo-valor" id="carrinho-valor"></div>
-    <div class="resumo-prazo" id="carrinho-prazo"></div>
     <div class="campos">
       <div id="carrinho-cliente"></div>
       <textarea id="cliente-obs" rows="2" maxlength="500" placeholder="Observações (opcional)"></textarea>
@@ -298,11 +261,7 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
       const idx = +btn.closest("[data-idx]").dataset.idx;
       const acao = btn.dataset.acao;
       const passo = ehSobMedida(carrinho[idx].embalagem) ? 5 : 1;       // sob medida anda de 5 em 5 kg
-      if (acao === "mais") {
-        const max = maxPorEstoque(carrinho[idx].id, carrinho[idx].embalagem, idx);
-        if (carrinho[idx].qtd + passo > max) { mostrarToast(`Estoque disponível: ${fmtKg(saldoDe(carrinho[idx].id))}.`); carrinho[idx].qtd = Math.max(1, Math.min(max, carrinho[idx].qtd)); }
-        else carrinho[idx].qtd = limitarQtd(carrinho[idx].embalagem, carrinho[idx].qtd + passo);
-      }
+      if (acao === "mais") carrinho[idx].qtd = limitarQtd(carrinho[idx].embalagem, carrinho[idx].qtd + passo);
       if (acao === "menos") carrinho[idx].qtd = limitarQtd(carrinho[idx].embalagem, carrinho[idx].qtd - passo);
       if (acao === "remover") carrinho.splice(idx, 1);
       salvarCarrinho();
@@ -310,10 +269,7 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
     $("#carrinho-itens").addEventListener("change", (e) => {
       if (!e.target.matches("input")) return;
       const idx = +e.target.closest("[data-idx]").dataset.idx;
-      const max = maxPorEstoque(carrinho[idx].id, carrinho[idx].embalagem, idx);
-      let n = limitarQtd(carrinho[idx].embalagem, e.target.value);
-      if (n > max) { n = Math.max(1, max); mostrarToast(`Estoque disponível: ${fmtKg(saldoDe(carrinho[idx].id))}. Ajustamos a quantidade.`); }
-      carrinho[idx].qtd = n;
+      carrinho[idx].qtd = limitarQtd(carrinho[idx].embalagem, e.target.value);
       salvarCarrinho();
     });
   }
@@ -324,16 +280,11 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
     $("#carrinho-total").textContent = totalItens();
     const kg = $("#carrinho-kg");
     if (kg) kg.textContent = carrinho.length ? `≈ ${totalKg().toLocaleString("pt-BR")} kg de tinta` : "";
-    const pz = $("#carrinho-prazo");
-    if (pz) {
-      const perf = (Conta && Conta.perfil) || {}, info = window.Loja && carrinho.length && perf.cep ? window.Loja.prazo(perf.uf, perf.cep) : null;
-      pz.innerHTML = info ? `${ic("relogio")}<span>Envio <strong>${esc(window.Loja.textoEnvio(info.envio))}</strong>. Chega entre <strong>${esc(window.Loja.dataBR(info.entregaMin))}</strong> e <strong>${esc(window.Loja.dataBR(info.entregaMax))}</strong> em ${esc(perf.cidade || "")}/${esc(perf.uf || "")}.<small>Estimativa a partir de Matão-SP (${esc(info.regiao)}).</small></span>` : "";
-    }
     const val = $("#carrinho-valor");
     if (val) {
       const tv = totalValor();
       val.innerHTML = !carrinho.length ? "" : `<span>Total estimado</span><strong>${tv.valor ? formatarPreco(tv.valor) : "—"}</strong>` +
-        (tv.combinar ? `<small>${tv.valor ? "+ " : ""}${tv.combinar} ${tv.combinar === 1 ? "item" : "itens"} com valor a combinar com o vendedor</small>` : `<small>Frete e condições são confirmados pelo vendedor.</small>`);
+        (tv.combinar ? `<small>${tv.valor ? "+ " : ""}${tv.combinar} ${tv.combinar === 1 ? "item" : "itens"} com valor a combinar com o vendedor</small>` : `<small>Valores dos produtos. Condições são combinadas com o vendedor.</small>`);
     }
     $("#btn-finalizar").disabled = carrinho.length === 0;
     renderClienteCarrinho();
@@ -348,15 +299,13 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
         const p = buscarProduto(item.id);
         const cor = p.cores[0], pi = precoInfo(p);
         const sub = pi.tipo === "combinar" ? `<span class="sub-combinar">Valor a combinar</span>` : `<span class="sub-valor">${formatarPreco(pi.efetivo * kgDoItem(item))}${pi.tipo === "promo" ? ` <b class="selo-off">-${pi.desconto}%</b>` : ""}</span>`;
-        const excede = controlaEstoque() && kgNoCarrinho(p.id) > saldoDe(p.id);
         return `
-<div class="item-carrinho${excede ? " sem-estoque" : ""}" data-idx="${idx}">
+<div class="item-carrinho" data-idx="${idx}">
   ${imgProduto(p, cor, FOTO_CARTAO, "mini-foto")}
   <div>
     <h4>${esc(p.nome)}</h4>
     <div class="detalhes"><span class="codigo">Cód. ${esc(p.codigo || p.id)}</span> · ${esc(ehSobMedida(item.embalagem) ? "Quantidade sob medida" : item.embalagem)}</div>
     <div class="detalhes">${sub}${pi.tipo !== "combinar" ? ` <small>(${formatarPreco(pi.efetivo)}/kg)</small>` : ""}</div>
-    ${excede ? `<div class="aviso-estoque">${saldoDe(p.id) <= 0 ? "Esgotado. Remova o item ou peça um orçamento." : `Estoque disponível: ${fmtKg(saldoDe(p.id))}. Diminua a quantidade.`}</div>` : ""}
     <div class="quantidade-linha">
       <div class="quantidade">
         <button data-acao="menos" aria-label="Diminuir">−</button>
@@ -427,8 +376,6 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
     });
     L.push("", `*Total: ${totalKg().toLocaleString("pt-BR")} kg*`);
     if (tv.valor) L.push(`*Valor estimado: ${formatarPreco(tv.valor)}*${tv.combinar ? " + itens a combinar" : ""}`);
-    const pz = window.Loja && p.cep ? window.Loja.prazo(p.uf, p.cep) : null;
-    if (pz) L.push(`Entrega estimada: entre ${window.Loja.dataBR(pz.entregaMin)} e ${window.Loja.dataBR(pz.entregaMax)} (simulação)`);
     L.push("", "*Dados do cliente*");
     if (p.tipo === "pj") L.push(`Empresa: ${p.razao_social}${p.nome_fantasia ? " (" + p.nome_fantasia + ")" : ""}`, `CNPJ: ${p.cnpj}${p.inscricao_estadual ? " | IE: " + p.inscricao_estadual : ""}`, `Responsável: ${p.responsavel}`);
     else L.push(`Nome: ${p.nome}`, `CPF: ${p.cpf}`);
@@ -454,25 +401,13 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
     const btn = $("#btn-finalizar");
     btn.disabled = true; btn.textContent = "Enviando pedido...";
     try {
-      // confere o estoque na hora (outro cliente pode ter comprado)
-      await carregarEstoque(true); renderCarrinho();
-      const acima = carrinho.map((i) => buscarProduto(i.id)).filter((p, k, a) => p && a.indexOf(p) === k && controlaEstoque() && kgNoCarrinho(p.id) > saldoDe(p.id));
-      if (acima.length) {
-        if (janela) janela.close();
-        mostrarToast(`O estoque mudou: ${acima.map((p) => `<strong>${esc(p.nome)}</strong> (${fmtKg(saldoDe(p.id))})`).join(", ")}. Ajuste o carrinho para continuar.`);
-        return;
-      }
       const obs = $("#cliente-obs").value.replace(/\s+/g, " ").trim().slice(0, 500);
       let numero, salvo = true;
       try {
         numero = await window.Loja.criarPedido(carrinho.map((i) => ({ id: i.id, embalagem: i.embalagem, qtd: i.qtd })), obs);
       } catch (e) {
-        if (!e.semFuncao) throw e;
-        // banco sem a PARTE L: registra do jeito antigo
-        numero = numeroLocal();
-        const itens = carrinho.map((i) => { const p = buscarProduto(i.id), pi = precoInfo(p);
-          return { id: i.id, codigo: p.codigo || p.id, nome: p.nome, cor: i.cor, embalagem: i.embalagem, qtd: i.qtd, preco_kg: pi.efetivo || null }; });
-        try { await Conta.registrarPedido({ numero, itens, observacoes: obs }); } catch (e2) { salvo = false; console.warn("Pedido não registrado:", e2.message); }
+        // não conseguiu salvar: o pedido vai pelo WhatsApp mesmo assim (o vendedor não perde a venda)
+        numero = numeroLocal(); salvo = false; console.warn("Pedido não registrado:", e.message);
       }
       const link = linkWhatsApp(mensagemPedido(numero, obs));
       if (janela && !janela.closed) janela.location.href = link;
@@ -480,10 +415,8 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
       carrinho = [];
       $("#cliente-obs").value = "";
       salvarCarrinho();
-      carregarEstoque(true);
       fecharTudo();
-      if (salvo && janela) location.href = "conta.html#compra=" + encodeURIComponent(numero);
-      else mostrarToast(`Pedido <strong>${esc(numero)}</strong> enviado pelo WhatsApp${salvo ? "! Acompanhe em <a href=\"conta.html#pedidos\" style=\"color:var(--destaque)\">Meus pedidos</a>." : "."}`);
+      mostrarToast(`Pedido <strong>${esc(numero)}</strong> enviado pelo WhatsApp${salvo ? "! Ele fica salvo em <a href=\"conta.html#pedidos\" style=\"color:var(--destaque)\">Meus pedidos</a>." : ". (Não foi possível salvá-lo em Meus pedidos agora.)"}`);
     } catch (e) {
       if (janela) janela.close();
       mostrarToast(esc(e.message));
@@ -528,7 +461,7 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
     if (!p) return;
     registrarVisto(p.id);
     const modal = $("#modal-produto");
-    let corSel = p.cores[0], embSel = embalagemPadrao(p);
+    let corSel = p.cores[0], embSel = CAIXA;
     const cat = CATEGORIAS[p.categoria] || {};
 
     modal.innerHTML = `
@@ -549,10 +482,6 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
     <h2>${esc(p.nome)}</h2>
     <p class="codigo-produto">Código: <strong>${esc(p.codigo || p.id)}</strong>${p.marca ? ` · Marca: <strong>${esc(p.marca)}</strong>` : ""}</p>
     <div class="modal-preco">${htmlPreco(p, true)}</div>
-    <p class="modal-estoque" id="modal-estoque">${htmlEstoque(p)}</p>
-    ${window.Loja ? `<div class="simula-prazo"><label for="sim-cep">${ic("local")} Prazo de entrega</label>
-      <div><input id="sim-cep" inputmode="numeric" maxlength="9" placeholder="Seu CEP" value="${esc((Conta && Conta.perfil && Conta.perfil.cep) || "")}"><button type="button" class="btn btn-contorno-azul" id="sim-calcular">Calcular</button></div>
-      <p id="sim-resultado" aria-live="polite"></p></div>` : ""}
     <p class="desc">${esc(p.descricao)}</p>
     <ul class="ficha">
       <li><span>Linha</span><span>${esc(p.linha)}</span></li>
@@ -563,7 +492,7 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
     </ul>
     <div class="campo-titulo">Embalagem</div>
     <div class="seletor-embalagem">
-      ${p.embalagens.slice().sort((x, y) => (x === embSel ? -1 : y === embSel ? 1 : 0)).map((e) => `<button class="${e === embSel ? "ativo" : ""}" data-emb="${esc(e)}">${esc(e)}</button>`).join("")}
+      <button class="ativo" data-emb="${CAIXA}">${CAIXA}</button>
       <button data-emb="${SOB_MEDIDA}" title="Informe a quantidade exata em kg">Sob medida (kg)</button>
     </div>
     <p class="nota-sob-medida" id="nota-sob-medida" hidden>Informe o total em quilos. O vendedor confirma a melhor combinação de embalagens.</p>
@@ -582,11 +511,6 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
       <button class="btn btn-primario" id="modal-add" style="flex:1">Adicionar ao carrinho</button>
     </div>
     <p class="resumo-qtd" id="resumo-qtd"></p>
-    <div class="esgotado-box" id="esgotado-box" hidden>
-      <strong>Produto esgotado no momento.</strong>
-      <span>Fale com o vendedor para saber quando chega ou pedir um orçamento.</span>
-      <button type="button" class="btn btn-whats" data-extra="aviseme">${iconeWhats()} Avise-me / pedir orçamento</button>
-    </div>
     <div class="acoes-extra">
       <button type="button" data-extra="ficha">${ic("documento")}Ficha técnica</button>
       <button type="button" data-extra="orcamento">${ic("conversa")}Pedir orçamento</button>
@@ -596,31 +520,6 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
 </div>`;
 
     $(".fechar", modal).addEventListener("click", fecharTudo);
-    // estoque: mostra a quantidade e só deixa pedir até o saldo (menos o que já está no carrinho)
-    function mostrarDisponibilidade() {
-      if (!modal.classList.contains("aberto") && modal.dataset.produto !== p.id) return;
-      $("#modal-estoque").innerHTML = htmlEstoque(p);
-      const esgotado = controlaEstoque() && saldoDe(p.id) <= 0;
-      $("#esgotado-box").hidden = !esgotado;
-      $("#linha-compra").hidden = esgotado;
-      $(".seletor-embalagem", modal).hidden = esgotado;
-      $$(".campo-titulo", modal).forEach((t) => (t.hidden = esgotado && !t.id));
-      if (!esgotado) atualizarQtd();
-    }
-    modal.dataset.produto = p.id;
-    function simularPrazo() {
-      const cep = ($("#sim-cep", modal) || {}).value || "", res = $("#sim-resultado", modal);
-      if (!res) return;
-      if (cep.replace(/\D/g, "").length !== 8) { res.textContent = cep ? "Digite os 8 números do CEP." : ""; return; }
-      const info = window.Loja.prazo(null, cep);
-      res.innerHTML = info ? `Envio <strong>${esc(window.Loja.textoEnvio(info.envio))}</strong> · chega entre <strong>${esc(window.Loja.dataBR(info.entregaMin))}</strong> e <strong>${esc(window.Loja.dataBR(info.entregaMax))}</strong> <small>(${esc(info.regiao)}, saindo de Matão-SP · simulação)</small>` : "CEP não encontrado.";
-    }
-    if ($("#sim-cep", modal)) {
-      $("#sim-cep", modal).addEventListener("input", (e) => { const d = e.target.value.replace(/\D/g, "").slice(0, 8); e.target.value = d.length > 5 ? d.slice(0, 5) + "-" + d.slice(5) : d; if (d.length === 8) simularPrazo(); });
-      $("#sim-calcular", modal).addEventListener("click", simularPrazo);
-      simularPrazo();
-    }
-    carregarEstoque().then(() => { if (modal.dataset.produto === p.id) mostrarDisponibilidade(); });
     let vista = fotosDe(p).length ? "f0" : "foto";
     const desenharVitrine = () => {
       const alvo = $("#modal-vitrine");
@@ -641,13 +540,8 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
     // quantidade: caixas (padrão) ou kg (sob medida), com o total em kg sempre visível
     const passo = () => (ehSobMedida(embSel) ? 5 : 1);
     function atualizarQtd() {
-      const sob = ehSobMedida(embSel), maxE = maxPorEstoque(p.id, embSel, -1);
-      let n = limitarQtd(embSel, qtd.value);
-      if (maxE !== Infinity && n > maxE) {
-        n = Math.max(1, maxE);
-        if (qtd.value !== "" && +qtd.value > n) { qtd.value = n; mostrarToast(maxE < 1 ? "Estoque desta embalagem já está no seu carrinho." : `Estoque disponível: ${fmtKg(saldoDe(p.id) - kgNoCarrinho(p.id))}${kgNoCarrinho(p.id) ? " (fora o que já está no carrinho)" : ""}.`); }
-      } else if (qtd.value !== "" && +qtd.value > n) { qtd.value = n; mostrarToast(`Máximo de ${n.toLocaleString("pt-BR")} ${sob ? "kg" : "caixas"} por item. Para mais, fale com o vendedor.`); }
-      $("#modal-add").disabled = maxE !== Infinity && maxE < 1;
+      const sob = ehSobMedida(embSel), n = limitarQtd(embSel, qtd.value);
+      if (qtd.value !== "" && +qtd.value > n) { qtd.value = n; mostrarToast(`Máximo de ${n.toLocaleString("pt-BR")} ${sob ? "kg" : "caixas"} por item. Para mais, fale com o vendedor.`); }
       $("#unidade-qtd").textContent = sob ? "(kg)" : "(caixas)";
       $("#nota-sob-medida").hidden = !sob;
       qtd.setAttribute("aria-label", sob ? "Quantidade em kg" : "Quantidade de caixas");
@@ -695,9 +589,7 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
           return;
         }
         const item = { embalagem: embSel, qtd: limitarQtd(embSel, qtd.value) };
-        const msg = tipo === "aviseme"
-          ? `Olá! O produto *${p.nome}* (código ${p.codigo || p.id}) está esgotado no site. Pode me avisar quando chegar ou fazer um orçamento?`
-          : tipo === "orcamento"
+        const msg = tipo === "orcamento"
           ? `Olá! Gostaria de um orçamento do produto *${p.nome}* (código ${p.codigo || p.id}), quantidade: *${descreverQtd(item)}*.`
           : `Olá! Gostaria de receber a ficha técnica (BT) e a FISPQ do produto *${p.nome}*.`;
         window.open(linkWhatsApp(msg), "_blank", "noopener");
@@ -724,9 +616,8 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
   /* ---------- Cartões de produto ---------- */
   function cartaoProduto(p) {
     const cat = CATEGORIAS[p.categoria] || {}, c = p.cores[0], pi = precoInfo(p);
-    const esgotado = controlaEstoque() && saldoDe(p.id) <= 0;
     return `
-<article class="cartao-produto revelar${esgotado ? " esgotado" : ""}" data-id="${esc(p.id)}">
+<article class="cartao-produto revelar" data-id="${esc(p.id)}">
   <div class="vitrine" data-abrir="${esc(p.id)}">
     <span class="etiqueta">${esc(cat.nome || "")}</span>
     ${pi.tipo === "promo" ? `<span class="etiqueta-promo">-${pi.desconto}%</span>` : ""}
@@ -739,10 +630,9 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
     <h3>${esc(p.nome)}</h3>
     <p class="desc">${esc(p.descricao)}</p>
     <div class="cor-cartao"><i style="background:${esc(c.hex)}"></i>${esc(c.nome)}</div>
-    <div class="estoque-cartao" data-estoque-id="${esc(p.id)}">${htmlEstoque(p)}</div>
     <div class="rodape-cartao">
       ${htmlPreco(p)}
-      <button class="btn ${esgotado ? "btn-contorno-azul" : "btn-primario"} btn-add" data-abrir="${esc(p.id)}">${esgotado ? "Ver / Avise-me" : "+ Carrinho"}</button>
+      <button class="btn btn-primario btn-add" data-abrir="${esc(p.id)}">+ Carrinho</button>
     </div>
   </div>
 </article>`;
@@ -849,8 +739,7 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
         // depois de entrar, a pessoa volta para esta página
         a.href = /^[a-z0-9-]+\.html$/.test(pagina) && !["conta.html", "404.html"].includes(pagina) ? "conta.html?voltar=" + pagina : "conta.html";
         const m = a.parentElement.querySelector(".menu-conta"); if (m) m.remove();
-        const d = $(".ponto-notif", a); if (d) d.remove();
-        papelEquipe = null; mostrarLinkPainel(null);
+        mostrarLinkPainel(null);
       }
     });
   }
@@ -879,49 +768,28 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
     menu.innerHTML = `
       <div class="mc-topo"><strong>${esc(Conta.nomeExibicao() || "Minha conta")}</strong><small>${esc(u.email || "")}</small></div>
       <a href="conta.html#resumo">${ic("casa")}Visão geral</a>
-      <a href="conta.html#pedidos">${ic("caixa")}Meus pedidos <b class="badge-menu" data-badge-cliente hidden></b></a>
+      <a href="conta.html#pedidos">${ic("caixa")}Meus pedidos</a>
       <a href="conta.html#favoritos">${ic("coracao")}Favoritos</a>
       <a href="conta.html#dados">${ic("usuario")}Meus dados</a>
-      <a href="admin.html#vendas" class="mc-admin" hidden>${ic("industria")}<span>Painel da empresa</span> <b class="badge-menu" data-badge-equipe hidden></b></a>
+      <a href="admin.html" class="mc-admin" hidden>${ic("industria")}<span>Painel da empresa</span></a>
       <button type="button" data-sair>${ic("sair")}Sair</button>`;
     if (window.Catalogo) window.Catalogo.Admin.meuPapel().then((papel) => {
       const x = $(".mc-admin", menu); if (!x) return;
       x.hidden = !papel;
       if (papel === "vendedor") $("span", x).textContent = "Área do vendedor";
-      papelEquipe = papel;
       mostrarLinkPainel(papel);
-      atualizarNotificacoes();
     }).catch(() => {});
   }
 
-  /* ---------- Notificações (vendas novas, mensagens, solicitações) ---------- */
-  let papelEquipe = null, timerNotif = 0;
-  // vendedores e administradores ganham o atalho "Vendas" no menu principal
+  /* ---------- Atalho do painel no menu (vendedores e administradores) ---------- */
   function mostrarLinkPainel(papel) {
     $$(".menu").forEach((m) => {
       let li = $(".menu-painel", m);
       if (!papel) { if (li) li.remove(); return; }
       if (!li) { li = document.createElement("li"); li.className = "menu-painel"; m.appendChild(li); }
-      li.innerHTML = `<a href="admin.html#vendas">${ic("grafico")}${papel === "admin" ? "Painel" : "Vendas"} <b class="badge-menu" data-badge-equipe hidden></b></a>`;
+      li.innerHTML = `<a href="admin.html">${ic("grafico")}${papel === "admin" ? "Painel" : "Pedidos"}</a>`;
     });
   }
-  function pintarBadges(sel, n, titulo) {
-    $$(sel).forEach((b) => { b.hidden = !n; b.textContent = n > 99 ? "99+" : n; if (titulo) b.title = titulo; });
-  }
-  async function atualizarNotificacoes() {
-    if (!window.Loja || !logado()) return;
-    try {
-      const [eq, cli] = await Promise.all([papelEquipe ? window.Loja.resumoEquipe() : null, window.Loja.resumoCliente()]);
-      const nEq = eq ? (+eq.novas || 0) + (+eq.mensagens || 0) + (+eq.solicitacoes || 0) : 0, nCli = cli ? +cli.mensagens || 0 : 0;
-      pintarBadges("[data-badge-equipe]", nEq, eq ? `${eq.novas} novas vendas · ${eq.enviar_hoje} para enviar hoje · ${eq.mensagens} com mensagem · ${eq.solicitacoes} solicitações` : "");
-      pintarBadges("[data-badge-cliente]", nCli, "Mensagens novas nas suas compras");
-      $$(".link-conta").forEach((a) => { let d = $(".ponto-notif", a); if (!d) { d = document.createElement("span"); d.className = "ponto-notif"; a.appendChild(d); } d.hidden = !(nEq + nCli); d.textContent = nEq + nCli > 99 ? "99+" : nEq + nCli; });
-      document.dispatchEvent(new CustomEvent("notificacoes", { detail: { equipe: eq, cliente: cli } }));
-    } catch (e) { /* tenta de novo no próximo ciclo */ }
-    clearTimeout(timerNotif);
-    timerNotif = setTimeout(atualizarNotificacoes, 45000);
-  }
-  document.addEventListener("notificacoes-atualizar", () => atualizarNotificacoes());
 
   /* ---------- Inicialização ---------- */
   document.addEventListener("DOMContentLoaded", () => {
@@ -932,7 +800,6 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
     atualizarContador(false);
     observarRevelar();
     avisoLgpd();
-    carregarEstoque();
     if (location.hash.startsWith("#produto=")) abrirProduto(decodeURIComponent(location.hash.slice(9)));
     if (Conta) {
       Conta.aoMudar(() => { atualizarCabecalhoConta(); renderClienteCarrinho(); });
@@ -945,18 +812,6 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
     }
   });
 
-  // estoque carregado: atualiza os cartões e o carrinho
-  document.addEventListener("estoque-atualizado", () => {
-    $$("[data-estoque-id]").forEach((el) => {
-      const p = buscarProduto(el.dataset.estoqueId); if (!p) return;
-      el.innerHTML = htmlEstoque(p);
-      const cartao = el.closest(".cartao-produto"), esgotado = controlaEstoque() && saldoDe(p.id) <= 0, b = cartao && $(".btn-add", cartao);
-      if (cartao) cartao.classList.toggle("esgotado", esgotado);
-      if (b) { b.textContent = esgotado ? "Ver / Avise-me" : "+ Carrinho"; b.classList.toggle("btn-primario", !esgotado); b.classList.toggle("btn-contorno-azul", esgotado); }
-    });
-    renderCarrinho();
-  });
-
   /* API pública usada pelas páginas */
-  window.ColorWeg = { acharProduto, precoInfo, htmlPreco, formatarPreco, carregarEstoque, saldoDe: (id) => saldoDe(id), controlaEstoque: () => controlaEstoque(), descreverQtd, kgDoItem, embalagemPadrao, lerVistos, iconeWhats, totalItens: () => totalItens(), itensCarrinho: () => carrinho.slice(), fotoProduto, imgProduto, lerFavoritos, alternarFavorito, gravarStorage, lerStorage, buscarProduto, $, $$, caixaSVG, renderProdutos, abrirProduto, adicionarAoCarrinho, linkWhatsApp, ehEscura, esc, observarRevelar, mostrarToast, abrirCarrinho };
+  window.ColorWeg = { acharProduto, precoInfo, htmlPreco, formatarPreco, descreverQtd, kgDoItem, embalagemPadrao, lerVistos, iconeWhats, totalItens: () => totalItens(), itensCarrinho: () => carrinho.slice(), fotoProduto, imgProduto, lerFavoritos, alternarFavorito, gravarStorage, lerStorage, buscarProduto, $, $$, caixaSVG, renderProdutos, abrirProduto, adicionarAoCarrinho, linkWhatsApp, ehEscura, esc, observarRevelar, mostrarToast, abrirCarrinho };
 })();

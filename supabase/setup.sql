@@ -856,7 +856,10 @@ end $$;
 revoke all on function public._msg_sistema(text, text) from public, anon, authenticated;
 revoke all on function public._estornar(text, text) from public, anon, authenticated;
 
--- Compra: [{ "id", "embalagem", "qtd" }] -> número do pedido
+-- Sem estoque no site: remove a trava de estoque dos pedidos (PARTE K), se ela existir
+drop trigger if exists pedidos_conferir_estoque on public.pedidos;
+
+-- Pedido: [{ "id", "embalagem", "qtd" }] -> número do pedido (o site envia o pedido ao WhatsApp em seguida)
 create or replace function public.criar_pedido(p_itens jsonb, p_obs text default null)
 returns text language plpgsql security definer set search_path = public as $$
 declare
@@ -864,12 +867,7 @@ declare
   v_emb text; v_qtd int; v_kg numeric; v_preco numeric; v_promo numeric; v_efetivo numeric;
   v_itens jsonb := '[]'; v_total numeric := 0; v_total_kg numeric := 0; v_combinar boolean := false;
   v_numero text; v_prazo record; v_envio date; v_hoje date := (now() at time zone 'America/Sao_Paulo')::date;
-  v_estoque boolean := false; r record; v_saldo numeric;
 begin
-  -- o estoque só é conferido e reservado se as PARTES J e K já foram rodadas e o estoque está em uso
-  if to_regclass('public.estoque_movimentos') is not null then
-    v_estoque := exists (select 1 from public.estoque_movimentos);
-  end if;
   if v_uid is null then raise exception 'Entre na sua conta para comprar.'; end if;
   select * into v_cli from public.clientes where id = v_uid;
   if not found or coalesce(v_cli.cep, '') = '' or coalesce(v_cli.uf, '') = '' then
@@ -899,16 +897,6 @@ begin
       'foto', coalesce(d -> 'fotos' ->> 0, d -> 'cores' -> 0 ->> 'foto'));
   end loop;
 
-  -- estoque (quando em uso): confere e reserva, com trava por produto
-  if v_estoque then
-    for r in select e ->> 'id' as id, max(e ->> 'cor') as cor, max(e ->> 'nome') as nome, sum((e ->> 'kg')::numeric) as kg
-             from jsonb_array_elements(v_itens) e group by e ->> 'id' order by 1 loop
-      perform pg_advisory_xact_lock(hashtext(r.id || '|' || r.cor));
-      select coalesce(sum(case when tipo = 'saida' then -kg else kg end), 0) into v_saldo from public.estoque_movimentos where produto_id = r.id;
-      if r.kg > v_saldo then raise exception 'Estoque insuficiente para %: disponível % kg.', r.nome, greatest(v_saldo, 0); end if;
-    end loop;
-  end if;
-
   loop
     v_numero := 'PC-' || to_char(now() at time zone 'America/Sao_Paulo', 'YYMMDD') || '-' || upper(substr(md5(random()::text || clock_timestamp()::text), 1, 5));
     exit when not exists (select 1 from public.pedidos where numero = v_numero);
@@ -919,14 +907,6 @@ begin
   values (v_numero, v_uid, v_itens, left(nullif(btrim(p_obs), ''), 500), 'recebido', v_total, v_total_kg, v_combinar,
     v_cli.uf, v_cli.cep, v_cli.cidade, v_envio, public.somar_dias_uteis(v_envio, v_prazo.dias_min), public.somar_dias_uteis(v_envio, v_prazo.dias_max));
 
-  if v_estoque then
-    insert into public.estoque_movimentos (produto_id, cor, tipo, kg, pedido_numero, obs)
-    select e ->> 'id', max(e ->> 'cor'), 'saida', sum((e ->> 'kg')::numeric), v_numero, 'Reserva da compra'
-    from jsonb_array_elements(v_itens) e group by e ->> 'id';
-  end if;
-  perform public._msg_sistema(v_numero, 'Pedido recebido. Envio previsto: ' || to_char(v_envio, 'DD/MM') ||
-    '. Entrega estimada entre ' || to_char(public.somar_dias_uteis(v_envio, v_prazo.dias_min), 'DD/MM') || ' e ' ||
-    to_char(public.somar_dias_uteis(v_envio, v_prazo.dias_max), 'DD/MM') || '.');
   return v_numero;
 end $$;
 revoke all on function public.criar_pedido(jsonb, text) from public;

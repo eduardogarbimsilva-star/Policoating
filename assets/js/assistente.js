@@ -322,7 +322,7 @@
     if (add) {
       const p = CW().buscarProduto(add.dataset.add);
       const ok = CW().adicionarAoCarrinho(p.id, add.dataset.cor, CW().embalagemPadrao(p), 1);
-      add.textContent = ok === false ? "Sem estoque" : "Adicionado ✓";
+      add.textContent = ok === false ? "Indisponível" : "Adicionado ✓";
       add.disabled = true;
       return;
     }
@@ -344,7 +344,7 @@
         if (p) {
           const ok = CW().adicionarAoCarrinho(p.id, p.cores[0].nome, CW().embalagemPadrao(p), 1);
           adicionar(ok !== false ? { de: "bot", texto: `Adicionei **${p.nome}** ao carrinho. Ajuste a quantidade no carrinho, se precisar.`, acoes: ["carrinho"] }
-            : { de: "bot", texto: `**${p.nome}** está sem estoque disponível agora. Posso te colocar em contato com o vendedor para um orçamento.` });
+            : { de: "bot", texto: `**${p.nome}** não está disponível no site agora. Posso te colocar em contato com o vendedor.` });
         }
         return;
       }
@@ -437,9 +437,9 @@
       const sob = !q.qtd && q.kg, emb = sob ? "Sob medida" : CW().embalagemPadrao(achado.p), n = sob ? q.kg : q.qtd;
       const ok = CW().adicionarAoCarrinho(achado.p.id, achado.cor.nome, emb, n);
       contexto.produto = achado.p.id;
-      if (ok === false) return { texto: `**${achado.p.nome}** está sem estoque disponível agora. Quer falar com o vendedor para um orçamento?`, produtos: [{ id: achado.p.id, cor: achado.cor.nome }], acoes: ["whatsapp"] };
+      if (ok === false) return { texto: `**${achado.p.nome}** não está disponível no site agora. Quer falar com o vendedor?`, produtos: [{ id: achado.p.id, cor: achado.cor.nome }], acoes: ["whatsapp"] };
       const desc = sob ? `${n} kg de ${achado.p.nome} (quantidade sob medida)` : `${n} × ${achado.p.nome}, ${emb}`;
-      return { texto: `Coloquei no carrinho: **${desc}**${CW().controlaEstoque() ? " (conferido com o estoque)" : ""}. Quer revisar e enviar ao vendedor?`, produtos: [{ id: achado.p.id, cor: achado.cor.nome }], acoes: ["carrinho", "whatsapp"] };
+      return { texto: `Coloquei no carrinho: **${desc}**. Quer revisar e enviar ao vendedor?`, produtos: [{ id: achado.p.id, cor: achado.cor.nome }], acoes: ["carrinho", "whatsapp"] };
     }
 
     if (intencao === "carrinho") {

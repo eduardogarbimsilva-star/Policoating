@@ -92,7 +92,7 @@
       <div class="container">
         <div class="migalhas"><a href="index.html">Início</a> / <a href="conta.html">Minha conta</a> / Painel da empresa</div>
         <h1>Painel da empresa</h1>
-        <p>Produtos, pedidos, vendas, clientes, estoque, contato, galeria e equipe da Policoating em um só lugar.</p>
+        <p>Produtos, pedidos, clientes, contato, galeria e equipe da Policoating em um só lugar.</p>
       </div>
     </section>
 
@@ -119,9 +119,8 @@
 
           <nav class="admin-abas" role="tablist" aria-label="Seções do painel">
             <button type="button" role="tab" data-aba="produtos" class="ativo"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5M12 13v8"/></svg> Produtos</button>
-            <button type="button" role="tab" data-aba="vendas"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16"/><path d="M7 16v-5M12 16V6M17 16v-8"/></svg> Vendas</button>
+            <button type="button" role="tab" data-aba="pedidos"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h2l2.4 11h11L21 8H6.2"/><circle cx="9.5" cy="19.5" r="1.5"/><circle cx="17.5" cy="19.5" r="1.5"/></svg> Pedidos</button>
             <button type="button" role="tab" data-aba="clientes"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg> Clientes</button>
-            <button type="button" role="tab" data-aba="estoque"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5M12 13v8"/></svg> Estoque</button>
             <button type="button" role="tab" data-aba="contato"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/></svg> Contato e links</button>
             <button type="button" role="tab" data-aba="galeria"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18c1.1 0 2-.9 2-2 0-.5-.2-1-.5-1.3-.3-.4-.5-.8-.5-1.2 0-1.1.9-2 2-2h2.4A4.6 4.6 0 0 0 22 10c0-3.9-4.5-7-10-7"/><circle cx="7.5" cy="11.5" r="1"/><circle cx="10.5" cy="7.5" r="1"/><circle cx="15.5" cy="7.5" r="1"/></svg> Galeria</button>
             <button type="button" role="tab" data-aba="equipe"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg> Equipe</button>
@@ -159,47 +158,33 @@
           </div>
           <div class="tabela-rolagem">
             <table class="admin-tabela">
-              <thead><tr><th class="col-sel"><input type="checkbox" id="sel-todos" aria-label="Selecionar todos"></th><th>Produto</th><th>Tipo e marca</th><th>Preço (kg)</th><th>Estoque</th><th>Situação</th><th><span class="sr">Ações</span></th></tr></thead>
+              <thead><tr><th class="col-sel"><input type="checkbox" id="sel-todos" aria-label="Selecionar todos"></th><th>Produto</th><th>Tipo e marca</th><th>Preço (kg)</th><th>Situação</th><th><span class="sr">Ações</span></th></tr></thead>
               <tbody id="admin-lista"></tbody>
             </table>
           </div>
           </div>
 
-          <!-- Vendas (estilo Mercado Livre) -->
-          <div class="admin-aba" data-conteudo="vendas" hidden>
-            <div class="vendas-kpis" id="vendas-kpis"></div>
-            <nav class="vendas-filtros" id="vendas-filtros" role="tablist" aria-label="Situação das vendas"></nav>
+          <!-- Pedidos -->
+          <div class="admin-aba" data-conteudo="pedidos" hidden>
             <div class="busca-pedidos">
-              <label for="vendas-busca">Buscar venda</label>
+              <label for="pedidos-busca">Buscar pedido</label>
               <div class="busca-pedidos-linha">
-                <input type="search" id="vendas-busca" placeholder="Código do pedido (PC-...), cliente, produto ou cidade" autocomplete="off">
-                <select id="vendas-periodo" aria-label="Período">
-                  <option value="hoje">Hoje</option><option value="7">Últimos 7 dias</option><option value="30">Últimos 30 dias</option>
-                  <option value="mes">Este mês</option><option value="90">Últimos 90 dias</option><option value="ano">Este ano</option><option value="0" selected>Todo o período</option>
-                </select>
-                <select id="vendas-dono" aria-label="Vendedor">
-                  <option value="">Todas as vendas</option><option value="minhas">Minhas vendas</option><option value="livres">Sem vendedor (novas)</option>
+                <input type="search" id="pedidos-busca" placeholder="Código do pedido (ex.: PC-260926-AB12), cliente ou produto" autocomplete="off">
+                <select id="pedidos-periodo" aria-label="Período">
+                  <option value="0">Todo o período</option><option value="7">Últimos 7 dias</option><option value="30">Últimos 30 dias</option><option value="90">Últimos 90 dias</option><option value="365">Último ano</option>
                 </select>
               </div>
-              <small>Toda compra feita no site aparece aqui na hora. Abra a venda para confirmar, marcar envio e entrega, conversar com o cliente e responder cancelamentos, reembolsos e pedidos de atendimento.</small>
+              <small>Todos os pedidos enviados pelo site (eles também chegam no WhatsApp). Também encontra por empresa, CNPJ/CPF, telefone, cidade, produto ou código do produto.</small>
             </div>
             <div class="admin-barra">
-              <div class="pedidos-resumo" id="vendas-resumo"></div>
+              <div class="pedidos-resumo" id="pedidos-resumo"></div>
               <div class="admin-acoes">
-                <button type="button" class="btn btn-contorno-azul" id="vendas-atualizar">Atualizar</button>
-                <button type="button" class="btn btn-primario" id="vendas-csv"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg> Exportar planilha</button>
+                <button type="button" class="btn btn-contorno-azul" id="pedidos-atualizar">Atualizar</button>
+                <button type="button" class="btn btn-primario" id="pedidos-csv"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg> Exportar planilha</button>
               </div>
             </div>
-            <div class="vendas-grade">
-              <div class="vendas-lista" id="vendas-lista"></div>
-              <aside class="vendas-lado">
-                <h3>Mais vendidos</h3>
-                <ol class="ranking" id="vendas-ranking"></ol>
-                <h3>Por vendedor</h3>
-                <ol class="ranking" id="vendas-vendedores"></ol>
-              </aside>
-            </div>
-            <p class="form-erro" id="vendas-erro" role="alert"></p>
+            <div class="admin-pedidos" id="admin-pedidos"></div>
+            <p class="form-erro" id="pedidos-erro" role="alert"></p>
           </div>
 
           <!-- Clientes -->
@@ -234,38 +219,6 @@
             </div>
             <div class="admin-clientes" id="admin-clientes"></div>
             <p class="form-erro" id="clientes-erro" role="alert"></p>
-          </div>
-
-          <!-- Estoque -->
-          <div class="admin-aba" data-conteudo="estoque" hidden>
-            <div class="pedidos-resumo" id="estoque-resumo"></div>
-            <div class="busca-pedidos">
-              <label for="estoque-busca">Buscar no estoque</label>
-              <div class="busca-pedidos-linha">
-                <input type="search" id="estoque-busca" placeholder="Produto, linha ou cor (ex.: RAL 9005)" autocomplete="off">
-                <select id="estoque-filtro" aria-label="Filtrar estoque">
-                  <option value="">Todos os itens</option>
-                  <option value="baixo">Abaixo do mínimo</option>
-                  <option value="zerado">Sem estoque</option>
-                  <option value="com">Com estoque</option>
-                </select>
-              </div>
-              <small>Saldo em kg por produto e cor. O estoque é reservado na hora da compra pelo site e volta se a venda for cancelada.</small>
-            </div>
-            <div class="admin-barra">
-              <p class="dica" style="margin:0;flex:1" id="estoque-permissao"></p>
-              <div class="admin-acoes">
-                <button type="button" class="btn btn-contorno-azul" id="estoque-historico">Histórico</button>
-                <button type="button" class="btn btn-primario" id="estoque-csv"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg> Exportar planilha</button>
-              </div>
-            </div>
-            <div class="tabela-rolagem">
-              <table class="admin-tabela tabela-estoque">
-                <thead><tr><th>Produto e cor</th><th>Saldo</th><th>Mínimo</th><th>Situação</th><th><span class="sr">Ações</span></th></tr></thead>
-                <tbody id="estoque-lista"></tbody>
-              </table>
-            </div>
-            <p class="form-erro" id="estoque-erro" role="alert"></p>
           </div>
 
           <!-- Contato e links -->
@@ -321,8 +274,8 @@
           <!-- Equipe -->
           <div class="admin-aba" data-conteudo="equipe" hidden>
             <div class="cargos-info">
-              <div><b class="cargo cargo-admin">Administrador</b><span>Tudo: produtos e preços, pedidos (inclusive excluir), todas as vendas (inclusive cancelar), clientes (inclusive exportar), estoque, contato e links, galeria e equipe.</span></div>
-              <div><b class="cargo cargo-vendedor">Vendedor</b><span>Vendas (confirmar, enviar, conversar com o cliente, responder cancelamentos e reembolsos), promoções, clientes e consulta do estoque. Exclui pedidos, exporta clientes e movimenta o estoque só se o administrador liberar.</span></div>
+              <div><b class="cargo cargo-admin">Administrador</b><span>Tudo: produtos e preços, pedidos (inclusive excluir), clientes (inclusive exportar), contato e links, galeria e equipe.</span></div>
+              <div><b class="cargo cargo-vendedor">Vendedor</b><span>Pedidos feitos pelo site, promoções e clientes. Exclui pedidos e exporta clientes só se o administrador liberar.</span></div>
             </div>
             <p class="dica">A pessoa entra no site com o próprio e-mail (código de acesso) e vê o botão "Painel da empresa" no menu da conta.</p>
             <form class="admin-barra" id="form-equipe" novalidate>
@@ -336,39 +289,6 @@
         </div>
       </div>
     </section>
-
-    <!-- Movimentação de estoque -->
-    <div class="admin-modal" id="modal-estoque" role="dialog" aria-modal="true" aria-labelledby="mov-titulo" hidden>
-      <form class="admin-form form-estoque" id="form-estoque" novalidate>
-        <header>
-          <h2 id="mov-titulo">Movimentar estoque</h2>
-          <button type="button" class="fechar" data-fechar-mov aria-label="Fechar">×</button>
-        </header>
-        <div class="admin-form-corpo">
-          <p class="mov-item" id="mov-item"></p>
-          <div class="mov-tipos" role="radiogroup" aria-label="Tipo">
-            <label><input type="radio" name="mov-tipo" value="entrada" checked><span><b>Entrada</b>Produção ou compra</span></label>
-            <label><input type="radio" name="mov-tipo" value="saida"><span><b>Saída</b>Venda ou uso</span></label>
-            <label><input type="radio" name="mov-tipo" value="ajuste"><span><b>Inventário</b>Contagem real</span></label>
-            <label><input type="radio" name="mov-tipo" value="minimo"><span><b>Mínimo</b>Alerta de reposição</span></label>
-          </div>
-          <div class="grade-campos">
-            <label id="mov-rotulo-kg">Quantidade (kg) *<input type="number" id="mov-kg" min="0" step="0.01" inputmode="decimal"><small id="mov-dica-kg"></small></label>
-            <label id="mov-rotulo-caixas">Ou em caixas de 25 kg<input type="number" id="mov-caixas" min="0" step="1" inputmode="numeric"></label>
-            <label id="mov-rotulo-doc">Documento (NF, lote...)<input id="mov-doc" maxlength="60" placeholder="Ex.: NF 1234"></label>
-            <label id="mov-rotulo-pedido">Pedido do site (opcional)<input id="mov-pedido" maxlength="20" placeholder="PC-260926-AB12"></label>
-            <label class="largo" id="mov-rotulo-obs">Observação<input id="mov-obs" maxlength="300"></label>
-          </div>
-          <p class="resumo-qtd" id="mov-resumo" aria-live="polite"></p>
-          <div id="mov-historico"></div>
-          <p class="form-erro" id="mov-erro" role="alert"></p>
-        </div>
-        <footer>
-          <button type="button" class="btn btn-contorno-azul" data-fechar-mov>Cancelar</button>
-          <button type="submit" class="btn btn-primario" id="mov-salvar">Registrar</button>
-        </footer>
-      </form>
-    </div>
 
     <!-- Formulário do produto -->
     <div class="admin-modal" id="admin-modal" role="dialog" aria-modal="true" aria-labelledby="form-titulo" hidden>
@@ -406,7 +326,6 @@
             <label>Rendimento<input name="rendimento" maxlength="60" placeholder="≈ 9,5 m²/kg a 70 µm"></label>
             <label>Cura<input name="cura" maxlength="60" placeholder="10 min a 200 °C"></label>
             <label>Densidade (g/cm³)<input name="densidade" type="number" step="0.01" min="0.5" max="5"></label>
-            <label>Embalagens *<input name="embalagens" required placeholder="Caixa 25 kg, Caixa 20 kg"><small>Separe por vírgula.</small></label>
           </div>
 
           <fieldset class="campo-preco">
@@ -512,18 +431,17 @@
 
   <script src="assets/js/config.js?v=fa69da5c"></script>
   <script src="assets/js/produtos.js?v=efe7e02f"></script>
-  <script src="assets/js/catalogo.js?v=a7176e9e"></script>
+  <script src="assets/js/catalogo.js?v=6f1f55db"></script>
   <script src="assets/js/icones.js?v=0f357f8d"></script>
   <script src="assets/js/midia.js?v=781286f8"></script>
   <script src="assets/js/fotos-reais.js?v=cd443528"></script>
   <script src="assets/js/fotos.js?v=48f81340"></script>
   <script src="assets/js/auth.js?v=c2d181c9"></script>
-  <script src="assets/js/loja.js?v=073097c8"></script>
-  <script src="assets/js/main.js?v=60d052c6"></script>
+  <script src="assets/js/loja.js?v=7ea47fbc"></script>
+  <script src="assets/js/main.js?v=eb87682f"></script>
   <script src="assets/js/animacoes.js?v=d458c529"></script>
   <script src="assets/js/secoes.js?v=41fcffcd"></script>
-  <script src="assets/js/assistente.js?v=70b50a87"></script>
-  <script src="assets/js/pedido-ui.js?v=b26bb2a0"></script>
-  <script src="assets/js/admin.js?v=ecce8b28"></script>
+  <script src="assets/js/assistente.js?v=01e6f90f"></script>
+  <script src="assets/js/admin.js?v=a2dce17b"></script>
 </body>
 </html>

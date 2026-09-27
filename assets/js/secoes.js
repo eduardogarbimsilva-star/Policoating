@@ -40,7 +40,7 @@
 
   function iniciarCarrosselTipos(raiz) {
     const trilho = $(".carrossel-trilho", raiz);
-    const cards = Object.keys(window.CATEGORIAS || {}).map((k) => cartaoTipo(k, CATEGORIAS[k])).join("");
+    const cards = Object.keys(window.CATEGORIAS || {}).filter((k) => !CATEGORIAS[k].extra).map((k) => cartaoTipo(k, CATEGORIAS[k])).join("");
     // Conteúdo duplicado para o giro contínuo
     trilho.innerHTML = cards + cards.replace(/<article class="tipo-card">/g, '<article class="tipo-card" aria-hidden="true">');
     let pausado = menosMovimento, ultimo = 0, resto = 0;

@@ -22,7 +22,7 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Barlow:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/style.css?v=4e025b18">
+  <link rel="stylesheet" href="assets/css/style.css?v=c053b28d">
 </head>
 <body>
   <a class="pular" href="#conteudo">Pular para o conteúdo</a>
@@ -318,17 +318,18 @@
   </footer>
 
   <script src="assets/js/config.js?v=fa69da5c"></script>
-  <script src="assets/js/produtos.js?v=ca9df86d"></script>
-  <script src="assets/js/catalogo.js?v=3ae82e11"></script>
+  <script src="assets/js/produtos.js?v=efe7e02f"></script>
+  <script src="assets/js/catalogo.js?v=a7176e9e"></script>
   <script src="assets/js/icones.js?v=0f357f8d"></script>
   <script src="assets/js/midia.js?v=781286f8"></script>
   <script src="assets/js/fotos-reais.js?v=cd443528"></script>
   <script src="assets/js/fotos.js?v=48f81340"></script>
   <script src="assets/js/auth.js?v=c2d181c9"></script>
-  <script src="assets/js/main.js?v=dbcc6e7c"></script>
+  <script src="assets/js/loja.js?v=862b0954"></script>
+  <script src="assets/js/main.js?v=241d6053"></script>
   <script src="assets/js/animacoes.js?v=d458c529"></script>
-  <script src="assets/js/secoes.js?v=eb62ee0a"></script>
-  <script src="assets/js/assistente.js?v=70b50a87"></script>
+  <script src="assets/js/secoes.js?v=41fcffcd"></script>
+  <script src="assets/js/assistente.js?v=d4547090"></script>
   <script>
     document.addEventListener("DOMContentLoaded", function () {
       var CW = window.ColorWeg;
@@ -336,10 +337,19 @@
       var fmt = function (n, d) { return n.toLocaleString("pt-BR", { maximumFractionDigits: d == null ? 1 : d }); };
 
       /* ---------- Calculadora de consumo de pó ---------- */
-      var produtosCalc = PRODUTOS.filter(function (p) { return p.densidade; });
-      $("c-produto").innerHTML = produtosCalc.map(function (p, i) {
-        return '<option value="' + i + '">' + CW.esc(p.nome) + ' (' + String(p.densidade).replace(".", ",") + ' g/cm³)</option>';
-      }).join("");
+      // produtos com densidade; sem nenhum cadastrado, usa a densidade média da tinta em pó
+      var GENERICO = { id: null, nome: "Tinta em pó (densidade média)", densidade: 1.5, embalagens: ["Caixa 25 kg", "Caixa 20 kg"] };
+      var produtosCalc = [];
+      function montarProdutos() {
+        var antes = $("c-produto").value;
+        produtosCalc = PRODUTOS.filter(function (p) { return p.densidade; });
+        if (!produtosCalc.length) produtosCalc = [GENERICO];
+        $("c-produto").innerHTML = produtosCalc.map(function (p, i) {
+          return '<option value="' + i + '">' + CW.esc(p.nome) + ' (' + String(p.densidade).replace(".", ",") + ' g/cm³)</option>';
+        }).join("");
+        if (antes && produtosCalc[+antes]) $("c-produto").value = antes;
+      }
+      montarProdutos();
 
       // Tamanhos de caixa em kg, a partir do texto ("Caixa 25 kg" -> 25)
       function tamanhos(p) {
@@ -374,7 +384,7 @@
         $("r-caixas").innerHTML = sugestao.length
           ? sugestao.map(function (s) { return "<li><span>" + CW.esc(s[0].rotulo) + "</span><strong>" + s[1] + "x</strong></li>"; }).join("")
           : "<li><span>Informe os dados do lote</span></li>";
-        $("r-add").disabled = !sugestao.length;
+        $("r-add").disabled = !sugestao.length || !p.id;
       }
       document.querySelectorAll("#form-calc input, #form-calc select").forEach(function (el) { el.addEventListener("input", calcular); });
       $("r-add").addEventListener("click", function () {
@@ -383,20 +393,30 @@
         CW.abrirCarrinho();
       });
       calcular();
+      document.addEventListener("catalogo-atualizado", function () { montarProdutos(); calcular(); });
 
       /* ---------- Simulador ---------- */
-      var cores = [];
-      PRODUTOS.forEach(function (p) {
-        p.cores.forEach(function (c) {
-          if (p.familia !== "cor-especial" && p.id !== "cor-especial" && !cores.some(function (x) { return x.hex.toLowerCase() === c.hex.toLowerCase(); }))
-            cores.push({ nome: c.nome, hex: c.hex, produto: p });
+      // cores dos produtos cadastrados; sem produtos, uma paleta RAL de referência
+      var RAL = [["Branco RAL 9010", "#F1ECE1"], ["Branco Tráfego RAL 9016", "#F1F0EA"], ["Preto RAL 9005", "#0E0E10"], ["Grafite RAL 7024", "#474A50"],
+        ["Cinza Antracite RAL 7016", "#383E42"], ["Cinza Claro RAL 7035", "#C5C7C4"], ["Azul Genciana RAL 5010", "#0E4C92"], ["Vermelho Fogo RAL 3000", "#A72920"],
+        ["Amarelo Sinal RAL 1003", "#F2A900"], ["Verde Musgo RAL 6005", "#114232"], ["Bronze RAL 8019", "#3D3635"], ["Marrom RAL 8017", "#44322D"]];
+      var cores = [], escolhida = null;
+      function montarPaleta() {
+        cores = [];
+        PRODUTOS.forEach(function (p) {
+          p.cores.forEach(function (c) {
+            if (p.familia !== "cor-especial" && p.id !== "cor-especial" && !cores.some(function (x) { return x.hex.toLowerCase() === c.hex.toLowerCase(); }))
+              cores.push({ nome: c.nome, hex: c.hex, produto: p });
+          });
         });
-      });
-      cores = cores.slice(0, 25);
-      var escolhida = null;
-      $("paleta").innerHTML = cores.map(function (c, i) {
-        return '<button data-i="' + i + '" style="background:' + c.hex + '" title="' + CW.esc(c.nome) + '" aria-label="' + CW.esc(c.nome) + '"></button>';
-      }).join("");
+        if (!cores.length) cores = RAL.map(function (r) { return { nome: r[0], hex: r[1], produto: null }; });
+        cores = cores.slice(0, 25);
+        $("paleta").innerHTML = cores.map(function (c, i) {
+          return '<button data-i="' + i + '" style="background:' + c.hex + '" title="' + CW.esc(c.nome) + '" aria-label="' + CW.esc(c.nome) + '"></button>';
+        }).join("");
+      }
+      montarPaleta();
+      document.addEventListener("catalogo-atualizado", montarPaleta);
       function aplicarCor(hex, nome, produto) {
         $("camada-cor").setAttribute("fill", hex);
         $("cor-amostra").style.background = hex;

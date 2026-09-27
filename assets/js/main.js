@@ -9,7 +9,6 @@
   const PRODUTOS = window.PRODUTOS || [];
   const CATEGORIAS = window.CATEGORIAS || {};
   const CHAVE_CARRINHO = "policoating_carrinho";
-  const CHAVE_CLIENTE = "policoating_cliente";
   const CHAVE_FAVORITOS = "policoating_favoritos";
   const CHAVE_LGPD = "policoating_lgpd";
   const CHAVE_VOLTAR = "policoating_voltar";
@@ -21,6 +20,8 @@
   function fotoProduto(p, cor, tam) {
     return Fotos ? Fotos.fotoProduto(p, cor, tam) : "";
   }
+  const fotosDe = (p) => (Array.isArray(p.fotos) ? p.fotos.filter((u) => typeof u === "string" && u) : []);
+  const imgFoto = (u, alt, classe) => `<img class="${classe || "foto-real"}" src="${esc(u)}" alt="${esc(alt || "")}" decoding="async" loading="lazy">`;
   function imgProduto(p, cor, tam, classe) {
     cor = cor || p.cores[0];
     if (!Fotos) return caixaSVG(cor.hex);
@@ -261,12 +262,13 @@
     <div class="resumo"><span>Total de itens</span><strong id="carrinho-total">0</strong></div>
     <div class="resumo-kg" id="carrinho-kg"></div>
     <div class="resumo-valor" id="carrinho-valor"></div>
+    <div class="resumo-prazo" id="carrinho-prazo"></div>
     <div class="campos">
       <div id="carrinho-cliente"></div>
       <textarea id="cliente-obs" rows="2" maxlength="500" placeholder="Observações (opcional)"></textarea>
     </div>
-    <button class="btn btn-whats btn-bloco" id="btn-finalizar">${iconeWhats()} Comprar pelo WhatsApp</button>
-    <p class="aviso">Você será direcionado ao WhatsApp de um de nossos vendedores com o seu pedido pronto.
+    <button class="btn btn-primario btn-bloco" id="btn-finalizar">Finalizar compra</button>
+    <p class="aviso">O pedido vai direto para a nossa equipe. Frete e pagamento você combina com o vendedor pelo chat do pedido, em Minha conta.
       <button class="limpar" id="btn-limpar">Esvaziar carrinho</button></p>
   </div>
 </aside>
@@ -322,6 +324,11 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
     $("#carrinho-total").textContent = totalItens();
     const kg = $("#carrinho-kg");
     if (kg) kg.textContent = carrinho.length ? `≈ ${totalKg().toLocaleString("pt-BR")} kg de tinta` : "";
+    const pz = $("#carrinho-prazo");
+    if (pz) {
+      const perf = (Conta && Conta.perfil) || {}, info = window.Loja && carrinho.length && perf.cep ? window.Loja.prazo(perf.uf, perf.cep) : null;
+      pz.innerHTML = info ? `${ic("relogio")}<span>Envio <strong>${esc(window.Loja.textoEnvio(info.envio))}</strong>. Chega entre <strong>${esc(window.Loja.dataBR(info.entregaMin))}</strong> e <strong>${esc(window.Loja.dataBR(info.entregaMax))}</strong> em ${esc(perf.cidade || "")}/${esc(perf.uf || "")}.<small>Estimativa a partir de Matão-SP (${esc(info.regiao)}).</small></span>` : "";
+    }
     const val = $("#carrinho-valor");
     if (val) {
       const tv = totalValor();
@@ -389,7 +396,7 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
     const box = $("#carrinho-cliente");
     if (!box) return;
     const btn = $("#btn-finalizar");
-    const textoBtn = (t) => (btn.innerHTML = `${iconeWhats()} ${t}`);
+    const textoBtn = (t) => (btn.textContent = t);
 
     if (logado()) {
       const p = Conta.perfil || {};
@@ -400,113 +407,45 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
         return;
       }
       const titulo = p.tipo === "pj" ? p.razao_social : p.nome;
-      box.innerHTML = `<div class="cliente-box"><span>Pedido em nome de</span><strong>${esc(titulo)}</strong>
+      box.innerHTML = `<div class="cliente-box"><span>Entrega para</span><strong>${esc(titulo)}</strong>
         <small>${esc(p.cidade)}/${esc(p.uf)} · CEP ${esc(p.cep)}</small><a href="conta.html#dados">Alterar dados</a></div>`;
-      textoBtn("Comprar pelo WhatsApp");
+      textoBtn("Finalizar compra");
       return;
     }
-    if (CFG.exigirLogin) {
-      box.innerHTML = `<div class="cliente-box alerta">Entre ou crie sua conta para enviar o pedido com seus dados de faturamento e entrega.</div>`;
-      textoBtn("Entrar para finalizar");
-      return;
-    }
-    if ($("#cliente-nome")) return; // mantém o que o cliente já digitou
-    const cliente = lerStorage(CHAVE_CLIENTE, {});
-    box.innerHTML = `<input type="text" id="cliente-nome" placeholder="Seu nome" autocomplete="name" value="${esc(cliente.nome || "")}">
-      <input type="text" id="cliente-cidade" placeholder="Cidade / Estado" autocomplete="address-level2" value="${esc(cliente.cidade || "")}">`;
-    textoBtn("Comprar pelo WhatsApp");
-  }
-
-  function gerarNumeroPedido() {
-    const d = new Date();
-    const data = String(d.getFullYear()).slice(2) + String(d.getMonth() + 1).padStart(2, "0") + String(d.getDate()).padStart(2, "0");
-    return "PC-" + data + "-" + Math.random().toString(36).slice(2, 6).toUpperCase();
-  }
-
-  function linhasCliente(p, email) {
-    const l = ["", "*Dados do cliente*"];
-    if (p.tipo === "pj") {
-      l.push(`Empresa: ${p.razao_social}${p.nome_fantasia ? " (" + p.nome_fantasia + ")" : ""}`);
-      l.push(`CNPJ: ${p.cnpj}${p.inscricao_estadual ? " | IE: " + p.inscricao_estadual : ""}`);
-      l.push(`Responsável: ${p.responsavel}`);
-    } else {
-      l.push(`Nome: ${p.nome}`);
-      l.push(`CPF: ${p.cpf}`);
-    }
-    l.push(`Telefone: ${p.telefone}`);
-    l.push(`E-mail: ${email}`);
-    l.push("");
-    l.push("*Endereço de entrega*");
-    l.push(`${p.logradouro}, ${p.numero}${p.complemento ? " - " + p.complemento : ""}`);
-    l.push(`${p.bairro ? p.bairro + " - " : ""}${p.cidade}/${p.uf} - CEP ${p.cep}`);
-    return l;
+    box.innerHTML = `<div class="cliente-box alerta">Entre ou crie sua conta para finalizar a compra com seus dados de faturamento e entrega.</div>`;
+    textoBtn("Entrar para finalizar");
   }
 
   async function finalizarPedido() {
     if (!carrinho.length) return;
-    // confere o estoque na hora de enviar (outro cliente pode ter comprado)
-    if (controlaEstoque() || promessaEstoque) {
-      const btn = $("#btn-finalizar"); btn.disabled = true;
-      try { await carregarEstoque(true); } finally { btn.disabled = false; }
-      renderCarrinho();
-      const acima = carrinho.map((i) => buscarProduto(i.id)).filter((p, k, a) => a.indexOf(p) === k && controlaEstoque() && kgNoCarrinho(p.id) > saldoDe(p.id));
-      if (acima.length) {
-        mostrarToast(`O estoque mudou: ${acima.map((p) => `<strong>${esc(p.nome)}</strong> (${fmtKg(saldoDe(p.id))})`).join(", ")}. Ajuste o carrinho para continuar.`);
-        return;
-      }
-    }
-    if (!logado() && CFG.exigirLogin) {
+    if (!logado()) {
       try { sessionStorage.setItem(CHAVE_VOLTAR, location.pathname.split("/").pop() || "index.html"); } catch (e) { /* ignora */ }
       location.href = "conta.html?voltar=carrinho";
       return;
     }
-    if (logado() && !Conta.perfilCompleto()) {
-      location.href = "conta.html#dados";
-      return;
-    }
-
-    const obs = $("#cliente-obs").value.replace(/\s+/g, " ").trim().slice(0, 500);
-    const numero = gerarNumeroPedido();
-    const linhas = [];
-    linhas.push(`Olá! Vim pelo site da *${CFG.empresa}* e gostaria de fazer um pedido.`);
-    linhas.push(`*Pedido nº ${numero}*`);
-    linhas.push("");
-    carrinho.forEach((item, i) => {
-      const p = buscarProduto(item.id), pi = precoInfo(p);
-      linhas.push(`*${i + 1}. ${p.nome}*`);
-      linhas.push(`   Código: ${p.codigo || p.id} | Cor: ${item.cor}`);
-      linhas.push(`   Quantidade: ${descreverQtd(item)}`);
-      linhas.push(pi.tipo === "combinar" ? "   Valor: a combinar" : `   Valor: ${formatarPreco(pi.efetivo)}/kg${pi.tipo === "promo" ? " (promoção)" : ""} = ${formatarPreco(pi.efetivo * kgDoItem(item))}`);
-    });
-    linhas.push("");
-    linhas.push(`*Total: ${totalKg().toLocaleString("pt-BR")} kg*`);
-    const tv = totalValor();
-    if (tv.valor) linhas.push(`*Valor estimado: ${formatarPreco(tv.valor)}*${tv.combinar ? " + itens a combinar" : ""}`);
-
-    if (logado()) {
-      linhas.push(...linhasCliente(Conta.perfil, Conta.usuario.email));
-    } else {
-      const nome = ($("#cliente-nome") || {}).value || "";
-      const cidade = ($("#cliente-cidade") || {}).value || "";
-      gravarStorage(CHAVE_CLIENTE, { nome: nome.trim(), cidade: cidade.trim() });
-      if (nome.trim()) linhas.push(`Nome: ${nome.trim()}`);
-      if (cidade.trim()) linhas.push(`Cidade: ${cidade.trim()}`);
-    }
-    if (obs) { linhas.push(""); linhas.push(`Observações: ${obs}`); }
-    linhas.push("");
-    linhas.push("Aguardo o orçamento. Obrigado!");
-
-    window.open(linkWhatsApp(linhas.join("\n")), "_blank", "noopener");
-
-    if (logado()) {
-      const itens = carrinho.map((i) => { const p = buscarProduto(i.id), pi = precoInfo(p);
-        return { id: i.id, codigo: p.codigo || p.id, nome: p.nome, cor: i.cor, embalagem: i.embalagem, qtd: i.qtd, preco_kg: pi.efetivo || null, preco_tipo: pi.tipo }; });
-      Conta.registrarPedido({ numero, itens, observacoes: obs }).catch((e) => console.warn("Pedido não registrado:", e.message));
+    if (!Conta.perfilCompleto()) { location.href = "conta.html#dados"; return; }
+    const btn = $("#btn-finalizar");
+    btn.disabled = true;
+    try {
+      // confere o estoque na hora (outro cliente pode ter comprado)
+      await carregarEstoque(true); renderCarrinho();
+      const acima = carrinho.map((i) => buscarProduto(i.id)).filter((p, k, a) => p && a.indexOf(p) === k && controlaEstoque() && kgNoCarrinho(p.id) > saldoDe(p.id));
+      if (acima.length) { mostrarToast(`O estoque mudou: ${acima.map((p) => `<strong>${esc(p.nome)}</strong> (${fmtKg(saldoDe(p.id))})`).join(", ")}. Ajuste o carrinho para continuar.`); return; }
+      const tv = totalValor();
+      if (!confirm(`Confirmar a compra de ${carrinho.length} ${carrinho.length === 1 ? "item" : "itens"} (${totalKg().toLocaleString("pt-BR")} kg)?\n\n` +
+        (tv.valor ? `Valor dos produtos: ${formatarPreco(tv.valor)}${tv.combinar ? " + itens a combinar" : ""}\n` : "Valor a combinar com o vendedor.\n") +
+        "Frete e pagamento são combinados com o vendedor pelo chat do pedido.")) return;
+      btn.textContent = "Enviando pedido...";
+      const numero = await window.Loja.criarPedido(carrinho.map((i) => ({ id: i.id, embalagem: i.embalagem, qtd: i.qtd })), $("#cliente-obs").value);
       carrinho = [];
       $("#cliente-obs").value = "";
       salvarCarrinho();
-      fecharTudo();
-      mostrarToast(`Pedido <strong>${numero}</strong> enviado! Acompanhe em <a href="conta.html#pedidos" style="color:var(--destaque)">Minha conta</a>.`);
+      carregarEstoque(true);
+      location.href = "conta.html#compra=" + encodeURIComponent(numero);
+    } catch (e) {
+      mostrarToast(esc(e.message));
+    } finally {
+      btn.disabled = false; renderClienteCarrinho();
     }
   }
 
@@ -553,9 +492,11 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
 <button class="fechar" aria-label="Fechar">×</button>
 <div class="modal-corpo">
   <div class="modal-vitrine">
-    <div class="modal-foto" id="modal-vitrine">${imgProduto(p, corSel, FOTO_MODAL)}</div>
-    <div class="modal-miniaturas" role="tablist" aria-label="Visualização">
-      <button type="button" class="ativo" data-vista="foto" aria-label="Foto da cor">${imgProduto(p, corSel, FOTO_CARTAO, "mini-foto")}</button>
+    <div class="modal-foto" id="modal-vitrine">${fotosDe(p).length ? imgFoto(fotosDe(p)[0], p.nome, "") : imgProduto(p, corSel, FOTO_MODAL)}</div>
+    <div class="modal-miniaturas" role="tablist" aria-label="Fotos do produto">
+      ${fotosDe(p).length
+        ? fotosDe(p).map((u, i) => `<button type="button" class="${i ? "" : "ativo"}" data-vista="f${i}" aria-label="Foto ${i + 1}">${imgFoto(u, "", "mini-foto")}</button>`).join("")
+        : `<button type="button" class="ativo" data-vista="foto" aria-label="Foto da cor">${imgProduto(p, corSel, FOTO_CARTAO, "mini-foto")}</button>`}
       <button type="button" data-vista="caixa" aria-label="Embalagem">${caixaFoto("mini-foto")}</button>
     </div>
     <p class="modal-legenda" id="modal-legenda">${esc(corSel.nome)} · ${esc(p.acabamento || "")}</p>
@@ -563,9 +504,12 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
   <div class="modal-info">
     <div class="modal-topo"><span class="etiqueta" style="position:static">${esc(cat.nome || "")}</span>${botaoFav(p.id)}</div>
     <h2>${esc(p.nome)}</h2>
-    <p class="codigo-produto">Código: <strong>${esc(p.codigo || p.id)}</strong></p>
+    <p class="codigo-produto">Código: <strong>${esc(p.codigo || p.id)}</strong>${p.marca ? ` · Marca: <strong>${esc(p.marca)}</strong>` : ""}</p>
     <div class="modal-preco">${htmlPreco(p, true)}</div>
     <p class="modal-estoque" id="modal-estoque">${htmlEstoque(p)}</p>
+    ${window.Loja ? `<div class="simula-prazo"><label for="sim-cep">${ic("local")} Prazo de entrega</label>
+      <div><input id="sim-cep" inputmode="numeric" maxlength="9" placeholder="Seu CEP" value="${esc((Conta && Conta.perfil && Conta.perfil.cep) || "")}"><button type="button" class="btn btn-contorno-azul" id="sim-calcular">Calcular</button></div>
+      <p id="sim-resultado" aria-live="polite"></p></div>` : ""}
     <p class="desc">${esc(p.descricao)}</p>
     <ul class="ficha">
       <li><span>Linha</span><span>${esc(p.linha)}</span></li>
@@ -621,18 +565,29 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
       if (!esgotado) atualizarQtd();
     }
     modal.dataset.produto = p.id;
+    function simularPrazo() {
+      const cep = ($("#sim-cep", modal) || {}).value || "", res = $("#sim-resultado", modal);
+      if (!res) return;
+      if (cep.replace(/\D/g, "").length !== 8) { res.textContent = cep ? "Digite os 8 números do CEP." : ""; return; }
+      const info = window.Loja.prazo(null, cep);
+      res.innerHTML = info ? `Envio <strong>${esc(window.Loja.textoEnvio(info.envio))}</strong> · chega entre <strong>${esc(window.Loja.dataBR(info.entregaMin))}</strong> e <strong>${esc(window.Loja.dataBR(info.entregaMax))}</strong> <small>(${esc(info.regiao)}, saindo de Matão-SP · simulação)</small>` : "CEP não encontrado.";
+    }
+    if ($("#sim-cep", modal)) {
+      $("#sim-cep", modal).addEventListener("input", (e) => { const d = e.target.value.replace(/\D/g, "").slice(0, 8); e.target.value = d.length > 5 ? d.slice(0, 5) + "-" + d.slice(5) : d; if (d.length === 8) simularPrazo(); });
+      $("#sim-calcular", modal).addEventListener("click", simularPrazo);
+      simularPrazo();
+    }
     carregarEstoque().then(() => { if (modal.dataset.produto === p.id) mostrarDisponibilidade(); });
-    let vista = "foto";
+    let vista = fotosDe(p).length ? "f0" : "foto";
     const desenharVitrine = () => {
       const alvo = $("#modal-vitrine");
       alvo.classList.remove("trocando");
       void alvo.offsetWidth;
       alvo.classList.add("trocando");
-      alvo.innerHTML = vista === "foto" ? imgProduto(p, corSel, FOTO_MODAL) : caixaFoto();
+      alvo.innerHTML = vista === "caixa" ? caixaFoto() : /^f\d+$/.test(vista) ? imgFoto(fotosDe(p)[+vista.slice(1)], p.nome, "") : imgProduto(p, corSel, FOTO_MODAL);
       const minis = $$(".modal-miniaturas button", modal);
-      minis[0].innerHTML = imgProduto(p, corSel, FOTO_CARTAO, "mini-foto");
       minis.forEach((m) => m.classList.toggle("ativo", m.dataset.vista === vista));
-      $("#modal-legenda").textContent = vista === "foto" ? `${corSel.nome} · ${p.acabamento || ""}` : "Embalagem: caixa de papelão Policoating";
+      $("#modal-legenda").textContent = vista === "caixa" ? "Embalagem: caixa de papelão Policoating" : `${corSel.nome} · ${p.acabamento || ""}`;
     };
     $$(".modal-miniaturas button", modal).forEach((b) => b.addEventListener("click", () => { vista = b.dataset.vista; desenharVitrine(); }));
 
@@ -737,7 +692,7 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
     <span class="ver-detalhes">Ver detalhes</span>
   </div>
   <div class="info">
-    <div class="linha-codigo">${p.linha ? `<span class="linha">${esc(p.linha)}</span>` : ""}<span class="codigo-cartao">Cód. ${esc(p.codigo || p.id)}</span></div>
+    <div class="linha-codigo"><span class="linha">${esc(p.marca || p.linha || "")}</span><span class="codigo-cartao">Cód. ${esc(p.codigo || p.id)}</span></div>
     <h3>${esc(p.nome)}</h3>
     <p class="desc">${esc(p.descricao)}</p>
     <div class="cor-cartao"><i style="background:${esc(c.hex)}"></i>${esc(c.nome)}</div>
@@ -851,6 +806,8 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
         // depois de entrar, a pessoa volta para esta página
         a.href = /^[a-z0-9-]+\.html$/.test(pagina) && !["conta.html", "404.html"].includes(pagina) ? "conta.html?voltar=" + pagina : "conta.html";
         const m = a.parentElement.querySelector(".menu-conta"); if (m) m.remove();
+        const d = $(".ponto-notif", a); if (d) d.remove();
+        papelEquipe = null; mostrarLinkPainel(null);
       }
     });
   }
@@ -879,17 +836,49 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
     menu.innerHTML = `
       <div class="mc-topo"><strong>${esc(Conta.nomeExibicao() || "Minha conta")}</strong><small>${esc(u.email || "")}</small></div>
       <a href="conta.html#resumo">${ic("casa")}Visão geral</a>
-      <a href="conta.html#pedidos">${ic("caixa")}Meus pedidos</a>
+      <a href="conta.html#pedidos">${ic("caixa")}Minhas compras <b class="badge-menu" data-badge-cliente hidden></b></a>
       <a href="conta.html#favoritos">${ic("coracao")}Favoritos</a>
       <a href="conta.html#dados">${ic("usuario")}Meus dados</a>
-      <a href="admin.html" class="mc-admin" hidden>${ic("industria")}Painel da empresa</a>
+      <a href="admin.html#vendas" class="mc-admin" hidden>${ic("industria")}<span>Painel da empresa</span> <b class="badge-menu" data-badge-equipe hidden></b></a>
       <button type="button" data-sair>${ic("sair")}Sair</button>`;
     if (window.Catalogo) window.Catalogo.Admin.meuPapel().then((papel) => {
       const x = $(".mc-admin", menu); if (!x) return;
       x.hidden = !papel;
-      if (papel === "vendedor") x.lastChild.textContent = "Área do vendedor";
+      if (papel === "vendedor") $("span", x).textContent = "Área do vendedor";
+      papelEquipe = papel;
+      mostrarLinkPainel(papel);
+      atualizarNotificacoes();
     }).catch(() => {});
   }
+
+  /* ---------- Notificações (vendas novas, mensagens, solicitações) ---------- */
+  let papelEquipe = null, timerNotif = 0;
+  // vendedores e administradores ganham o atalho "Vendas" no menu principal
+  function mostrarLinkPainel(papel) {
+    $$(".menu").forEach((m) => {
+      let li = $(".menu-painel", m);
+      if (!papel) { if (li) li.remove(); return; }
+      if (!li) { li = document.createElement("li"); li.className = "menu-painel"; m.appendChild(li); }
+      li.innerHTML = `<a href="admin.html#vendas">${ic("grafico")}${papel === "admin" ? "Painel" : "Vendas"} <b class="badge-menu" data-badge-equipe hidden></b></a>`;
+    });
+  }
+  function pintarBadges(sel, n, titulo) {
+    $$(sel).forEach((b) => { b.hidden = !n; b.textContent = n > 99 ? "99+" : n; if (titulo) b.title = titulo; });
+  }
+  async function atualizarNotificacoes() {
+    if (!window.Loja || !logado()) return;
+    try {
+      const [eq, cli] = await Promise.all([papelEquipe ? window.Loja.resumoEquipe() : null, window.Loja.resumoCliente()]);
+      const nEq = eq ? (+eq.novas || 0) + (+eq.mensagens || 0) + (+eq.solicitacoes || 0) : 0, nCli = cli ? +cli.mensagens || 0 : 0;
+      pintarBadges("[data-badge-equipe]", nEq, eq ? `${eq.novas} novas vendas · ${eq.enviar_hoje} para enviar hoje · ${eq.mensagens} com mensagem · ${eq.solicitacoes} solicitações` : "");
+      pintarBadges("[data-badge-cliente]", nCli, "Mensagens novas nas suas compras");
+      $$(".link-conta").forEach((a) => { let d = $(".ponto-notif", a); if (!d) { d = document.createElement("span"); d.className = "ponto-notif"; a.appendChild(d); } d.hidden = !(nEq + nCli); d.textContent = nEq + nCli > 99 ? "99+" : nEq + nCli; });
+      document.dispatchEvent(new CustomEvent("notificacoes", { detail: { equipe: eq, cliente: cli } }));
+    } catch (e) { /* tenta de novo no próximo ciclo */ }
+    clearTimeout(timerNotif);
+    timerNotif = setTimeout(atualizarNotificacoes, 45000);
+  }
+  document.addEventListener("notificacoes-atualizar", () => atualizarNotificacoes());
 
   /* ---------- Inicialização ---------- */
   document.addEventListener("DOMContentLoaded", () => {

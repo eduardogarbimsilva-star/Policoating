@@ -1,9 +1,9 @@
-# Policoating — Site institucional + catálogo de tinta em pó com pedido via WhatsApp
+# Policoating — Site institucional + loja de tinta em pó
 
 Site estático (HTML, CSS e JavaScript puro — sem build, sem servidor) inspirado no padrão corporativo do site da WEG,
 com a identidade visual da **Policoating** (tinta eletrostática em pó).
 Funciona como porta de entrada da empresa: mostra a variedade de produtos, a história, recursos úteis e permite ao
-cliente montar um carrinho e **enviar o pedido direto para o WhatsApp do vendedor**.
+cliente comprar pelo site, acompanhar a entrega e conversar com o vendedor no pedido, como no Mercado Livre.
 
 ## Páginas
 
@@ -29,9 +29,9 @@ O layout é responsivo (celular, tablet e computador).
 - **Entrar:** sem senha — a cada acesso um novo código é enviado ao e-mail.
 - **Cadastro:** CNPJ com botão **Buscar** (preenche razão social e endereço pela Receita, via BrasilAPI),
   CPF/CNPJ validados, **CEP que preenche o endereço automaticamente** (ViaCEP), telefone e endereço de entrega.
-- **Minha conta:** histórico de pedidos com **Repetir pedido**, edição dos dados e **Favoritos**.
-- Com `exigirLogin: true` (em `config.js`), o cliente precisa entrar para enviar o pedido — e a mensagem do
-  WhatsApp já vai com **número do pedido, dados de faturamento e endereço de entrega**.
+- **Minha conta:** **Minhas compras** (situação, previsão de entrega, chat com o vendedor, cancelamento,
+  reembolso e atendimento) com **Comprar de novo**, edição dos dados e **Favoritos**.
+- Para comprar, o cliente entra na conta e completa o cadastro (faturamento e endereço de entrega).
 
 ### Modo demonstração x modo real
 
@@ -86,7 +86,8 @@ O site confere os dados antes de salvar, e o banco confere de novo (assim ningu�
   **inscrição estadual** só números ou ISENTO; tamanho máximo em todos os campos.
 - **E-mail digitado errado** (gmial.com, hotmail.con...): o site sugere o correto.
 - O e-mail do cadastro é sempre o do login, e as datas dos pedidos são do servidor.
-- **Pedidos:** até 2.000 caixas ou 50.000 kg sob medida por item; observação até 500 caracteres.
+- **Pedidos:** até 2.000 caixas ou 50.000 kg sob medida por item; observação até 500 caracteres; preço, estoque
+  e prazo conferidos pelo banco na compra (PARTE L).
 
 Cadastros antigos não são bloqueados; as regras valem para novos cadastros e alterações. Se ao rodar a
 PARTE H aparecer erro de "duplicate key", já existem cadastros repetidos: use a consulta do fim da PARTE H
@@ -103,36 +104,26 @@ já preenchido para `contato@...`.
 
 Na janela do produto, a **Caixa 25 kg** vem selecionada. O cliente também pode escolher **Sob medida (kg)** e digitar o
 total em quilos; o vendedor confirma a combinação de embalagens. O atalho **Calcular pela área** transforma m² em kg
-(rendimento do produto + 15% de perda) e preenche a quantidade. O carrinho e a mensagem do WhatsApp mostram o total em kg.
+(rendimento do produto + 15% de perda) e preenche a quantidade. O carrinho e o pedido mostram o total em kg.
 
-## Como funciona o pedido
+## Como funciona a compra (estilo Mercado Livre)
 
-1. O cliente abre um produto, escolhe **cor**, **embalagem** e **quantidade** e adiciona ao carrinho.
-2. O carrinho fica salvo no navegador (localStorage), mesmo trocando de página.
-3. Ao clicar em **"Comprar pelo WhatsApp"**, abre o WhatsApp do vendedor com a mensagem pronta, por exemplo:
-
-```
-Olá! Vim pelo site da *Policoating* e gostaria de fazer um pedido.
-*Pedido nº PC-260925-G9W6*
-
-*1. Poliéster TGIC-Free Brilhante*
-   Cor: Azul Genciana RAL 5010 | Embalagem: Caixa 25 kg | Qtd: 2
-
-Total de itens: 2
-
-*Dados do cliente*
-Empresa: METALÚRGICA EXEMPLO LTDA (METAL EXEMPLO)
-CNPJ: 11.222.333/0001-81
-Responsável: Maria Souza
-Telefone: (16) 3333-4444
-E-mail: compras@metalexemplo.com.br
-
-*Endereço de entrega*
-Rua General Osório, 250 - Galpão 2
-Centro - Ribeirão Preto/SP - CEP 14010-000
-
-Aguardo o orçamento. Obrigado!
-```
+1. O cliente abre um produto (fotos, código, marca, preço, estoque e **prazo de entrega pelo CEP**), escolhe
+   embalagem e quantidade e adiciona ao carrinho. Só dá para pedir até o estoque disponível.
+2. No carrinho aparecem o valor estimado e a previsão de entrega. **Finalizar compra** exige conta com cadastro
+   completo; o pedido vai direto para o sistema (não abre mais o WhatsApp). O banco confere preço e estoque,
+   **reserva o estoque** e calcula o prazo.
+3. **Prazo (simulação a partir de Matão-SP):** pedido até 14h em dia útil sai no mesmo dia; depois, no próximo dia
+   útil. Entrega em dias úteis após o envio: região de Matão (CEP 13000–16999) 1–2; resto de SP 2–3; MG, RJ, ES e PR
+   3–5; SC, RS, GO, DF e MS 4–7; MT, TO, BA e SE 6–9; demais do Nordeste 7–11; Norte 9–15. Os valores ficam em
+   [`assets/js/loja.js`](assets/js/loja.js) e na função `prazo_regiao` do banco (PARTE L) — mude nos dois.
+4. Em **Minha conta → Minhas compras** o cliente acompanha a situação (recebido → preparando o envio → a caminho →
+   entregue), vê itens, valores e previsão, **conversa com o vendedor** pelo chat do pedido e pode **cancelar a
+   compra** (na hora, se ainda não foi confirmada; depois, o vendedor analisa), **pedir reembolso/devolução** ou
+   **falar com o atendimento**. Frete e pagamento são combinados pelo chat.
+5. A equipe recebe a venda na aba **Vendas** do painel (com aviso no menu), confirma (informando o preço dos itens
+   "a combinar"), marca como enviado (transportadora e rastreio) e como entregue, responde o chat e as
+   solicitações. Cancelamentos devolvem o estoque; no reembolso dá para escolher devolver ao estoque.
 
 ## Personalização
 
@@ -168,7 +159,7 @@ da equipe; clientes comuns não veem nem acessam.
   Equipe. Precisa da **PARTE I** do `setup.sql`.
 
 O primeiro administrador é liberado pelo SQL (PARTE D); os demais são adicionados no site, na aba **Equipe**,
-escolhendo o cargo. Nada é pago ou enviado pelo site: o pedido vai para o WhatsApp e o atendimento segue por lá.
+escolhendo o cargo. O pagamento ainda não é feito pelo site: frete e pagamento são combinados no chat do pedido.
 
 **Ativar (uma vez), no Supabase → SQL Editor:**
 1. Cole a **PARTE D** do [`supabase/setup.sql`](supabase/setup.sql) e clique em **Run**.
@@ -180,18 +171,13 @@ escolhendo o cargo. Nada é pago ou enviado pelo site: o pedido vai para o Whats
 
 **Abas do painel:**
 - **Produtos:** veja abaixo.
-- **Pedidos:** todos os pedidos enviados pelo site, com os dados do cliente, total em kg e observações.
-  Digite o **código do pedido** (ex.: PC-260926-AB12) ou o **nome do cliente** para achar compras passadas ou
-  pedidos atrasados. Também busca por empresa, CNPJ/CPF, telefone, cidade, produto ou cor, com filtro de período.
-  Botões para copiar o código, chamar o cliente no WhatsApp e **Exportar planilha** (CSV/Excel).
-  Precisa da **PARTE F** do `setup.sql`.
-- **Vendas:** como a área de vendas do Mercado Livre. No pedido, **Confirmar venda** abre os itens com os kg e o
-  preço por kg (já preenchido com o preço do site; itens "a combinar" pedem o preço combinado), mais uma
-  observação (frete, prazo, pagamento). Ao confirmar, a venda é registrada e o estoque baixa junto; um pedido só
-  pode virar uma venda. A aba mostra **faturamento, número de vendas, kg vendidos e ticket médio** no período
-  (hoje, 7/30/90 dias, este mês, este ano), a lista das vendas com foto, itens, valores, cliente e vendedor, os
-  **mais vendidos** e o ranking **por vendedor**, com busca e planilha. O **vendedor vê só as próprias vendas**; o
-  administrador vê todas e pode **cancelar** uma venda (com motivo), e o estoque volta. Precisa da **PARTE K**.
+- **Vendas (estilo Mercado Livre):** toda compra do site aparece na hora, com aviso no menu (número em vermelho)
+  para vendedores e administradores. Filtros: **Novas**, **Enviar hoje**, **Próximos envios**, **A caminho**,
+  **Entregues**, **Mensagens** (cliente escreveu), **Solicitações** (cancelamento, reembolso, atendimento),
+  **Canceladas** e **Todas**; busca por código, cliente, produto ou cidade; período; "minhas vendas". Mostra
+  faturamento, número de vendas, kg, ticket médio, mais vendidos e ranking por vendedor, e exporta planilha.
+  Cada venda abre com itens e valores, cliente e endereço, WhatsApp do cliente, chat e as ações (confirmar,
+  enviar, entregar, cancelar, responder solicitações; excluir para quem tem permissão). Precisa da **PARTE L**.
 - **Clientes:** todos os clientes cadastrados (só a equipe vê; nunca aparecem na parte pública do site).
   Busca por nome, empresa, CPF/CNPJ, e-mail, telefone ou cidade; filtros "compraram nos últimos 30 dias",
   "não compram há mais de 90 dias", "sem pedidos" e "cadastrados nos últimos 30 dias"; ordem por último pedido,
@@ -202,8 +188,8 @@ escolhendo o cargo. Nada é pago ou enviado pelo site: o pedido vai para o Whats
   **Saída**, **Inventário** (informe a contagem real e o sistema lança a diferença) e **Mínimo** (alerta de
   reposição). Cada item tem **Histórico** com data, tipo, kg, pedido, documento e quem fez; nada é apagado nem
   editado, correções entram como inventário. Saídas não deixam o saldo ficar negativo.
-  - **Baixa pela venda:** o pedido do site não desconta sozinho (a venda fecha no WhatsApp). A baixa é feita
-    quando alguém da equipe clica em **Confirmar venda** no pedido.
+  - **Reserva na compra:** a compra pelo site já desconta (reserva) o estoque; se a venda for cancelada ou o pedido
+    excluído, o estoque volta.
   - **No site:** o cliente vê a quantidade em estoque de cada produto (kg e caixas) e só consegue pedir até o saldo
     (contando o que já está no carrinho). Produto com saldo zero aparece como **Esgotado**, sem carrinho, com o botão
     **Avise-me / pedir orçamento** (WhatsApp). Na hora de enviar o pedido o site confere o estoque de novo, e o
@@ -216,36 +202,28 @@ escolhendo o cargo. Nada é pago ou enviado pelo site: o pedido vai para o Whats
 - **Galeria:** enviar, ordenar, legendar e remover as fotos da galeria.
 - **Equipe:** adicionar pessoas como Administrador ou Vendedor, mudar o cargo ou remover o acesso.
 
-Para as abas Contato, Galeria e Equipe, rode também as **PARTES E, F, G, H, I, J e K** do `setup.sql`, nessa ordem.
+Para as abas Contato, Galeria e Equipe, rode também as **PARTES E, F, G, H, I, J, K e L** do `setup.sql`, nessa ordem.
 
 **Produtos no painel (cada cor é um produto):**
-- **Novo produto:** **código único** (ex.: POL-0101; não muda depois), nome, linha, **cor** (nome e tom),
-  **foto do produto**, **descrição**, acabamento, rendimento, cura, densidade, embalagens, destaque e ordem.
-  Foto, descrição e código são obrigatórios; o site não aceita dois produtos com o mesmo código.
-- **Preço:** **Preço por kg** (aparece no site, com o valor da caixa de 25 kg) e, opcionalmente, **preço
-  promocional** com data de fim (o site mostra o preço antigo riscado e a % de desconto; depois da data volta ao
-  normal). Ou **Valor a combinar**: o site mostra "Valor a combinar com o vendedor".
-- **Produtos antigos com várias cores:** o painel mostra **Converter agora**, que cria um produto por cor com
-  código novo (POL-0001, POL-0002...).
-- **Editar**, **Duplicar** (para criar outra cor do mesmo produto) e **Excluir**.
-- **Visível/Oculto:** tira o produto do site sem apagar.
-- **Ordem no catálogo:** números menores aparecem primeiro.
-- **Ficha técnica (PDF):** opcional; o botão "Ficha técnica" do produto abre o PDF.
+- **Novo produto:** o **código é gerado pelo sistema** (POL-0001, POL-0002...). Informe **no mínimo 3 fotos**
+  (até 10; a primeira é a capa e as setas mudam a ordem; fotos do celular são convertidas), **tipo** e **marca**
+  (com **+ Novo** / **+ Nova** para cadastrar outros), nome, **cor**, **descrição**, acabamento, rendimento, cura,
+  densidade, embalagens, destaque e ordem.
+- **Preço:** preço por kg (o site mostra também o valor da caixa de 25 kg) e, se quiser, preço promocional com data
+  de fim (preço riscado e % de desconto), ou **Valor a combinar com o vendedor**.
+- **Seleção múltipla:** marque vários produtos (ou todos) e aplique de uma vez: promoção em %, remover promoção,
+  mostrar/ocultar, trocar marca ou tipo, reajustar preço em % ou excluir.
+- **Vendedores** veem a aba Produtos só para **aplicar e remover promoções** nos produtos selecionados.
+- **Editar**, **Duplicar** (para criar outra cor do mesmo produto) e **Excluir**. O site mostra só os produtos
+  cadastrados aqui: o que for excluído some do site e não volta.
 
-As mudanças valem para todos os visitantes em segundos. Enquanto o painel estiver vazio (ou sem internet), o site
-usa a lista de [`assets/js/produtos.js`](assets/js/produtos.js). Sem Supabase configurado, o painel funciona em
-modo demonstração e grava só no navegador.
+As mudanças valem para todos os visitantes em segundos. Sem Supabase configurado, o painel funciona em modo
+demonstração e grava só no navegador.
 
 ### Produtos
-O normal é cadastrar pelo painel. A lista padrão fica em **`assets/js/produtos.js`**: cada produto é uma cor,
-com `codigo` único, nome, categoria, acabamento, descrição, rendimento, cura, densidade (usada na calculadora),
-embalagens e `cores` com uma única cor. Preço: `preco` (R$/kg), `precoPromo` e `promoAte` (opcionais) ou
-`precoCombinar: true`. Use `destaque: true` para exibir na página inicial.
-
-As embalagens são ilustrações da caixa de papelão Policoating, geradas automaticamente com a etiqueta
-na cor escolhida — não é preciso ter fotos. Para usar fotos reais depois, troque a função `caixaSVG`
-em `assets/js/main.js`. O logotipo foi redesenhado em SVG; para usar o arquivo oficial, coloque-o em
-`assets/img/` e substitua o `<span class="logo-marca">` do cabeçalho.
+Os produtos são cadastrados só pelo painel. [`assets/js/produtos.js`](assets/js/produtos.js) guarda apenas os
+**tipos de tinta** (linhas) usados no catálogo, no guia "Qual pó usar?" e no carrossel; tipos novos criados no
+painel entram automaticamente.
 
 ### Textos provisórios
 A história da empresa (`sobre.html`), a missão/visão e alguns dados técnicos dos produtos são textos
@@ -368,6 +346,12 @@ O guia **"Qual pó usar?"** (em Recursos) usa essas mesmas linhas para indicar p
    pedido. O próximo passo é emitir a NF-e por um serviço autorizado (ex.: Focus NFe, eNotas, PlugNotas ou o ERP
    da empresa), com certificado digital A1 da empresa e os dados fiscais dos produtos (NCM, CFOP, CST/CSOSN) e do
    cliente (já validados no cadastro). A emissão precisa rodar no servidor (função do Supabase), nunca no navegador.
+3. **Pagamento e frete pelo site.** Hoje são combinados no chat do pedido. Depois: pagamento online (Pix, cartão,
+   boleto por um intermediador como Mercado Pago, Pagar.me ou Asaas) e cálculo de frete real por transportadora,
+   substituindo a simulação de prazo por região.
+4. **Chat em tempo real e avisos por e-mail/WhatsApp.** O chat atualiza a cada poucos segundos com a janela aberta;
+   para avisar o cliente e o vendedor fora do site (nova mensagem, pedido enviado), ligar notificações por e-mail
+   (depende do item 1) e, se quiser, Supabase Realtime.
 
 ## Rodar localmente
 

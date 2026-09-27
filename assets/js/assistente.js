@@ -305,7 +305,7 @@
 
   const ACOES = {
     whatsapp: ["conversa", "Falar com vendedor"], carrinho: ["carrinho", "Abrir carrinho"], guia: ["bussola", "Fazer o guia"],
-    pedidos: ["caixa", "Meus pedidos"], favoritos: ["coracao", "Meus favoritos"], entrar: ["usuario", "Entrar na conta"],
+    pedidos: ["caixa", "Minhas compras"], favoritos: ["coracao", "Meus favoritos"], entrar: ["usuario", "Entrar na conta"],
     catalogo: ["grade", "Ver catálogo"], fichas: ["documento", "Fichas técnicas"], processo: ["industria", "Máquinas e etapas"],
     calculadora: ["calculadora", "Abrir calculadora"]
   };

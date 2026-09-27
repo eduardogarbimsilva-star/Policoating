@@ -697,3 +697,418 @@ begin
 end $$;
 revoke all on function public.cancelar_venda(bigint, text) from public;
 grant execute on function public.cancelar_venda(bigint, text) to authenticated;
+
+-- ===========================================================
+-- PARTE L — Loja: compra pelo site, prazos, vendas (estilo Mercado Livre), chat e pós-venda
+-- (rode depois da PARTE K; pode rodar de novo sem problema)
+--   • A compra é registrada pelo banco (criar_pedido): ele confere preço, estoque e endereço,
+--     reserva o estoque e calcula o prazo de envio/entrega a partir de Matão-SP (simulação por região).
+--   • Situações do pedido: recebido → confirmado → enviado → entregue (ou cancelado / reembolsado).
+--   • Chat do pedido entre cliente e equipe; o cliente pode pedir cancelamento, reembolso/devolução
+--     ou ajuda do atendimento. A equipe responde pelo painel.
+--   • Vendedores também podem aplicar e remover promoções.
+-- ===========================================================
+
+-- Prazos (simulação a partir de Matão-SP). Mesma tabela do assets/js/loja.js
+create or replace function public.prazo_regiao(p_uf text, p_cep text)
+returns table (regiao text, dias_min int, dias_max int) language sql immutable as $$
+  with x as (select upper(coalesce(p_uf, '')) as uf,
+                    coalesce(nullif(left(regexp_replace(coalesce(p_cep, ''), '\D', '', 'g'), 5), ''), '0')::int as n)
+  select * from (
+    select case
+      when uf = 'SP' and n between 13000 and 16999 then 'Região de Matão (centro do interior de SP)'
+      when uf = 'SP' then 'Estado de São Paulo'
+      when uf in ('MG','RJ','ES','PR') then 'Sudeste e Paraná'
+      when uf in ('SC','RS','GO','DF','MS') then 'Sul e Centro-Oeste'
+      when uf in ('MT','TO','BA','SE') then 'Centro-Oeste e Bahia'
+      when uf in ('AL','PE','PB','RN','CE','PI','MA') then 'Nordeste'
+      when uf in ('PA','AP','AM','RR','AC','RO') then 'Norte' end,
+    case when uf = 'SP' and n between 13000 and 16999 then 1 when uf = 'SP' then 2 when uf in ('MG','RJ','ES','PR') then 3
+      when uf in ('SC','RS','GO','DF','MS') then 4 when uf in ('MT','TO','BA','SE') then 6
+      when uf in ('AL','PE','PB','RN','CE','PI','MA') then 7 when uf in ('PA','AP','AM','RR','AC','RO') then 9 end,
+    case when uf = 'SP' and n between 13000 and 16999 then 2 when uf = 'SP' then 3 when uf in ('MG','RJ','ES','PR') then 5
+      when uf in ('SC','RS','GO','DF','MS') then 7 when uf in ('MT','TO','BA','SE') then 9
+      when uf in ('AL','PE','PB','RN','CE','PI','MA') then 11 when uf in ('PA','AP','AM','RR','AC','RO') then 15 end
+    from x) r(regiao, dias_min, dias_max) where regiao is not null;
+$$;
+
+create or replace function public.somar_dias_uteis(p_data date, p_dias int)
+returns date language plpgsql immutable as $$
+declare d date := p_data; n int := p_dias;
+begin
+  while n > 0 loop d := d + 1; if extract(isodow from d) < 6 then n := n - 1; end if; end loop;
+  return d;
+end $$;
+
+-- Dia do envio: hoje se for dia útil antes das 14h (horário de Brasília); senão, o próximo dia útil
+create or replace function public.dia_de_envio(p_quando timestamptz default now())
+returns date language sql stable as $$
+  select case when extract(isodow from l) < 6 and extract(hour from l) < 14 then l::date
+              else public.somar_dias_uteis(l::date, 1) end
+  from (select p_quando at time zone 'America/Sao_Paulo' as l) t;
+$$;
+
+-- Colunas do pedido (situação, valores, destino, prazos, envio, chat)
+alter table public.pedidos add column if not exists status text not null default 'recebido';
+alter table public.pedidos drop constraint if exists pedidos_status_valido;
+alter table public.pedidos add constraint pedidos_status_valido
+  check (status in ('recebido', 'confirmado', 'enviado', 'entregue', 'cancelado', 'reembolsado'));
+alter table public.pedidos add column if not exists total numeric(14, 2);
+alter table public.pedidos add column if not exists total_kg numeric(12, 2);
+alter table public.pedidos add column if not exists tem_combinar boolean not null default false;
+alter table public.pedidos add column if not exists destino_uf text;
+alter table public.pedidos add column if not exists destino_cep text;
+alter table public.pedidos add column if not exists destino_cidade text;
+alter table public.pedidos add column if not exists previsao_envio date;
+alter table public.pedidos add column if not exists previsao_entrega_min date;
+alter table public.pedidos add column if not exists previsao_entrega_max date;
+alter table public.pedidos add column if not exists vendedor text;
+alter table public.pedidos add column if not exists transportadora text;
+alter table public.pedidos add column if not exists rastreio text;
+alter table public.pedidos add column if not exists confirmado_em timestamptz;
+alter table public.pedidos add column if not exists enviado_em timestamptz;
+alter table public.pedidos add column if not exists entregue_em timestamptz;
+alter table public.pedidos add column if not exists cancelado_em timestamptz;
+alter table public.pedidos add column if not exists cancelado_por text;
+alter table public.pedidos add column if not exists motivo_cancelamento text;
+alter table public.pedidos add column if not exists reembolsado_em timestamptz;
+alter table public.pedidos add column if not exists msg_ultima_em timestamptz;
+alter table public.pedidos add column if not exists ultima_msg_lado text;
+alter table public.pedidos add column if not exists msg_lida_cliente_em timestamptz;
+alter table public.pedidos add column if not exists msg_lida_equipe_em timestamptz;
+create index if not exists pedidos_status_idx on public.pedidos (status, previsao_envio);
+
+-- A compra só entra pelo criar_pedido (o cliente não grava pedido direto)
+drop policy if exists "cliente registra os proprios pedidos" on public.pedidos;
+revoke insert, update on public.pedidos from authenticated;
+
+-- Chat e solicitações
+create table if not exists public.pedido_mensagens (
+  id            bigint generated always as identity primary key,
+  pedido_numero text not null references public.pedidos (numero) on delete cascade,
+  lado          text not null check (lado in ('cliente', 'vendedor', 'atendimento', 'sistema')),
+  autor         text,
+  texto         text not null check (length(texto) between 1 and 1000),
+  criado_em     timestamptz not null default now()
+);
+create index if not exists pedido_mensagens_idx on public.pedido_mensagens (pedido_numero, criado_em);
+
+create table if not exists public.pedido_solicitacoes (
+  id            bigint generated always as identity primary key,
+  pedido_numero text not null references public.pedidos (numero) on delete cascade,
+  tipo          text not null check (tipo in ('cancelamento', 'reembolso', 'atendimento')),
+  motivo        text not null check (length(motivo) between 3 and 500),
+  status        text not null default 'aberta' check (status in ('aberta', 'aceita', 'recusada')),
+  resposta      text check (length(resposta) <= 500),
+  criado_em     timestamptz not null default now(),
+  resolvido_em  timestamptz,
+  resolvido_por text
+);
+create index if not exists pedido_solicitacoes_idx on public.pedido_solicitacoes (pedido_numero);
+
+alter table public.pedido_mensagens enable row level security;
+alter table public.pedido_solicitacoes enable row level security;
+drop policy if exists "cliente e equipe leem mensagens" on public.pedido_mensagens;
+create policy "cliente e equipe leem mensagens" on public.pedido_mensagens for select to authenticated
+  using (public.eh_equipe() or exists (select 1 from public.pedidos p where p.numero = pedido_numero and p.cliente_id = auth.uid()));
+drop policy if exists "cliente e equipe leem solicitacoes" on public.pedido_solicitacoes;
+create policy "cliente e equipe leem solicitacoes" on public.pedido_solicitacoes for select to authenticated
+  using (public.eh_equipe() or exists (select 1 from public.pedidos p where p.numero = pedido_numero and p.cliente_id = auth.uid()));
+grant select on public.pedido_mensagens, public.pedido_solicitacoes to authenticated;   -- gravar só pelas funções
+
+-- Funções internas (não liberadas para o site)
+create or replace function public._msg_sistema(p_pedido text, p_texto text)
+returns void language sql security definer set search_path = public as $$
+  insert into public.pedido_mensagens (pedido_numero, lado, autor, texto) values (p_pedido, 'sistema', 'sistema', left(p_texto, 1000));
+  update public.pedidos set msg_ultima_em = now(), ultima_msg_lado = 'sistema' where numero = p_pedido;
+$$;
+-- Devolve ao estoque o que ainda não voltou deste pedido (pode chamar mais de uma vez)
+create or replace function public._estornar(p_pedido text, p_obs text)
+returns void language plpgsql security definer set search_path = public as $$
+declare r record;
+begin
+  for r in select produto_id, cor, sum(case when tipo = 'saida' then kg else -kg end) as falta
+           from public.estoque_movimentos where pedido_numero = p_pedido and tipo in ('saida', 'entrada')
+           group by produto_id, cor having sum(case when tipo = 'saida' then kg else -kg end) > 0 loop
+    insert into public.estoque_movimentos (produto_id, cor, tipo, kg, pedido_numero, obs)
+    values (r.produto_id, r.cor, 'entrada', r.falta, p_pedido, left(p_obs, 300));
+  end loop;
+end $$;
+revoke all on function public._msg_sistema(text, text) from public, anon, authenticated;
+revoke all on function public._estornar(text, text) from public, anon, authenticated;
+
+-- Compra: [{ "id", "embalagem", "qtd" }] -> número do pedido
+create or replace function public.criar_pedido(p_itens jsonb, p_obs text default null)
+returns text language plpgsql security definer set search_path = public as $$
+declare
+  v_uid uuid := auth.uid(); v_cli public.clientes; v_prod public.produtos; it jsonb; d jsonb;
+  v_emb text; v_qtd int; v_kg numeric; v_preco numeric; v_promo numeric; v_efetivo numeric;
+  v_itens jsonb := '[]'; v_total numeric := 0; v_total_kg numeric := 0; v_combinar boolean := false;
+  v_numero text; v_prazo record; v_envio date; v_hoje date := (now() at time zone 'America/Sao_Paulo')::date;
+  v_estoque boolean := exists (select 1 from public.estoque_movimentos); r record; v_saldo numeric;
+begin
+  if v_uid is null then raise exception 'Entre na sua conta para comprar.'; end if;
+  select * into v_cli from public.clientes where id = v_uid;
+  if not found or coalesce(v_cli.cep, '') = '' or coalesce(v_cli.uf, '') = '' then
+    raise exception 'Complete o seu cadastro (endereço de entrega) antes de comprar.';
+  end if;
+  select * into v_prazo from public.prazo_regiao(v_cli.uf, v_cli.cep);
+  if not found then raise exception 'Não atendemos este endereço pelo site. Fale com a gente.'; end if;
+  if jsonb_typeof(p_itens) <> 'array' or jsonb_array_length(p_itens) not between 1 and 50 then raise exception 'Carrinho inválido.'; end if;
+
+  for it in select * from jsonb_array_elements(p_itens) loop
+    select * into v_prod from public.produtos where id = it ->> 'id' and ativo;
+    if not found then raise exception 'Um dos produtos não está mais disponível. Atualize o carrinho.'; end if;
+    d := v_prod.dados; v_emb := it ->> 'embalagem'; v_qtd := (it ->> 'qtd')::int;
+    if v_emb <> 'Sob medida' and not (d -> 'embalagens') ? v_emb then raise exception 'Embalagem inválida para %.', d ->> 'nome'; end if;
+    if v_qtd is null or v_qtd < 1 or (v_emb <> 'Sob medida' and v_qtd > 2000) or v_qtd > 50000 then raise exception 'Quantidade inválida para %.', d ->> 'nome'; end if;
+    v_kg := public.kg_do_item(jsonb_build_object('embalagem', v_emb, 'qtd', v_qtd));
+    if v_kg <= 0 then raise exception 'Quantidade inválida para %.', d ->> 'nome'; end if;
+    v_preco := nullif(d ->> 'preco', '')::numeric; v_promo := nullif(d ->> 'precoPromo', '')::numeric;
+    if coalesce((d ->> 'precoCombinar')::boolean, false) or coalesce(v_preco, 0) <= 0 then v_efetivo := null;
+    elsif v_promo > 0 and v_promo < v_preco and (d ->> 'promoAte' is null or v_hoje <= (d ->> 'promoAte')::date) then v_efetivo := v_promo;
+    else v_efetivo := v_preco; end if;
+    if v_efetivo is null then v_combinar := true; else v_total := v_total + round(v_efetivo * v_kg, 2); end if;
+    v_total_kg := v_total_kg + v_kg;
+    v_itens := v_itens || jsonb_build_object('id', v_prod.id, 'codigo', d ->> 'codigo', 'nome', d ->> 'nome', 'cor', d -> 'cores' -> 0 ->> 'nome',
+      'embalagem', v_emb, 'qtd', v_qtd, 'kg', v_kg, 'preco_kg', v_efetivo, 'subtotal', case when v_efetivo is null then null else round(v_efetivo * v_kg, 2) end,
+      'foto', coalesce(d -> 'fotos' ->> 0, d -> 'cores' -> 0 ->> 'foto'));
+  end loop;
+
+  -- estoque (quando em uso): confere e reserva, com trava por produto
+  if v_estoque then
+    for r in select e ->> 'id' as id, max(e ->> 'cor') as cor, max(e ->> 'nome') as nome, sum((e ->> 'kg')::numeric) as kg
+             from jsonb_array_elements(v_itens) e group by e ->> 'id' order by 1 loop
+      perform pg_advisory_xact_lock(hashtext(r.id || '|' || r.cor));
+      select coalesce(sum(case when tipo = 'saida' then -kg else kg end), 0) into v_saldo from public.estoque_movimentos where produto_id = r.id;
+      if r.kg > v_saldo then raise exception 'Estoque insuficiente para %: disponível % kg.', r.nome, greatest(v_saldo, 0); end if;
+    end loop;
+  end if;
+
+  loop
+    v_numero := 'PC-' || to_char(now() at time zone 'America/Sao_Paulo', 'YYMMDD') || '-' || upper(substr(md5(random()::text || clock_timestamp()::text), 1, 5));
+    exit when not exists (select 1 from public.pedidos where numero = v_numero);
+  end loop;
+  v_envio := public.dia_de_envio(now());
+  insert into public.pedidos (numero, cliente_id, itens, observacoes, status, total, total_kg, tem_combinar,
+    destino_uf, destino_cep, destino_cidade, previsao_envio, previsao_entrega_min, previsao_entrega_max)
+  values (v_numero, v_uid, v_itens, left(nullif(btrim(p_obs), ''), 500), 'recebido', v_total, v_total_kg, v_combinar,
+    v_cli.uf, v_cli.cep, v_cli.cidade, v_envio, public.somar_dias_uteis(v_envio, v_prazo.dias_min), public.somar_dias_uteis(v_envio, v_prazo.dias_max));
+
+  if v_estoque then
+    insert into public.estoque_movimentos (produto_id, cor, tipo, kg, pedido_numero, obs)
+    select e ->> 'id', max(e ->> 'cor'), 'saida', sum((e ->> 'kg')::numeric), v_numero, 'Reserva da compra'
+    from jsonb_array_elements(v_itens) e group by e ->> 'id';
+  end if;
+  perform public._msg_sistema(v_numero, 'Compra recebida. Envio previsto: ' || to_char(v_envio, 'DD/MM') ||
+    '. Entrega estimada entre ' || to_char(public.somar_dias_uteis(v_envio, v_prazo.dias_min), 'DD/MM') || ' e ' ||
+    to_char(public.somar_dias_uteis(v_envio, v_prazo.dias_max), 'DD/MM') || '.');
+  return v_numero;
+end $$;
+revoke all on function public.criar_pedido(jsonb, text) from public;
+grant execute on function public.criar_pedido(jsonb, text) to authenticated;
+
+-- Chat
+create or replace function public.enviar_mensagem(p_pedido text, p_texto text)
+returns void language plpgsql security definer set search_path = public as $$
+declare v public.pedidos; v_dono boolean; v_equipe boolean := public.eh_equipe(); v_lado text; v_email text := lower(auth.jwt() ->> 'email');
+begin
+  select * into v from public.pedidos where numero = p_pedido;
+  if not found then raise exception 'Pedido não encontrado.'; end if;
+  v_dono := coalesce(v.cliente_id = auth.uid(), false);
+  if not v_dono and not v_equipe then raise exception 'Sem acesso a este pedido.'; end if;
+  p_texto := btrim(regexp_replace(coalesce(p_texto, ''), '[ \t]+', ' ', 'g'));
+  if length(p_texto) = 0 or length(p_texto) > 1000 then raise exception 'Mensagem vazia ou longa demais (máx. 1000 caracteres).'; end if;
+  if (select count(*) from public.pedido_mensagens where autor = v_email and criado_em > now() - interval '1 minute') >= 15 then
+    raise exception 'Muitas mensagens seguidas. Aguarde um minuto.';
+  end if;
+  v_lado := case when v_equipe and not v_dono then (case when public.eh_admin() then 'atendimento' else 'vendedor' end) else 'cliente' end;
+  insert into public.pedido_mensagens (pedido_numero, lado, autor, texto) values (p_pedido, v_lado, v_email, p_texto);
+  update public.pedidos set msg_ultima_em = now(), ultima_msg_lado = v_lado,
+    msg_lida_cliente_em = case when v_lado = 'cliente' then now() else msg_lida_cliente_em end,
+    msg_lida_equipe_em = case when v_lado <> 'cliente' then now() else msg_lida_equipe_em end
+  where numero = p_pedido;
+end $$;
+revoke all on function public.enviar_mensagem(text, text) from public;
+grant execute on function public.enviar_mensagem(text, text) to authenticated;
+
+create or replace function public.marcar_lido(p_pedido text)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  update public.pedidos set msg_lida_cliente_em = now() where numero = p_pedido and cliente_id = auth.uid();
+  if not found and public.eh_equipe() then update public.pedidos set msg_lida_equipe_em = now() where numero = p_pedido; end if;
+end $$;
+revoke all on function public.marcar_lido(text) from public;
+grant execute on function public.marcar_lido(text) to authenticated;
+
+-- Cliente: cancelamento, reembolso/devolução ou atendimento. Retorna a situação do pedido.
+create or replace function public.abrir_solicitacao(p_pedido text, p_tipo text, p_motivo text)
+returns text language plpgsql security definer set search_path = public as $$
+declare v public.pedidos; v_rotulo text;
+begin
+  select * into v from public.pedidos where numero = p_pedido and cliente_id = auth.uid() for update;
+  if not found then raise exception 'Pedido não encontrado.'; end if;
+  p_motivo := left(btrim(coalesce(p_motivo, '')), 500);
+  if length(p_motivo) < 3 then raise exception 'Conte o motivo em poucas palavras.'; end if;
+  if p_tipo not in ('cancelamento', 'reembolso', 'atendimento') then raise exception 'Tipo de solicitação inválido.'; end if;
+  if exists (select 1 from public.pedido_solicitacoes where pedido_numero = p_pedido and tipo = p_tipo and status = 'aberta') then
+    raise exception 'Já existe uma solicitação dessas em andamento.';
+  end if;
+  v_rotulo := case p_tipo when 'cancelamento' then 'Cancelamento' when 'reembolso' then 'Reembolso / devolução' else 'Ajuda do atendimento' end;
+  if p_tipo = 'cancelamento' then
+    if v.status in ('enviado', 'entregue') then raise exception 'O pedido já foi enviado: peça devolução/reembolso.'; end if;
+    if v.status in ('cancelado', 'reembolsado') then raise exception 'Este pedido já está encerrado.'; end if;
+    if v.status = 'recebido' then   -- ainda não confirmado: cancela na hora
+      update public.pedidos set status = 'cancelado', cancelado_em = now(), cancelado_por = 'cliente', motivo_cancelamento = p_motivo where numero = p_pedido;
+      perform public._estornar(p_pedido, 'Estorno: compra cancelada pelo cliente');
+      insert into public.pedido_solicitacoes (pedido_numero, tipo, motivo, status, resposta, resolvido_em)
+      values (p_pedido, p_tipo, p_motivo, 'aceita', 'Cancelado automaticamente (pedido ainda não confirmado).', now());
+      perform public._msg_sistema(p_pedido, 'Compra cancelada pelo cliente. Motivo: ' || p_motivo);
+      return 'cancelado';
+    end if;
+  end if;
+  if p_tipo = 'reembolso' and v.status not in ('confirmado', 'enviado', 'entregue') then
+    raise exception 'Reembolso/devolução é para pedidos em preparação, a caminho ou entregues.';
+  end if;
+  insert into public.pedido_solicitacoes (pedido_numero, tipo, motivo) values (p_pedido, p_tipo, p_motivo);
+  perform public._msg_sistema(p_pedido, 'Cliente abriu uma solicitação: ' || v_rotulo || '. Motivo: ' || p_motivo);
+  return v.status;
+end $$;
+revoke all on function public.abrir_solicitacao(text, text, text) from public;
+grant execute on function public.abrir_solicitacao(text, text, text) to authenticated;
+
+-- Equipe: confirmar | enviar | entregar | cancelar | responder
+create or replace function public.acao_pedido(p_pedido text, p_acao text, p_dados jsonb default '{}'::jsonb)
+returns void language plpgsql security definer set search_path = public as $$
+declare
+  v public.pedidos; v_email text := lower(auth.jwt() ->> 'email'); v_itens jsonb := '[]'; it jsonb; x jsonb; v_preco numeric;
+  v_total numeric := 0; v_falta boolean := false; s public.pedido_solicitacoes; v_prazo record; v_resp text; v_aceitar boolean;
+begin
+  if not public.eh_equipe() then raise exception 'Sem permissão.' using errcode = '42501'; end if;
+  select * into v from public.pedidos where numero = p_pedido for update;
+  if not found then raise exception 'Pedido não encontrado.'; end if;
+  p_dados := coalesce(p_dados, '{}'::jsonb);
+
+  if p_acao = 'confirmar' then
+    if v.status <> 'recebido' then raise exception 'Só pedidos novos podem ser confirmados.'; end if;
+    for it in select * from jsonb_array_elements(v.itens) loop
+      select e into x from jsonb_array_elements(coalesce(p_dados -> 'itens', '[]'::jsonb)) e where e ->> 'id' = it ->> 'id' limit 1;
+      v_preco := coalesce(nullif(x ->> 'preco_kg', '')::numeric, nullif(it ->> 'preco_kg', '')::numeric);
+      if v_preco is null or v_preco < 0 or v_preco > 100000 then v_falta := true;
+      else
+        it := it || jsonb_build_object('preco_kg', round(v_preco, 2), 'subtotal', round(v_preco * (it ->> 'kg')::numeric, 2));
+        v_total := v_total + round(v_preco * (it ->> 'kg')::numeric, 2);
+      end if;
+      v_itens := v_itens || it;
+    end loop;
+    if v_falta then raise exception 'Informe o preço combinado de todos os itens.'; end if;
+    update public.pedidos set itens = v_itens, total = v_total, tem_combinar = false, status = 'confirmado', confirmado_em = now(), vendedor = v_email where numero = p_pedido;
+    perform public._msg_sistema(p_pedido, 'Pedido confirmado. Valor total: R$ ' || translate(to_char(v_total, 'FM999,999,990.00'), ',.', '.,') || '. Envio previsto: ' || to_char(v.previsao_envio, 'DD/MM') || '.');
+
+  elsif p_acao = 'enviar' then
+    if v.status <> 'confirmado' then raise exception 'Só pedidos em preparação podem ser enviados.'; end if;
+    select * into v_prazo from public.prazo_regiao(v.destino_uf, v.destino_cep);
+    update public.pedidos set status = 'enviado', enviado_em = now(),
+      transportadora = left(nullif(btrim(p_dados ->> 'transportadora'), ''), 60), rastreio = left(nullif(btrim(p_dados ->> 'rastreio'), ''), 60),
+      previsao_entrega_min = case when v_prazo.dias_min is null then previsao_entrega_min else public.somar_dias_uteis((now() at time zone 'America/Sao_Paulo')::date, v_prazo.dias_min) end,
+      previsao_entrega_max = case when v_prazo.dias_max is null then previsao_entrega_max else public.somar_dias_uteis((now() at time zone 'America/Sao_Paulo')::date, v_prazo.dias_max) end
+    where numero = p_pedido;
+    select * into v from public.pedidos where numero = p_pedido;
+    perform public._msg_sistema(p_pedido, 'Pedido enviado' || coalesce(' pela ' || v.transportadora, '') || coalesce(' (rastreio ' || v.rastreio || ')', '') ||
+      '. Entrega estimada entre ' || to_char(v.previsao_entrega_min, 'DD/MM') || ' e ' || to_char(v.previsao_entrega_max, 'DD/MM') || '.');
+
+  elsif p_acao = 'entregar' then
+    if v.status <> 'enviado' then raise exception 'Só pedidos a caminho podem ser marcados como entregues.'; end if;
+    update public.pedidos set status = 'entregue', entregue_em = now() where numero = p_pedido;
+    perform public._msg_sistema(p_pedido, 'Pedido entregue. Obrigado pela compra!');
+
+  elsif p_acao = 'cancelar' then
+    if v.status not in ('recebido', 'confirmado', 'enviado') then raise exception 'Este pedido não pode ser cancelado.'; end if;
+    v_resp := left(btrim(coalesce(p_dados ->> 'motivo', '')), 300);
+    if length(v_resp) < 3 then raise exception 'Informe o motivo do cancelamento.'; end if;
+    update public.pedidos set status = 'cancelado', cancelado_em = now(), cancelado_por = v_email, motivo_cancelamento = v_resp where numero = p_pedido;
+    perform public._estornar(p_pedido, 'Estorno: venda cancelada');
+    perform public._msg_sistema(p_pedido, 'Pedido cancelado pela Policoating. Motivo: ' || v_resp);
+
+  elsif p_acao = 'responder' then
+    select * into s from public.pedido_solicitacoes where id = (p_dados ->> 'solicitacao')::bigint and pedido_numero = p_pedido for update;
+    if not found or s.status <> 'aberta' then raise exception 'Solicitação não encontrada ou já respondida.'; end if;
+    v_aceitar := coalesce((p_dados ->> 'aceitar')::boolean, false);
+    v_resp := left(btrim(coalesce(p_dados ->> 'resposta', '')), 500);
+    if not v_aceitar and length(v_resp) < 3 then raise exception 'Explique ao cliente por que a solicitação foi recusada.'; end if;
+    update public.pedido_solicitacoes set status = case when v_aceitar then 'aceita' else 'recusada' end, resposta = nullif(v_resp, ''),
+      resolvido_em = now(), resolvido_por = v_email where id = s.id;
+    if v_aceitar and s.tipo = 'cancelamento' and v.status not in ('cancelado', 'reembolsado') then
+      update public.pedidos set status = 'cancelado', cancelado_em = now(), cancelado_por = v_email, motivo_cancelamento = s.motivo where numero = p_pedido;
+      perform public._estornar(p_pedido, 'Estorno: cancelamento aceito');
+    end if;
+    if v_aceitar and s.tipo = 'reembolso' then
+      update public.pedidos set status = 'reembolsado', reembolsado_em = now() where numero = p_pedido;
+      if coalesce((p_dados ->> 'devolverEstoque')::boolean, false) then perform public._estornar(p_pedido, 'Estorno: devolução'); end if;
+    end if;
+    perform public._msg_sistema(p_pedido, (case s.tipo when 'cancelamento' then 'Cancelamento' when 'reembolso' then 'Reembolso / devolução' else 'Ajuda do atendimento' end)
+      || ': ' || case when v_aceitar then 'aceita' else 'recusada' end || coalesce('. ' || nullif(v_resp, ''), '.'));
+  else
+    raise exception 'Ação desconhecida.';
+  end if;
+end $$;
+revoke all on function public.acao_pedido(text, text, jsonb) from public;
+grant execute on function public.acao_pedido(text, text, jsonb) to authenticated;
+
+-- Pedido excluído pelo painel: o estoque reservado volta
+create or replace function public.pedidos_ao_excluir()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  perform public._estornar(old.numero, 'Estorno: pedido excluído');
+  return old;
+end $$;
+drop trigger if exists pedidos_ao_excluir on public.pedidos;
+create trigger pedidos_ao_excluir before delete on public.pedidos for each row execute function public.pedidos_ao_excluir();
+
+-- Notificações
+create or replace function public.resumo_equipe()
+returns jsonb language sql stable security definer set search_path = public as $$
+  select case when not public.eh_equipe() then null else jsonb_build_object(
+    'novas', (select count(*) from public.pedidos where status = 'recebido'),
+    'enviar_hoje', (select count(*) from public.pedidos where status = 'confirmado' and previsao_envio <= (now() at time zone 'America/Sao_Paulo')::date),
+    'mensagens', (select count(*) from public.pedidos where ultima_msg_lado = 'cliente' and (msg_lida_equipe_em is null or msg_lida_equipe_em < msg_ultima_em)),
+    'solicitacoes', (select count(*) from public.pedido_solicitacoes where status = 'aberta')) end;
+$$;
+create or replace function public.resumo_cliente()
+returns jsonb language sql stable security definer set search_path = public as $$
+  select jsonb_build_object('mensagens', count(*)) from public.pedidos
+  where cliente_id = auth.uid() and ultima_msg_lado is not null and ultima_msg_lado <> 'cliente'
+    and (msg_lida_cliente_em is null or msg_lida_cliente_em < msg_ultima_em);
+$$;
+revoke all on function public.resumo_equipe() from public;
+revoke all on function public.resumo_cliente() from public;
+grant execute on function public.resumo_equipe(), public.resumo_cliente() to authenticated;
+
+-- Promoções: administradores e vendedores
+create or replace function public.aplicar_promocao(p_ids text[], p_percentual numeric, p_ate date default null)
+returns int language plpgsql security definer set search_path = public as $$
+declare n int;
+begin
+  if not public.eh_equipe() then raise exception 'Sem permissão.' using errcode = '42501'; end if;
+  if p_percentual is null or p_percentual < 1 or p_percentual > 90 then raise exception 'Desconto entre 1%% e 90%%.'; end if;
+  if p_ate is not null and p_ate < (now() at time zone 'America/Sao_Paulo')::date then raise exception 'A data de fim já passou.'; end if;
+  update public.produtos set dados = (dados - 'promoAte') || jsonb_build_object('precoPromo', round((dados ->> 'preco')::numeric * (1 - p_percentual / 100), 2))
+      || case when p_ate is null then '{}'::jsonb else jsonb_build_object('promoAte', to_char(p_ate, 'YYYY-MM-DD')) end,
+    atualizado_em = now()
+  where id = any (p_ids) and not coalesce((dados ->> 'precoCombinar')::boolean, false) and coalesce(nullif(dados ->> 'preco', '')::numeric, 0) > 0;
+  get diagnostics n = row_count;
+  return n;
+end $$;
+create or replace function public.remover_promocao(p_ids text[])
+returns int language plpgsql security definer set search_path = public as $$
+declare n int;
+begin
+  if not public.eh_equipe() then raise exception 'Sem permissão.' using errcode = '42501'; end if;
+  update public.produtos set dados = dados - 'precoPromo' - 'promoAte', atualizado_em = now()
+  where id = any (p_ids) and dados ? 'precoPromo';
+  get diagnostics n = row_count;
+  return n;
+end $$;
+revoke all on function public.aplicar_promocao(text[], numeric, date) from public;
+revoke all on function public.remover_promocao(text[]) from public;
+grant execute on function public.aplicar_promocao(text[], numeric, date), public.remover_promocao(text[]) to authenticated;

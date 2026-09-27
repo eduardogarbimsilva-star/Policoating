@@ -60,7 +60,7 @@ e os dados ficam só no navegador de quem testa. **Não publique para clientes r
    [`assets/js/config.js`](assets/js/config.js) (hoje `8`); se mudar no Supabase, mude lá também.
    Colar o código inteiro sempre funciona, de qualquer tamanho.
 5. Em **Authentication → URL Configuration**, coloque o endereço do site em **Site URL**
-   (ex.: `https://eduardogarbimsilva-star.github.io/Policoating/`).
+   (ex.: `https://eduardogarbimsilva-star.github.io/Color-Weg/`).
 6. Em **Project Settings → API**, copie a **Project URL** e a chave pública **anon / publishable** e cole em
    `assets/js/config.js`:
    ```js

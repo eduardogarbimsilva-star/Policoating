@@ -721,12 +721,10 @@ grant execute on function public.cancelar_venda(bigint, text) to authenticated;
 --   • Vendedores também podem aplicar e remover promoções.
 -- ===========================================================
 
--- Confere se as partes anteriores já foram rodadas (senão para aqui, com o aviso do que falta)
+-- Confere se as partes anteriores necessárias já foram rodadas (o estoque, PARTES J e K, é opcional)
 do $$ begin
-  if to_regclass('public.estoque_movimentos') is null then raise exception 'Rode antes a PARTE J (estoque) e depois a PARTE K.'; end if;
-  if to_regprocedure('public.kg_do_item(jsonb)') is null then raise exception 'Rode antes a PARTE K (estoque no site e vendas).'; end if;
   if to_regprocedure('public.eh_equipe()') is null then raise exception 'Rode antes a PARTE F (cargos da equipe).'; end if;
-  if to_regprocedure('public.so_digitos(text)') is null then raise exception 'Rode antes a PARTE H (validações do cadastro).'; end if;
+  if to_regclass('public.produtos') is null then raise exception 'Rode antes a PARTE D (produtos).'; end if;
 end $$;
 
 -- Prazos (simulação a partir de Matão-SP). Mesma tabela do assets/js/loja.js
@@ -847,6 +845,7 @@ create or replace function public._estornar(p_pedido text, p_obs text)
 returns void language plpgsql security definer set search_path = public as $$
 declare r record;
 begin
+  if to_regclass('public.estoque_movimentos') is null then return; end if;   -- estoque (PARTE J) ainda não ativado
   for r in select produto_id, cor, sum(case when tipo = 'saida' then kg else -kg end) as falta
            from public.estoque_movimentos where pedido_numero = p_pedido and tipo in ('saida', 'entrada')
            group by produto_id, cor having sum(case when tipo = 'saida' then kg else -kg end) > 0 loop
@@ -865,8 +864,12 @@ declare
   v_emb text; v_qtd int; v_kg numeric; v_preco numeric; v_promo numeric; v_efetivo numeric;
   v_itens jsonb := '[]'; v_total numeric := 0; v_total_kg numeric := 0; v_combinar boolean := false;
   v_numero text; v_prazo record; v_envio date; v_hoje date := (now() at time zone 'America/Sao_Paulo')::date;
-  v_estoque boolean := exists (select 1 from public.estoque_movimentos); r record; v_saldo numeric;
+  v_estoque boolean := false; r record; v_saldo numeric;
 begin
+  -- o estoque só é conferido e reservado se as PARTES J e K já foram rodadas e o estoque está em uso
+  if to_regclass('public.estoque_movimentos') is not null then
+    v_estoque := exists (select 1 from public.estoque_movimentos);
+  end if;
   if v_uid is null then raise exception 'Entre na sua conta para comprar.'; end if;
   select * into v_cli from public.clientes where id = v_uid;
   if not found or coalesce(v_cli.cep, '') = '' or coalesce(v_cli.uf, '') = '' then
@@ -882,7 +885,8 @@ begin
     d := v_prod.dados; v_emb := it ->> 'embalagem'; v_qtd := (it ->> 'qtd')::int;
     if v_emb <> 'Sob medida' and not (d -> 'embalagens') ? v_emb then raise exception 'Embalagem inválida para %.', d ->> 'nome'; end if;
     if v_qtd is null or v_qtd < 1 or (v_emb <> 'Sob medida' and v_qtd > 2000) or v_qtd > 50000 then raise exception 'Quantidade inválida para %.', d ->> 'nome'; end if;
-    v_kg := public.kg_do_item(jsonb_build_object('embalagem', v_emb, 'qtd', v_qtd));
+    v_kg := case when v_emb = 'Sob medida' then v_qtd
+            else v_qtd * coalesce(replace(substring(v_emb from '(\d+(?:[.,]\d+)?)\s*kg'), ',', '.')::numeric, 0) end;
     if v_kg <= 0 then raise exception 'Quantidade inválida para %.', d ->> 'nome'; end if;
     v_preco := nullif(d ->> 'preco', '')::numeric; v_promo := nullif(d ->> 'precoPromo', '')::numeric;
     if coalesce((d ->> 'precoCombinar')::boolean, false) or coalesce(v_preco, 0) <= 0 then v_efetivo := null;
@@ -920,7 +924,7 @@ begin
     select e ->> 'id', max(e ->> 'cor'), 'saida', sum((e ->> 'kg')::numeric), v_numero, 'Reserva da compra'
     from jsonb_array_elements(v_itens) e group by e ->> 'id';
   end if;
-  perform public._msg_sistema(v_numero, 'Compra recebida. Envio previsto: ' || to_char(v_envio, 'DD/MM') ||
+  perform public._msg_sistema(v_numero, 'Pedido recebido. Envio previsto: ' || to_char(v_envio, 'DD/MM') ||
     '. Entrega estimada entre ' || to_char(public.somar_dias_uteis(v_envio, v_prazo.dias_min), 'DD/MM') || ' e ' ||
     to_char(public.somar_dias_uteis(v_envio, v_prazo.dias_max), 'DD/MM') || '.');
   return v_numero;
@@ -983,7 +987,7 @@ begin
       perform public._estornar(p_pedido, 'Estorno: compra cancelada pelo cliente');
       insert into public.pedido_solicitacoes (pedido_numero, tipo, motivo, status, resposta, resolvido_em)
       values (p_pedido, p_tipo, p_motivo, 'aceita', 'Cancelado automaticamente (pedido ainda não confirmado).', now());
-      perform public._msg_sistema(p_pedido, 'Compra cancelada pelo cliente. Motivo: ' || p_motivo);
+      perform public._msg_sistema(p_pedido, 'Pedido cancelado pelo cliente. Motivo: ' || p_motivo);
       return 'cancelado';
     end if;
   end if;

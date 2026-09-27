@@ -137,7 +137,12 @@
       obs = String(obs || "").replace(/\s+/g, " ").trim().slice(0, 500);
       if (ONLINE) {
         const { data, error } = await (await sb()).rpc("criar_pedido", { p_itens: limpos, p_obs: obs || null });
-        if (error) throw erroBanco(error);
+        if (error) {
+          const e = erroBanco(error);
+          // banco sem a PARTE L: o site registra do jeito antigo e envia pelo WhatsApp mesmo assim
+          e.semFuncao = /schema cache|not find the function|function public\.criar_pedido/i.test(String(error.message || ""));
+          throw e;
+        }
         return data;
       }
       // demonstração: mesmas regras do banco
@@ -161,7 +166,7 @@
         previsao_envio: iso(pz.envio), previsao_entrega_min: iso(pz.entregaMin), previsao_entrega_max: iso(pz.entregaMax) }, totais(linhas));
       const t = Demo.todos(); (t[u.email] = t[u.email] || []).unshift(ped); Demo.salvar(t);
       if (usoEstoque) Object.entries(porProduto).forEach(([id, kg]) => Demo.mov({ produto_id: id, cor: linhas.find((l) => l.id === id).cor, tipo: "saida", kg, pedido_numero: numero, obs: "Reserva da compra" }));
-      Demo.msg(numero, "sistema", `Compra recebida. Envio previsto: ${dataBR(ped.previsao_envio)}. Entrega estimada entre ${dataBR(ped.previsao_entrega_min)} e ${dataBR(ped.previsao_entrega_max)}.`);
+      Demo.msg(numero, "sistema", `Pedido recebido. Envio previsto: ${dataBR(ped.previsao_envio)}. Entrega estimada entre ${dataBR(ped.previsao_entrega_min)} e ${dataBR(ped.previsao_entrega_max)}.`);
       return numero;
     },
 
@@ -221,7 +226,7 @@
           Object.assign(p, { status: "cancelado", cancelado_em: new Date().toISOString(), cancelado_por: "cliente", motivo_cancelamento: motivo }); Demo.salvar(a.t);
           Demo.estornar(p, "Estorno: compra cancelada pelo cliente");
           lista.push({ id: Date.now(), pedido_numero: numero, tipo, motivo, status: "aceita", resposta: "Cancelado automaticamente (pedido ainda não confirmado).", criado_em: new Date().toISOString(), resolvido_em: new Date().toISOString() });
-          gravar(K.solic, t); Demo.msg(numero, "sistema", `Compra cancelada pelo cliente. Motivo: ${motivo}`); return "cancelado";
+          gravar(K.solic, t); Demo.msg(numero, "sistema", `Pedido cancelado pelo cliente. Motivo: ${motivo}`); return "cancelado";
         }
       }
       if (tipo === "reembolso" && !["enviado", "entregue", "confirmado"].includes(p.status)) throw new Error("Reembolso/devolução é para pedidos em preparação, a caminho ou entregues.");

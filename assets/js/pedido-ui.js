@@ -52,7 +52,7 @@
     const S = L().STATUS, passo = (S[p.status] || {}).passo || 0;
     if (!passo) return `<div class="pp-encerrado ${p.status}"><strong>${esc(S[p.status][opc.lado === "equipe" ? "equipe" : "cliente"])}</strong>
       ${p.motivo_cancelamento ? `<span>Motivo: ${esc(p.motivo_cancelamento)}</span>` : ""}<small>${hora(p.cancelado_em || p.reembolsado_em)}</small></div>`;
-    const etapas = [["Compra recebida", p.criado_em], ["Preparando o envio", p.confirmado_em], ["A caminho", p.enviado_em], ["Entregue", p.entregue_em]];
+    const etapas = [["Pedido recebido", p.criado_em], ["Preparando o envio", p.confirmado_em], ["A caminho", p.enviado_em], ["Entregue", p.entregue_em]];
     return `<ol class="pp-tempo">${etapas.map(([t, d], i) => `<li class="${i + 1 < passo ? "feito" : i + 1 === passo ? "atual" : ""}"><span>${t}</span><small>${d ? hora(d) : ""}</small></li>`).join("")}</ol>`;
   }
   function previsao(p) {
@@ -99,10 +99,11 @@
     const aberta = (t) => solic.some((s) => s.tipo === t && s.status === "aberta");
     if (opc.lado === "cliente") {
       const b = [];
-      if (["recebido", "confirmado"].includes(p.status) && !aberta("cancelamento")) b.push(["cancelamento", p.status === "recebido" ? "Cancelar compra" : "Pedir cancelamento"]);
+      if (["recebido", "confirmado"].includes(p.status) && !aberta("cancelamento")) b.push(["cancelamento", p.status === "recebido" ? "Cancelar pedido" : "Pedir cancelamento"]);
       if (["confirmado", "enviado", "entregue"].includes(p.status) && !aberta("reembolso")) b.push(["reembolso", "Pedir reembolso / devolução"]);
       if (!aberta("atendimento")) b.push(["atendimento", "Falar com o atendimento"]);
-      return b.length ? `<div class="pp-acoes">${b.map(([t, r]) => `<button type="button" class="btn ${t === "atendimento" ? "btn-contorno-azul" : "btn-contorno-perigo"}" data-solicitar="${t}">${r}</button>`).join("")}</div>
+      const zap = window.ColorWeg ? window.ColorWeg.linkWhatsApp(`Olá! Gostaria de falar sobre o meu pedido nº *${p.numero}*.`) : "";
+      return b.length || zap ? `<div class="pp-acoes">${zap ? `<a class="btn btn-whats" href="${esc(zap)}" target="_blank" rel="noopener">WhatsApp do vendedor</a>` : ""}${b.map(([t, r]) => `<button type="button" class="btn ${t === "atendimento" ? "btn-contorno-azul" : "btn-contorno-perigo"}" data-solicitar="${t}">${r}</button>`).join("")}</div>
         <form class="pp-form" id="pp-form-solic" hidden><label id="pp-form-titulo"></label><textarea rows="2" maxlength="500" id="pp-motivo" placeholder="Conte o motivo"></textarea>
           <div><button type="submit" class="btn btn-primario">Enviar</button><button type="button" class="btn-link" id="pp-form-cancelar">Voltar</button></div></form>` : "";
     }
@@ -125,7 +126,7 @@
     catch (e) { $("#pp-corpo").innerHTML = `<p class="form-erro">${esc(e.message)}</p>`; return; }
     if (atual !== numero) return;
     const S = L().STATUS[p.status] || { cliente: p.status, equipe: p.status };
-    $("#pp-titulo").textContent = `${opc.lado === "equipe" ? "Venda" : "Compra"} ${p.numero}`;
+    $("#pp-titulo").textContent = `${opc.lado === "equipe" ? "Venda" : "Pedido"} ${p.numero}`;
     $("#pp-sub").innerHTML = `${hora(p.criado_em)} · <b class="pp-status ${p.status}">${esc(opc.lado === "equipe" ? S.equipe : S.cliente)}</b>${p.vendedor && opc.lado === "equipe" ? ` · vendedor ${esc(p.vendedor)}` : ""}`;
     const confirmarPrecos = opc.lado === "equipe" && p.status === "recebido";
     $("#pp-corpo").innerHTML = `
@@ -192,7 +193,7 @@
       if (s) {
         tipoSolic = s.dataset.solicitar;
         const f = $("#pp-form-solic"); f.hidden = false;
-        $("#pp-form-titulo").textContent = { cancelamento: p.status === "recebido" ? "Por que você quer cancelar? A compra será cancelada na hora." : "Por que você quer cancelar? O vendedor vai analisar, pois o pedido já está em preparação.",
+        $("#pp-form-titulo").textContent = { cancelamento: p.status === "recebido" ? "Por que você quer cancelar? O pedido será cancelado na hora." : "Por que você quer cancelar? O vendedor vai analisar, pois o pedido já está em preparação.",
           reembolso: "Conte o que aconteceu (produto com defeito, cor diferente, atraso...). O vendedor vai analisar.", atendimento: "Como o atendimento pode ajudar?" }[tipoSolic];
         $("#pp-motivo").focus();
       }
@@ -203,7 +204,7 @@
       fs.addEventListener("submit", (e) => {
         e.preventDefault();
         executar(() => L().solicitar(p.numero, tipoSolic, $("#pp-motivo").value),
-          tipoSolic === "cancelamento" && p.status === "recebido" ? "Compra cancelada." : "Solicitação enviada. Acompanhe a resposta por aqui.");
+          tipoSolic === "cancelamento" && p.status === "recebido" ? "Pedido cancelado." : "Solicitação enviada. Acompanhe a resposta por aqui.");
       });
     }
 

@@ -267,8 +267,8 @@
       <div id="carrinho-cliente"></div>
       <textarea id="cliente-obs" rows="2" maxlength="500" placeholder="Observações (opcional)"></textarea>
     </div>
-    <button class="btn btn-primario btn-bloco" id="btn-finalizar">Finalizar compra</button>
-    <p class="aviso">O pedido vai direto para a nossa equipe. Frete e pagamento você combina com o vendedor pelo chat do pedido, em Minha conta.
+    <button class="btn btn-whats btn-bloco" id="btn-finalizar">${iconeWhats()} Enviar pedido pelo WhatsApp</button>
+    <p class="aviso">O pedido fica salvo em Meus pedidos e abre o WhatsApp do vendedor com todos os dados. Frete e pagamento você combina com ele.
       <button class="limpar" id="btn-limpar">Esvaziar carrinho</button></p>
   </div>
 </aside>
@@ -396,7 +396,7 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
     const box = $("#carrinho-cliente");
     if (!box) return;
     const btn = $("#btn-finalizar");
-    const textoBtn = (t) => (btn.textContent = t);
+    const textoBtn = (t) => (btn.innerHTML = `${iconeWhats()} ${esc(t)}`);
 
     if (logado()) {
       const p = Conta.perfil || {};
@@ -409,12 +409,36 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
       const titulo = p.tipo === "pj" ? p.razao_social : p.nome;
       box.innerHTML = `<div class="cliente-box"><span>Entrega para</span><strong>${esc(titulo)}</strong>
         <small>${esc(p.cidade)}/${esc(p.uf)} · CEP ${esc(p.cep)}</small><a href="conta.html#dados">Alterar dados</a></div>`;
-      textoBtn("Finalizar compra");
+      textoBtn("Enviar pedido pelo WhatsApp");
       return;
     }
     box.innerHTML = `<div class="cliente-box alerta">Entre ou crie sua conta para finalizar a compra com seus dados de faturamento e entrega.</div>`;
     textoBtn("Entrar para finalizar");
   }
+
+  /** Mensagem do pedido para o WhatsApp do vendedor */
+  function mensagemPedido(numero, obs) {
+    const p = Conta.perfil || {}, L = [], tv = totalValor();
+    L.push(`Olá! Vim pelo site da *${CFG.empresa}* e gostaria de fazer um pedido.`, `*Pedido nº ${numero}*`, "");
+    carrinho.forEach((item, i) => {
+      const prod = buscarProduto(item.id), pi = precoInfo(prod);
+      L.push(`*${i + 1}. ${prod.nome}*`, `   Código: ${prod.codigo || prod.id} | Cor: ${item.cor}`, `   Quantidade: ${descreverQtd(item)}`,
+        pi.tipo === "combinar" ? "   Valor: a combinar" : `   Valor: ${formatarPreco(pi.efetivo)}/kg${pi.tipo === "promo" ? " (promoção)" : ""} = ${formatarPreco(pi.efetivo * kgDoItem(item))}`);
+    });
+    L.push("", `*Total: ${totalKg().toLocaleString("pt-BR")} kg*`);
+    if (tv.valor) L.push(`*Valor estimado: ${formatarPreco(tv.valor)}*${tv.combinar ? " + itens a combinar" : ""}`);
+    const pz = window.Loja && p.cep ? window.Loja.prazo(p.uf, p.cep) : null;
+    if (pz) L.push(`Entrega estimada: entre ${window.Loja.dataBR(pz.entregaMin)} e ${window.Loja.dataBR(pz.entregaMax)} (simulação)`);
+    L.push("", "*Dados do cliente*");
+    if (p.tipo === "pj") L.push(`Empresa: ${p.razao_social}${p.nome_fantasia ? " (" + p.nome_fantasia + ")" : ""}`, `CNPJ: ${p.cnpj}${p.inscricao_estadual ? " | IE: " + p.inscricao_estadual : ""}`, `Responsável: ${p.responsavel}`);
+    else L.push(`Nome: ${p.nome}`, `CPF: ${p.cpf}`);
+    L.push(`Telefone: ${p.telefone}`, `E-mail: ${Conta.usuario.email}`, "", "*Endereço de entrega*",
+      `${p.logradouro}, ${p.numero}${p.complemento ? " - " + p.complemento : ""}`, `${p.bairro ? p.bairro + " - " : ""}${p.cidade}/${p.uf} - CEP ${p.cep}`);
+    if (obs) L.push("", `Observações: ${obs}`);
+    L.push("", "Aguardo o orçamento. Obrigado!");
+    return L.join("\n");
+  }
+  const numeroLocal = () => { const d = new Date(); return "PC-" + String(d.getFullYear()).slice(2) + String(d.getMonth() + 1).padStart(2, "0") + String(d.getDate()).padStart(2, "0") + "-" + Math.random().toString(36).slice(2, 7).toUpperCase(); };
 
   async function finalizarPedido() {
     if (!carrinho.length) return;
@@ -424,25 +448,44 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
       return;
     }
     if (!Conta.perfilCompleto()) { location.href = "conta.html#dados"; return; }
+    // abre a aba do WhatsApp já no clique (depois o navegador bloquearia a janela)
+    let janela = null;
+    try { janela = window.open("", "_blank"); if (janela) janela.document.write("<p style='font:16px sans-serif;padding:24px'>Registrando o seu pedido e abrindo o WhatsApp...</p>"); } catch (e) { /* segue */ }
     const btn = $("#btn-finalizar");
-    btn.disabled = true;
+    btn.disabled = true; btn.textContent = "Enviando pedido...";
     try {
       // confere o estoque na hora (outro cliente pode ter comprado)
       await carregarEstoque(true); renderCarrinho();
       const acima = carrinho.map((i) => buscarProduto(i.id)).filter((p, k, a) => p && a.indexOf(p) === k && controlaEstoque() && kgNoCarrinho(p.id) > saldoDe(p.id));
-      if (acima.length) { mostrarToast(`O estoque mudou: ${acima.map((p) => `<strong>${esc(p.nome)}</strong> (${fmtKg(saldoDe(p.id))})`).join(", ")}. Ajuste o carrinho para continuar.`); return; }
-      const tv = totalValor();
-      if (!confirm(`Confirmar a compra de ${carrinho.length} ${carrinho.length === 1 ? "item" : "itens"} (${totalKg().toLocaleString("pt-BR")} kg)?\n\n` +
-        (tv.valor ? `Valor dos produtos: ${formatarPreco(tv.valor)}${tv.combinar ? " + itens a combinar" : ""}\n` : "Valor a combinar com o vendedor.\n") +
-        "Frete e pagamento são combinados com o vendedor pelo chat do pedido.")) return;
-      btn.textContent = "Enviando pedido...";
-      const numero = await window.Loja.criarPedido(carrinho.map((i) => ({ id: i.id, embalagem: i.embalagem, qtd: i.qtd })), $("#cliente-obs").value);
+      if (acima.length) {
+        if (janela) janela.close();
+        mostrarToast(`O estoque mudou: ${acima.map((p) => `<strong>${esc(p.nome)}</strong> (${fmtKg(saldoDe(p.id))})`).join(", ")}. Ajuste o carrinho para continuar.`);
+        return;
+      }
+      const obs = $("#cliente-obs").value.replace(/\s+/g, " ").trim().slice(0, 500);
+      let numero, salvo = true;
+      try {
+        numero = await window.Loja.criarPedido(carrinho.map((i) => ({ id: i.id, embalagem: i.embalagem, qtd: i.qtd })), obs);
+      } catch (e) {
+        if (!e.semFuncao) throw e;
+        // banco sem a PARTE L: registra do jeito antigo
+        numero = numeroLocal();
+        const itens = carrinho.map((i) => { const p = buscarProduto(i.id), pi = precoInfo(p);
+          return { id: i.id, codigo: p.codigo || p.id, nome: p.nome, cor: i.cor, embalagem: i.embalagem, qtd: i.qtd, preco_kg: pi.efetivo || null }; });
+        try { await Conta.registrarPedido({ numero, itens, observacoes: obs }); } catch (e2) { salvo = false; console.warn("Pedido não registrado:", e2.message); }
+      }
+      const link = linkWhatsApp(mensagemPedido(numero, obs));
+      if (janela && !janela.closed) janela.location.href = link;
+      else { const w = window.open(link, "_blank", "noopener"); if (!w) setTimeout(() => (location.href = link), 300); }
       carrinho = [];
       $("#cliente-obs").value = "";
       salvarCarrinho();
       carregarEstoque(true);
-      location.href = "conta.html#compra=" + encodeURIComponent(numero);
+      fecharTudo();
+      if (salvo && janela) location.href = "conta.html#compra=" + encodeURIComponent(numero);
+      else mostrarToast(`Pedido <strong>${esc(numero)}</strong> enviado pelo WhatsApp${salvo ? "! Acompanhe em <a href=\"conta.html#pedidos\" style=\"color:var(--destaque)\">Meus pedidos</a>." : "."}`);
     } catch (e) {
+      if (janela) janela.close();
       mostrarToast(esc(e.message));
     } finally {
       btn.disabled = false; renderClienteCarrinho();
@@ -836,7 +879,7 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
     menu.innerHTML = `
       <div class="mc-topo"><strong>${esc(Conta.nomeExibicao() || "Minha conta")}</strong><small>${esc(u.email || "")}</small></div>
       <a href="conta.html#resumo">${ic("casa")}Visão geral</a>
-      <a href="conta.html#pedidos">${ic("caixa")}Minhas compras <b class="badge-menu" data-badge-cliente hidden></b></a>
+      <a href="conta.html#pedidos">${ic("caixa")}Meus pedidos <b class="badge-menu" data-badge-cliente hidden></b></a>
       <a href="conta.html#favoritos">${ic("coracao")}Favoritos</a>
       <a href="conta.html#dados">${ic("usuario")}Meus dados</a>
       <a href="admin.html#vendas" class="mc-admin" hidden>${ic("industria")}<span>Painel da empresa</span> <b class="badge-menu" data-badge-equipe hidden></b></a>

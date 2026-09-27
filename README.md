@@ -1,9 +1,10 @@
-# Policoating — Site institucional + loja de tinta em pó
+# Policoating — Site institucional + catálogo de tinta em pó com pedido via WhatsApp
 
 Site estático (HTML, CSS e JavaScript puro — sem build, sem servidor) inspirado no padrão corporativo do site da WEG,
 com a identidade visual da **Policoating** (tinta eletrostática em pó).
 Funciona como porta de entrada da empresa: mostra a variedade de produtos, a história, recursos úteis e permite ao
-cliente comprar pelo site, acompanhar a entrega e conversar com o vendedor no pedido, como no Mercado Livre.
+cliente montar o carrinho e **enviar o pedido para o WhatsApp do vendedor**; o pedido fica registrado em Meus pedidos
+e na aba Vendas do painel.
 
 ## Páginas
 
@@ -29,8 +30,8 @@ O layout é responsivo (celular, tablet e computador).
 - **Entrar:** sem senha — a cada acesso um novo código é enviado ao e-mail.
 - **Cadastro:** CNPJ com botão **Buscar** (preenche razão social e endereço pela Receita, via BrasilAPI),
   CPF/CNPJ validados, **CEP que preenche o endereço automaticamente** (ViaCEP), telefone e endereço de entrega.
-- **Minha conta:** **Minhas compras** (situação, previsão de entrega, chat com o vendedor, cancelamento,
-  reembolso e atendimento) com **Comprar de novo**, edição dos dados e **Favoritos**.
+- **Minha conta:** **Meus pedidos** (situação, previsão de entrega, chat com o vendedor, cancelamento,
+  reembolso e atendimento) com **Repetir pedido**, edição dos dados e **Favoritos**.
 - Para comprar, o cliente entra na conta e completa o cadastro (faturamento e endereço de entrega).
 
 ### Modo demonstração x modo real
@@ -106,21 +107,23 @@ Na janela do produto, a **Caixa 25 kg** vem selecionada. O cliente também pode 
 total em quilos; o vendedor confirma a combinação de embalagens. O atalho **Calcular pela área** transforma m² em kg
 (rendimento do produto + 15% de perda) e preenche a quantidade. O carrinho e o pedido mostram o total em kg.
 
-## Como funciona a compra (estilo Mercado Livre)
+## Como funciona o pedido
 
 1. O cliente abre um produto (fotos, código, marca, preço, estoque e **prazo de entrega pelo CEP**), escolhe
    embalagem e quantidade e adiciona ao carrinho. Só dá para pedir até o estoque disponível.
-2. No carrinho aparecem o valor estimado e a previsão de entrega. **Finalizar compra** exige conta com cadastro
-   completo; o pedido vai direto para o sistema (não abre mais o WhatsApp). O banco confere preço e estoque,
-   **reserva o estoque** e calcula o prazo.
+2. No carrinho aparecem o valor estimado e a previsão de entrega. **Enviar pedido pelo WhatsApp** exige conta com
+   cadastro completo: o pedido é **registrado** (Meus pedidos do cliente e aba Vendas da equipe) e o **WhatsApp do
+   vendedor abre sozinho** com o número do pedido, itens, códigos, quantidades, valores, previsão de entrega, dados
+   do cliente e endereço. O banco confere preço e calcula o prazo; se o estoque estiver em uso (PARTES J e K),
+   também confere e reserva o estoque. Sem a PARTE L no banco, o pedido é registrado do jeito antigo.
 3. **Prazo (simulação a partir de Matão-SP):** pedido até 14h em dia útil sai no mesmo dia; depois, no próximo dia
    útil. Entrega em dias úteis após o envio: região de Matão (CEP 13000–16999) 1–2; resto de SP 2–3; MG, RJ, ES e PR
    3–5; SC, RS, GO, DF e MS 4–7; MT, TO, BA e SE 6–9; demais do Nordeste 7–11; Norte 9–15. Os valores ficam em
    [`assets/js/loja.js`](assets/js/loja.js) e na função `prazo_regiao` do banco (PARTE L) — mude nos dois.
-4. Em **Minha conta → Minhas compras** o cliente acompanha a situação (recebido → preparando o envio → a caminho →
+4. Em **Minha conta → Meus pedidos** o cliente acompanha a situação (recebido → preparando o envio → a caminho →
    entregue), vê itens, valores e previsão, **conversa com o vendedor** pelo chat do pedido e pode **cancelar a
    compra** (na hora, se ainda não foi confirmada; depois, o vendedor analisa), **pedir reembolso/devolução** ou
-   **falar com o atendimento**. Frete e pagamento são combinados pelo chat.
+   **falar com o atendimento** (ou abrir o WhatsApp do vendedor). Frete e pagamento são combinados com o vendedor.
 5. A equipe recebe a venda na aba **Vendas** do painel (com aviso no menu), confirma (informando o preço dos itens
    "a combinar"), marca como enviado (transportadora e rastreio) e como entregue, responde o chat e as
    solicitações. Cancelamentos devolvem o estoque; no reembolso dá para escolher devolver ao estoque.
@@ -171,7 +174,7 @@ escolhendo o cargo. O pagamento ainda não é feito pelo site: frete e pagamento
 
 **Abas do painel:**
 - **Produtos:** veja abaixo.
-- **Vendas (estilo Mercado Livre):** toda compra do site aparece na hora, com aviso no menu (número em vermelho)
+- **Vendas (estilo Mercado Livre):** todo pedido enviado pelo site aparece na hora, com aviso no menu (número em vermelho)
   para vendedores e administradores. Filtros: **Novas**, **Enviar hoje**, **Próximos envios**, **A caminho**,
   **Entregues**, **Mensagens** (cliente escreveu), **Solicitações** (cancelamento, reembolso, atendimento),
   **Canceladas** e **Todas**; busca por código, cliente, produto ou cidade; período; "minhas vendas". Mostra
@@ -188,7 +191,7 @@ escolhendo o cargo. O pagamento ainda não é feito pelo site: frete e pagamento
   **Saída**, **Inventário** (informe a contagem real e o sistema lança a diferença) e **Mínimo** (alerta de
   reposição). Cada item tem **Histórico** com data, tipo, kg, pedido, documento e quem fez; nada é apagado nem
   editado, correções entram como inventário. Saídas não deixam o saldo ficar negativo.
-  - **Reserva na compra:** a compra pelo site já desconta (reserva) o estoque; se a venda for cancelada ou o pedido
+  - **Reserva no pedido:** o pedido enviado pelo site já desconta (reserva) o estoque; se a venda for cancelada ou o pedido
     excluído, o estoque volta.
   - **No site:** o cliente vê a quantidade em estoque de cada produto (kg e caixas) e só consegue pedir até o saldo
     (contando o que já está no carrinho). Produto com saldo zero aparece como **Esgotado**, sem carrinho, com o botão

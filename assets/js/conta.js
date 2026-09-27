@@ -202,7 +202,7 @@
   }
   function abrirCompra(numero, recemFeita) {
     if (!window.PedidoUI) return;
-    if (recemFeita) CW.mostrarToast(`Compra <strong>${esc(numero)}</strong> registrada! Acompanhe e converse com o vendedor por aqui.`);
+    if (recemFeita) CW.mostrarToast(`Pedido <strong>${esc(numero)}</strong> registrado e enviado pelo WhatsApp! Acompanhe por aqui.`);
     window.PedidoUI.abrir(numero, { lado: "cliente", aoMudar: () => { pedidosCache = null; if (!$("#painel-pedidos").hidden) renderPedidos(); } });
   }
 
@@ -318,14 +318,14 @@
       : `<p class="prev">${window.Icone("relogio")}${p.status === "enviado" ? "A caminho: chega" : "Chega"} entre <strong>${esc(L.dataBR(p.previsao_entrega_min))}</strong> e <strong>${esc(L.dataBR(p.previsao_entrega_max))}</strong></p>`;
     return `<article class="pedido${naoLida ? " com-msg" : ""}">
       <header>
-        <div><strong>Compra ${esc(p.numero)}</strong><small>${dataHora(p.criado_em)} · ${itens.length} ${itens.length === 1 ? "produto" : "produtos"}${kg ? ` · ${kg.toLocaleString("pt-BR")} kg` : ""}${p.total ? ` · ${(+p.total).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}` : ""}</small></div>
+        <div><strong>Pedido ${esc(p.numero)}</strong><small>${dataHora(p.criado_em)} · ${itens.length} ${itens.length === 1 ? "produto" : "produtos"}${kg ? ` · ${kg.toLocaleString("pt-BR")} kg` : ""}${p.total ? ` · ${(+p.total).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}` : ""}</small></div>
         <span class="status pp-status ${esc(p.status || "")}">${esc(st.cliente)}</span>
       </header>
       ${prev}
       <ul>${lista}</ul>
-      ${compacto ? `<footer><button type="button" class="btn btn-contorno-azul" data-ver-compra="${esc(p.numero)}">Ver compra</button></footer>` : `<footer>
-        <button type="button" class="btn btn-primario" data-ver-compra="${esc(p.numero)}">${window.Icone("conversa")}Ver compra e conversar${naoLida ? ` <b class="badge-nova">nova mensagem</b>` : ""}</button>
-        <button type="button" class="btn btn-contorno-azul" data-repetir="${i}">↻ Comprar de novo</button>
+      ${compacto ? `<footer><button type="button" class="btn btn-contorno-azul" data-ver-compra="${esc(p.numero)}">Ver pedido</button></footer>` : `<footer>
+        <button type="button" class="btn btn-primario" data-ver-compra="${esc(p.numero)}">${window.Icone("conversa")}Ver pedido e conversar${naoLida ? ` <b class="badge-nova">nova mensagem</b>` : ""}</button>
+        <button type="button" class="btn btn-contorno-azul" data-repetir="${i}">↻ Repetir pedido</button>
       </footer>`}
     </article>`;
   }
@@ -351,19 +351,19 @@
     $("#est-ultimo").textContent = pedidos.length ? dataCurta(pedidos[0].criado_em) : "—";
     $("#resumo-ultimo").innerHTML = pedidos.length
       ? cartaoPedido(pedidos[0], 0, true)
-      : `<p class="vazio-mini">Você ainda não fez compras. <a href="produtos.html">Ver produtos →</a></p>`;
+      : `<p class="vazio-mini">Você ainda não enviou pedidos. <a href="produtos.html">Ver produtos →</a></p>`;
   }
 
   /* ---------- Meus pedidos ---------- */
   async function renderPedidos() {
     const box = $("#lista-pedidos");
-    box.innerHTML = `<p class="carregando">Carregando compras…</p>`;
+    box.innerHTML = `<p class="carregando">Carregando pedidos…</p>`;
     let pedidos = [];
     try { pedidos = await carregarPedidos(true); }
     catch (err) { box.innerHTML = `<p class="erro">${esc(err.message)}</p>`; return; }
     atualizarLateral();
     if (!pedidos.length) {
-      box.innerHTML = `<div class="vazio cartao-info"><div class="icone-vazio">${window.Icone("caixa")}</div><p>Você ainda não fez compras.</p>
+      box.innerHTML = `<div class="vazio cartao-info"><div class="icone-vazio">${window.Icone("caixa")}</div><p>Você ainda não enviou pedidos.</p>
         <p><a class="btn btn-primario" href="produtos.html" style="margin-top:12px">Ver produtos</a></p></div>`;
       return;
     }

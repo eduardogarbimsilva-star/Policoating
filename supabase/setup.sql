@@ -269,7 +269,7 @@ create policy "equipe ve clientes" on public.clientes
 
 -- Sem status de pedido (nada é pago ou enviado pelo site): remove o que a versão anterior criou
 drop policy if exists "admin atualiza pedidos" on public.pedidos;
-alter table public.pedidos drop column if exists status;
+-- (a situação do pedido voltou na PARTE L; não apague a coluna status ao rodar esta parte de novo)
 
 -- ===========================================================
 -- PARTE G — Permissão para excluir pedidos
@@ -450,6 +450,12 @@ grant update (pode_exportar) on public.admins to authenticated;
 --   • Visitantes só sabem se a cor está em "pronta entrega" (nunca a quantidade)
 -- ===========================================================
 
+-- Confere se as partes anteriores já foram rodadas (senão para aqui, com o aviso do que falta)
+do $$ begin
+  if to_regprocedure('public.eh_equipe()') is null then raise exception 'Rode antes a PARTE F (cargos da equipe).'; end if;
+  if to_regclass('public.pedidos') is null then raise exception 'Rode antes a primeira parte do setup.sql (clientes e pedidos).'; end if;
+end $$;
+
 alter table public.admins add column if not exists pode_estoque boolean not null default false;
 grant update (pode_estoque) on public.admins to authenticated;
 
@@ -560,6 +566,12 @@ grant execute on function public.estoque_disponivel() to anon, authenticated;
 --     a baixa no estoque é feita junto. Só o administrador cancela (o estoque volta).
 --     Vendedor vê as próprias vendas; administrador vê todas.
 -- ===========================================================
+
+-- Confere se as partes anteriores já foram rodadas (senão para aqui, com o aviso do que falta)
+do $$ begin
+  if to_regclass('public.estoque_movimentos') is null then raise exception 'Rode antes a PARTE J (estoque).'; end if;
+  if to_regclass('public.produtos') is null then raise exception 'Rode antes a PARTE D (produtos).'; end if;
+end $$;
 
 -- Estoque para o site: saldo em kg por produto (visitantes podem ver)
 create or replace function public.estoque_publico()
@@ -708,6 +720,14 @@ grant execute on function public.cancelar_venda(bigint, text) to authenticated;
 --     ou ajuda do atendimento. A equipe responde pelo painel.
 --   • Vendedores também podem aplicar e remover promoções.
 -- ===========================================================
+
+-- Confere se as partes anteriores já foram rodadas (senão para aqui, com o aviso do que falta)
+do $$ begin
+  if to_regclass('public.estoque_movimentos') is null then raise exception 'Rode antes a PARTE J (estoque) e depois a PARTE K.'; end if;
+  if to_regprocedure('public.kg_do_item(jsonb)') is null then raise exception 'Rode antes a PARTE K (estoque no site e vendas).'; end if;
+  if to_regprocedure('public.eh_equipe()') is null then raise exception 'Rode antes a PARTE F (cargos da equipe).'; end if;
+  if to_regprocedure('public.so_digitos(text)') is null then raise exception 'Rode antes a PARTE H (validações do cadastro).'; end if;
+end $$;
 
 -- Prazos (simulação a partir de Matão-SP). Mesma tabela do assets/js/loja.js
 create or replace function public.prazo_regiao(p_uf text, p_cep text)
@@ -1112,3 +1132,6 @@ end $$;
 revoke all on function public.aplicar_promocao(text[], numeric, date) from public;
 revoke all on function public.remover_promocao(text[]) from public;
 grant execute on function public.aplicar_promocao(text[], numeric, date), public.remover_promocao(text[]) to authenticated;
+
+-- Avisa a API do Supabase para reconhecer na hora as tabelas e funções novas
+notify pgrst, 'reload schema';

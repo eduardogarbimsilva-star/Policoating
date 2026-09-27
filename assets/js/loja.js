@@ -92,9 +92,19 @@
   const numeroNovo = () => { const d = new Date(); return "PC-" + String(d.getFullYear()).slice(2) + String(d.getMonth() + 1).padStart(2, "0") + String(d.getDate()).padStart(2, "0") + "-" + Math.random().toString(36).slice(2, 7).toUpperCase(); };
   const usuario = () => (window.Conta && window.Conta.usuario) || null;
   const sb = () => window.Conta.cliente();
-  function erroBanco(e, parte) {
+  // O que falta no banco -> qual parte do setup.sql cria isso
+  const PARTE_DE = [[/estoque_movimentos|estoque_saldos|estoque_minimos|pode_mexer_estoque/, "PARTE J (estoque) e depois a PARTE K"],
+    [/kg_do_item|estoque_publico|pedidos_conferir_estoque|vendas|confirmar_venda/, "PARTE K"],
+    [/so_digitos|cpf_valido|cnpj_valido/, "PARTE H"], [/eh_equipe|meu_papel/, "PARTE F"],
+    [/criar_pedido|prazo_regiao|dia_de_envio|somar_dias_uteis|pedido_mensagens|pedido_solicitacoes|enviar_mensagem|marcar_lido|abrir_solicitacao|acao_pedido|resumo_(equipe|cliente)|_estornar|_msg_sistema|aplicar_promocao|remover_promocao|previsao_|destino_|tem_combinar|status/, "PARTE L"]];
+  function erroBanco(e) {
     const m = String((e && e.message) || e || "");
-    if (/does not exist|schema cache|not find the function/i.test(m)) return new Error(`Recurso ainda não ativado no banco: rode a ${parte || "PARTE L"} do setup.sql no Supabase.`);
+    if (/schema cache|not find the function/i.test(m) && /criar_pedido|enviar_mensagem|marcar_lido|abrir_solicitacao|acao_pedido|resumo_|pedido_/i.test(m))
+      return new Error("O Supabase ainda não reconheceu a PARTE L. No SQL Editor, rode: notify pgrst, 'reload schema';  e tente de novo em 1 minuto.");
+    if (/does not exist|schema cache|not find the function/i.test(m)) {
+      const achou = PARTE_DE.find(([re]) => re.test(m));
+      return new Error(`Falta uma parte do banco: rode a ${achou ? achou[1] : "parte indicada"} do setup.sql no Supabase (em ordem: J, K e L). Detalhe técnico: ${m}`);
+    }
     return new Error(m || "Não foi possível concluir. Tente novamente.");
   }
 

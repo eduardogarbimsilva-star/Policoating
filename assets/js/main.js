@@ -411,6 +411,8 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
       try {
         numero = await window.Loja.criarPedido(carrinho.map((i) => ({ id: i.id, embalagem: i.embalagem, qtd: i.qtd })), obs);
       } catch (e) {
+        // conta bloqueada/suspensa: não envia de jeito nenhum
+        if (e.bloqueio || /Sua conta está (suspensa|bloqueada)/.test(e.message)) throw e;
         // não conseguiu salvar: o pedido vai pelo WhatsApp mesmo assim (o vendedor não perde a venda)
         numero = numeroLocal(); salvo = false; console.warn("Pedido não registrado:", e.message);
       }

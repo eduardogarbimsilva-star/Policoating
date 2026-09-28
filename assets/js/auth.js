@@ -51,8 +51,20 @@
     cnpj: "Este CNPJ já está cadastrado em outra conta. Entre com o e-mail dessa conta ou fale com a gente pelo WhatsApp.",
     email: "Este e-mail já está cadastrado. Use \"Entrar\" em vez de \"Criar conta\"."
   };
+  /* Bloqueio/suspensão de clientes (PARTE M): o cliente vê só o prazo, o motivo fica com a equipe */
+  const dataBR = (d) => new Date(d).toLocaleDateString("pt-BR");
+  const msgBloqueio = (ate) => (ate ? `Sua conta está suspensa até ${dataBR(ate)}.` : "Sua conta está bloqueada.") + " Para resolver, fale com a Policoating pelo WhatsApp.";
+  const MSG_DOC_BLOQUEADO = "Este CPF/CNPJ está bloqueado na Policoating. Para resolver, fale com a gente pelo WhatsApp.";
+  function bloqueioDemo(email, doc) {
+    const so = (v) => String(v || "").replace(/\D/g, "");
+    return (ler("policoating_demo_bloqueios", []) || []).find((b) => !b.encerrado_em && (!b.ate || new Date(b.ate) > new Date())
+      && ((email && String(b.email || "").toLowerCase() === String(email).toLowerCase()) || (so(doc) && b.documento === so(doc)))) || null;
+  }
+
   function traduzirErro(erro) {
     const msg = String((erro && erro.message) || erro || "");
+    if (/CONTA_BLOQUEADA/.test(msg)) { const d = msg.match(/até (\d{2}\/\d{2}\/\d{4})/); return new Error((d ? `Sua conta está suspensa até ${d[1]}.` : "Sua conta está bloqueada.") + " Para resolver, fale com a Policoating pelo WhatsApp."); }
+    if (/DOCUMENTO_BLOQUEADO/.test(msg)) return new Error(MSG_DOC_BLOQUEADO);
     if ((erro && erro.code === "23505") || /duplicate key|unique constraint/i.test(msg)) {
       const k = /cpf/i.test(msg) ? "cpf" : /cnpj/i.test(msg) ? "cnpj" : /email/i.test(msg) ? "email" : null;
       return new Error(k ? DUPLICADO[k] : "Esses dados já estão cadastrados em outra conta.");
@@ -211,6 +223,8 @@
         perfilAtual = data;
       } else {
         const perfis = ler(K.perfis, {});
+        const b = bloqueioDemo(null, registro.cpf || registro.cnpj);
+        if (b && String(b.email || "").toLowerCase() !== usuarioAtual.email) throw new Error(MSG_DOC_BLOQUEADO);
         // mesmas regras do banco: um CPF/CNPJ por conta
         for (const [email, p] of Object.entries(perfis)) {
           if (email === usuarioAtual.email) continue;
@@ -225,6 +239,20 @@
       return perfilAtual;
     },
 
+    /** Bloqueio em vigor da conta logada: null ou { ate, mensagem } */
+    async meuBloqueio() {
+      if (!usuarioAtual) return null;
+      if (USAR_SUPABASE) {
+        const sb = await supabase();
+        const { data, error } = await sb.rpc("meu_bloqueio");
+        if (error || !data || !data.length || !data[0].bloqueado) return null;   // sem a PARTE M: ninguém bloqueado
+        return { ate: data[0].ate, mensagem: msgBloqueio(data[0].ate) };
+      }
+      const p = perfilAtual || ler(K.perfis, {})[usuarioAtual.email] || {};
+      const b = bloqueioDemo(usuarioAtual.email, p.cpf || p.cnpj);
+      return b ? { ate: b.ate, mensagem: msgBloqueio(b.ate) } : null;
+    },
+
     async registrarPedido(pedido) {
       if (!usuarioAtual) return null;
       const registro = { numero: pedido.numero, itens: pedido.itens, observacoes: pedido.observacoes || null };
@@ -233,6 +261,7 @@
         const { error } = await sb.from("pedidos").insert(Object.assign(registro, { cliente_id: usuarioAtual.id }));
         if (error) throw traduzirErro(error);
       } else {
+        const bl = await this.meuBloqueio(); if (bl) throw new Error(bl.mensagem);
         const todos = ler(K.pedidos, {});
         (todos[usuarioAtual.email] = todos[usuarioAtual.email] || []).unshift(Object.assign(registro, { criado_em: new Date().toISOString() }));
         gravar(K.pedidos, todos);

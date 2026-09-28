@@ -1119,3 +1119,95 @@ grant execute on function public.aplicar_promocao(text[], numeric, date), public
 
 -- Avisa a API do Supabase para reconhecer na hora as tabelas e funções novas
 notify pgrst, 'reload schema';
+
+-- ===========================================================
+-- PARTE M — Bloqueio e suspensão de clientes (rode depois das outras; pode rodar de novo)
+-- O administrador suspende (por um tempo) ou bloqueia (sem prazo) um cliente pelo painel.
+-- Vale para a conta, o e-mail e o CPF/CNPJ: o cliente não faz pedidos e não consegue
+-- criar outra conta com o mesmo documento. A trava fica no banco (gatilhos).
+-- ===========================================================
+create table if not exists public.bloqueios (
+  id          bigint generated always as identity primary key,
+  cliente_id  uuid,
+  email       text,
+  documento   text,                -- CPF ou CNPJ, só números
+  motivo      text not null default '',
+  ate         timestamptz,         -- vazio = bloqueio sem prazo
+  criado_por  text default (auth.jwt() ->> 'email'),
+  criado_em   timestamptz not null default now(),
+  encerrado_em timestamptz,        -- preenchido ao desbloquear
+  encerrado_por text
+);
+create index if not exists bloqueios_cliente_idx on public.bloqueios (cliente_id);
+create index if not exists bloqueios_documento_idx on public.bloqueios (documento);
+alter table public.bloqueios enable row level security;
+
+drop policy if exists "equipe ve bloqueios" on public.bloqueios;
+create policy "equipe ve bloqueios" on public.bloqueios for select to authenticated using (public.eh_equipe());
+drop policy if exists "admin cria bloqueios" on public.bloqueios;
+create policy "admin cria bloqueios" on public.bloqueios for insert to authenticated with check (public.eh_admin());
+drop policy if exists "admin encerra bloqueios" on public.bloqueios;
+create policy "admin encerra bloqueios" on public.bloqueios for update to authenticated using (public.eh_admin()) with check (public.eh_admin());
+grant select, insert, update on public.bloqueios to authenticated;
+
+-- Bloqueio em vigor para uma conta, e-mail ou documento
+create or replace function public.bloqueio_vigente(p_uid uuid, p_email text, p_doc text)
+returns public.bloqueios language sql stable security definer set search_path = public as $$
+  select b.* from public.bloqueios b
+  where b.encerrado_em is null and (b.ate is null or b.ate > now())
+    and ((p_uid is not null and b.cliente_id = p_uid)
+      or (coalesce(p_email, '') <> '' and lower(b.email) = lower(p_email))
+      or (coalesce(p_doc, '') <> '' and b.documento = public.so_digitos(p_doc)))
+  order by b.ate is not null, b.ate desc
+  limit 1;
+$$;
+revoke all on function public.bloqueio_vigente(uuid, text, text) from public;
+
+-- Para o próprio cliente saber se está bloqueado (o site mostra o aviso; o motivo fica só para a equipe)
+drop function if exists public.meu_bloqueio();
+create or replace function public.meu_bloqueio()
+returns table (bloqueado boolean, ate timestamptz) language plpgsql stable security definer set search_path = public as $$
+declare v_cli public.clientes; b public.bloqueios;
+begin
+  if auth.uid() is null then return; end if;
+  select * into v_cli from public.clientes where id = auth.uid();
+  b := public.bloqueio_vigente(auth.uid(), auth.jwt() ->> 'email', coalesce(nullif(v_cli.cpf, ''), v_cli.cnpj));
+  if b.id is not null then bloqueado := true; ate := b.ate; return next; end if;
+end $$;
+revoke all on function public.meu_bloqueio() from public;
+grant execute on function public.meu_bloqueio() to authenticated;
+
+-- Pedido de cliente bloqueado é recusado (vale para o pedido pelo site e para qualquer outro caminho)
+create or replace function public.pedido_de_bloqueado()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare v_cli public.clientes; b public.bloqueios;
+begin
+  select * into v_cli from public.clientes where id = new.cliente_id;
+  b := public.bloqueio_vigente(new.cliente_id, v_cli.email, coalesce(nullif(v_cli.cpf, ''), v_cli.cnpj));
+  if b.id is not null then
+    raise exception 'CONTA_BLOQUEADA: %', case when b.ate is null then 'sua conta está bloqueada'
+      else 'sua conta está suspensa até ' || to_char(b.ate at time zone 'America/Sao_Paulo', 'DD/MM/YYYY') end;
+  end if;
+  return new;
+end $$;
+drop trigger if exists pedidos_de_bloqueado on public.pedidos;
+create trigger pedidos_de_bloqueado before insert on public.pedidos for each row execute function public.pedido_de_bloqueado();
+
+-- CPF/CNPJ bloqueado não cria outra conta (nem troca o documento para ele)
+create or replace function public.documento_bloqueado()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare b public.bloqueios;
+begin
+  if coalesce(new.cpf, '') = '' and coalesce(new.cnpj, '') = '' then return new; end if;
+  if tg_op = 'UPDATE' and coalesce(new.cpf, '') = coalesce(old.cpf, '') and coalesce(new.cnpj, '') = coalesce(old.cnpj, '') then return new; end if;
+  b := public.bloqueio_vigente(null, null, coalesce(nullif(new.cpf, ''), new.cnpj));
+  if b.id is not null and (b.cliente_id is distinct from new.id) then
+    raise exception 'DOCUMENTO_BLOQUEADO: este CPF/CNPJ está bloqueado';
+  end if;
+  return new;
+end $$;
+drop trigger if exists clientes_documento_bloqueado on public.clientes;
+create trigger clientes_documento_bloqueado before insert or update of cpf, cnpj on public.clientes
+  for each row execute function public.documento_bloqueado();
+
+notify pgrst, 'reload schema';

@@ -23,7 +23,7 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Barlow:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/style.css?v=376efbb9">
+  <link rel="stylesheet" href="assets/css/style.css?v=c45ce683">
 </head>
 <body>
   <a class="pular" href="#conteudo">Pular para o conteúdo</a>
@@ -199,6 +199,7 @@
                   <option value="inativos">Não compram há mais de 90 dias</option>
                   <option value="sem">Ainda sem pedidos</option>
                   <option value="novos">Cadastrados nos últimos 30 dias</option>
+                  <option value="bloqueados">Suspensos ou bloqueados</option>
                 </select>
                 <select id="clientes-ordem" aria-label="Ordenar">
                   <option value="ultimo">Último pedido</option>
@@ -291,6 +292,31 @@
         </div>
       </div>
     </section>
+
+    <!-- Suspender / bloquear cliente -->
+    <dialog class="dlg-bloqueio" id="dlg-bloqueio" aria-labelledby="bloqueio-titulo">
+      <form id="form-bloqueio" novalidate>
+        <h3 id="bloqueio-titulo">Suspender ou bloquear cliente</h3>
+        <p id="bloqueio-quem"></p>
+        <label>Por quanto tempo
+          <select id="bloqueio-dias">
+            <option value="7">Suspender por 7 dias</option>
+            <option value="30" selected>Suspender por 30 dias</option>
+            <option value="90">Suspender por 90 dias</option>
+            <option value="">Bloquear sem prazo</option>
+          </select>
+        </label>
+        <label>Motivo (só a equipe vê)
+          <textarea id="bloqueio-motivo" rows="3" maxlength="300" placeholder="Ex.: pedidos falsos repetidos, dados de outra pessoa..."></textarea>
+        </label>
+        <p class="dica">O cliente não consegue enviar pedidos, e o CPF/CNPJ dele não pode criar outra conta. Ele vê só o aviso de conta suspensa ou bloqueada, sem o motivo.</p>
+        <p class="form-erro" id="bloqueio-erro" role="alert"></p>
+        <div class="dlg-botoes">
+          <button type="button" id="bloqueio-cancelar">Cancelar</button>
+          <button type="submit" class="confirmar">Confirmar</button>
+        </div>
+      </form>
+    </dialog>
 
     <!-- Formulário do produto -->
     <div class="admin-modal" id="admin-modal" role="dialog" aria-modal="true" aria-labelledby="form-titulo" hidden>
@@ -433,17 +459,17 @@
 
   <script src="assets/js/config.js?v=1d44b601"></script>
   <script src="assets/js/produtos.js?v=efe7e02f"></script>
-  <script src="assets/js/catalogo.js?v=d3f66517"></script>
+  <script src="assets/js/catalogo.js?v=449fb1d6"></script>
   <script src="assets/js/icones.js?v=0f357f8d"></script>
   <script src="assets/js/midia.js?v=781286f8"></script>
   <script src="assets/js/fotos-reais.js?v=cd443528"></script>
   <script src="assets/js/fotos.js?v=48f81340"></script>
-  <script src="assets/js/auth.js?v=61eabc71"></script>
-  <script src="assets/js/loja.js?v=7ea47fbc"></script>
-  <script src="assets/js/main.js?v=0200855c"></script>
+  <script src="assets/js/auth.js?v=6e6ad94b"></script>
+  <script src="assets/js/loja.js?v=67be2651"></script>
+  <script src="assets/js/main.js?v=03277d2a"></script>
   <script src="assets/js/animacoes.js?v=d458c529"></script>
   <script src="assets/js/secoes.js?v=b03394b5"></script>
   <script src="assets/js/assistente.js?v=22edb703"></script>
-  <script src="assets/js/admin.js?v=dec61570"></script>
+  <script src="assets/js/admin.js?v=aafa7b54"></script>
 </body>
 </html>

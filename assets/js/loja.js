@@ -51,6 +51,7 @@
       if (!limpos.length) throw new Error("Seu carrinho está vazio.");
       obs = String(obs || "").replace(/\s+/g, " ").trim().slice(0, 500);
       if (!ONLINE) {
+        const bl = await window.Conta.meuBloqueio(); if (bl) throw new Error(bl.mensagem);
         const linhas = montarItens(limpos), numero = numeroNovo();
         const t = ler(CHAVE_PEDIDOS, {});
         (t[u.email] = t[u.email] || []).unshift(Object.assign({ numero, criado_em: new Date().toISOString(), itens: linhas, observacoes: obs || null }, totais(linhas)));
@@ -67,6 +68,7 @@
         await window.Conta.registrarPedido({ numero, itens: linhas, observacoes: obs || null });
         return numero;
       }
+      if (/CONTA_BLOQUEADA/.test(m)) { const d = m.match(/até (\d{2}\/\d{2}\/\d{4})/); throw Object.assign(new Error((d ? `Sua conta está suspensa até ${d[1]}.` : "Sua conta está bloqueada.") + " Para resolver, fale com a Policoating pelo WhatsApp."), { bloqueio: true }); }
       throw new Error(m || "Não foi possível registrar o pedido.");
     }
   };

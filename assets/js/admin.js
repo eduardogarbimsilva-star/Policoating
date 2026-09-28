@@ -493,12 +493,25 @@
     let clientes = [], clientesCarregados = false;
     const docCliente = (c) => (c.tipo === "pj" ? (c.cnpj ? "CNPJ " + c.cnpj : "") : (c.cpf ? "CPF " + c.cpf : ""));
     const diasDesde = (d) => (d ? (Date.now() - new Date(d).getTime()) / 864e5 : Infinity);
+    let bloqueios = [];
     async function carregarClientes() {
       $("#clientes-erro").textContent = "";
       try { clientes = await A.listarClientes(); clientesCarregados = true; }
       catch (e) { clientes = []; $("#clientes-erro").textContent = e.message + " (rode a PARTE F do setup.sql no Supabase)"; }
+      try { bloqueios = await A.listarBloqueios(); }
+      catch (e) { bloqueios = []; if (ehAdmin) $("#clientes-erro").textContent = e.message; }
       desenharClientes();
     }
+    /** Bloqueios em vigor deste cliente (pela conta, e-mail ou CPF/CNPJ) */
+    function bloqueiosDe(c) {
+      const doc = BRso(c.tipo === "pj" ? c.cnpj : c.cpf), email = String(c.email || "").toLowerCase();
+      return bloqueios.filter((b) => (c.id && b.cliente_id === c.id) || (email && String(b.email || "").toLowerCase() === email) || (doc && b.documento === doc));
+    }
+    const seloBloqueio = (bs) => {
+      if (!bs.length) return "";
+      const semPrazo = bs.some((b) => !b.ate), ate = bs.map((b) => b.ate).filter(Boolean).sort().pop();
+      return `<b class="selo-cli bloqueado">${semPrazo ? "Bloqueado" : "Suspenso até " + dataCurta(ate)}</b>`;
+    };
     function clientesFiltrados() {
       const termo = slug($("#clientes-busca").value || ""), f = $("#clientes-filtro").value, ordem = $("#clientes-ordem").value;
       const soDig = BRso($("#clientes-busca").value);
@@ -507,6 +520,7 @@
         if (f === "inativos" && !(c.pedidos && diasDesde(c.ultimo_pedido) > 90)) return false;
         if (f === "sem" && c.pedidos) return false;
         if (f === "novos" && !(diasDesde(c.criado_em) <= 30)) return false;
+        if (f === "bloqueados" && !bloqueiosDe(c).length) return false;
         if (!termo) return true;
         if (soDig.length >= 4 && [c.cpf, c.cnpj, c.telefone].some((x) => BRso(x).includes(soDig))) return true;
         return slug([nomeCliente(c), c.razao_social, c.nome_fantasia, c.responsavel, c.email, c.cidade, c.uf].join(" ")).includes(termo);
@@ -530,12 +544,14 @@
         const tel = BRso(c.telefone), inativo = c.pedidos && diasDesde(c.ultimo_pedido) > 90;
         const selo = !c.pedidos ? `<b class="selo-cli sem">Sem pedidos</b>` : inativo ? `<b class="selo-cli inativo">Sem comprar há ${Math.floor(diasDesde(c.ultimo_pedido))} dias</b>` : diasDesde(c.ultimo_pedido) <= 30 ? `<b class="selo-cli ativo">Comprou recentemente</b>` : "";
         const msg = inativo ? `Olá, ${nomeCliente(c)}! Aqui é da Policoating. Faz um tempo que não conversamos — posso ajudar com alguma tinta em pó?` : `Olá, ${nomeCliente(c)}! Aqui é da Policoating.`;
+        const bs = bloqueiosDe(c);
         return `<article class="adm-cli" data-email="${esc(c.email || "")}">
           <div class="adm-cli-id">
-            <strong>${esc(nomeCliente(c))}</strong> ${selo}
+            <strong>${esc(nomeCliente(c))}</strong> ${bs.length ? seloBloqueio(bs) : selo}
             <small>${c.tipo === "pj" ? "Empresa" : "Pessoa física"}${docCliente(c) ? " · " + esc(docCliente(c)) : ""}${c.tipo === "pj" && c.responsavel ? " · " + esc(c.responsavel) : ""}</small>
             <small>${esc(c.email || "")}${c.telefone ? " · " + esc(c.telefone) : ""}</small>
             ${c.cidade ? `<small>${esc(c.cidade)}/${esc(c.uf || "")}</small>` : ""}
+            ${bs.map((b) => `<small class="motivo-bloqueio">Motivo: ${esc(b.motivo)}${b.criado_por ? ` · por ${esc(b.criado_por)}` : ""} · ${dataCurta(b.criado_em)}</small>`).join("")}
           </div>
           <dl class="adm-cli-num">
             <div><dt>Pedidos</dt><dd>${c.pedidos}</dd></div>
@@ -546,10 +562,49 @@
           <div class="adm-cli-acoes">
             ${c.pedidos ? `<button type="button" class="btn btn-contorno-azul" data-ver-pedidos="${esc(c.email || nomeCliente(c))}">Ver pedidos</button>` : ""}
             ${tel ? `<a class="btn btn-whats" target="_blank" rel="noopener" href="https://wa.me/${tel.length <= 11 ? "55" + tel : tel}?text=${encodeURIComponent(msg)}">WhatsApp</a>` : ""}
+            ${!ehAdmin ? "" : bs.length ? `<button type="button" class="btn-bloquear" data-desbloquear="${esc(c.email || "")}">Desbloquear</button>`
+              : `<button type="button" class="btn-bloquear" data-bloquear="${esc(c.email || "")}">Suspender / bloquear</button>`}
           </div>
         </article>`;
       }).join("") : `<p class="dica">${!clientesCarregados ? "Carregando..." : clientes.length ? "Nenhum cliente encontrado com essa busca." : "Nenhum cliente cadastrado ainda."}</p>`;
     }
+    /* ---------- Suspender / bloquear cliente (só administradores) ---------- */
+    let clienteBloqueio = null;
+    const dlgBloqueio = $("#dlg-bloqueio");
+    $("#admin-clientes").addEventListener("click", async (e) => {
+      const bb = e.target.closest("[data-bloquear]"), bd = e.target.closest("[data-desbloquear]");
+      if (!bb && !bd) return;
+      const c = clientes.find((x) => String(x.email || "") === (bb || bd).getAttribute(bb ? "data-bloquear" : "data-desbloquear"));
+      if (!c) return;
+      if (bb) {
+        clienteBloqueio = c;
+        $("#bloqueio-quem").textContent = `${nomeCliente(c)}${docCliente(c) ? " · " + docCliente(c) : ""} · ${c.email || ""}`;
+        $("#bloqueio-motivo").value = ""; $("#bloqueio-dias").value = "30"; $("#bloqueio-erro").textContent = "";
+        if (dlgBloqueio.showModal) dlgBloqueio.showModal(); else dlgBloqueio.setAttribute("open", "");
+        $("#bloqueio-motivo").focus();
+        return;
+      }
+      if (!confirm(`Desbloquear ${nomeCliente(c)}?\n\nEle volta a poder enviar pedidos pelo site.`)) return;
+      bd.disabled = true;
+      try { await A.desbloquearCliente(bloqueiosDe(c).map((b) => b.id)); CW.mostrarToast(`${esc(nomeCliente(c))} foi desbloqueado.`); await carregarClientes(); }
+      catch (err) { bd.disabled = false; $("#clientes-erro").textContent = err.message; }
+    });
+    const fecharBloqueio = () => { if (dlgBloqueio.close) dlgBloqueio.close(); else dlgBloqueio.removeAttribute("open"); clienteBloqueio = null; };
+    $("#bloqueio-cancelar").addEventListener("click", fecharBloqueio);
+    $("#form-bloqueio").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (!clienteBloqueio) return;
+      const dias = $("#bloqueio-dias").value, botao = $("#form-bloqueio .confirmar"), nome = nomeCliente(clienteBloqueio);
+      botao.disabled = true; $("#bloqueio-erro").textContent = "";
+      try {
+        await A.bloquearCliente(clienteBloqueio, dias, $("#bloqueio-motivo").value);
+        fecharBloqueio();
+        CW.mostrarToast(dias ? `${esc(nome)} foi suspenso por ${dias} dias.` : `${esc(nome)} foi bloqueado.`);
+        await carregarClientes();
+      } catch (err) { $("#bloqueio-erro").textContent = err.message; }
+      finally { botao.disabled = false; }
+    });
+
     $("#clientes-busca").addEventListener("input", desenharClientes);
     $("#clientes-filtro").addEventListener("change", desenharClientes);
     $("#clientes-ordem").addEventListener("change", desenharClientes);

@@ -322,6 +322,23 @@
     </article>`;
   }
 
+  /** Conta suspensa/bloqueada: aviso no topo de "Minha conta" (o motivo fica só com a equipe) */
+  async function mostrarBloqueio() {
+    let aviso = document.getElementById("aviso-bloqueio");
+    let b = null;
+    try { b = await Conta.meuBloqueio(); } catch (e) { /* sem aviso */ }
+    if (!b) { if (aviso) aviso.remove(); return; }
+    if (!aviso) {
+      aviso = document.createElement("div");
+      aviso.id = "aviso-bloqueio"; aviso.className = "aviso-bloqueio"; aviso.setAttribute("role", "alert");
+      const titulo = $("#ola-saudacao").closest("h2");
+      titulo.parentNode.insertBefore(aviso, titulo.nextSibling);
+    }
+    aviso.innerHTML = `<strong>${b.ate ? "Conta suspensa" : "Conta bloqueada"}</strong><span>${esc(b.mensagem)} Enquanto isso, não é possível enviar pedidos pelo site.</span>
+      <a class="btn btn-whats" data-whats="Olá! Minha conta no site da Policoating está ${b.ate ? "suspensa" : "bloqueada"} e gostaria de resolver." target="_blank" rel="noopener" href="#">Falar no WhatsApp</a>`;
+    document.dispatchEvent(new Event("config-atualizada"));   // preenche o link do WhatsApp
+  }
+
   async function renderResumo() {
     const p = Conta.perfil || {};
     $("#ola-saudacao").textContent = Conta.nomeExibicao() || "cliente";
@@ -334,6 +351,7 @@
     if (!$("#resumo-dados").innerHTML) $("#resumo-dados").innerHTML = `<p class="vazio-mini">Cadastro ainda não preenchido.</p>`;
     $("#resumo-endereco").innerHTML = htmlEndereco(p);
     $("#est-favoritos").textContent = CW.lerFavoritos().length;
+    mostrarBloqueio();
 
     let pedidos = [];
     try { pedidos = await carregarPedidos(); } catch (e) { /* mostra vazio */ }

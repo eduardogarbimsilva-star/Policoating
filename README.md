@@ -378,6 +378,20 @@ python3 -m http.server 8000
 # acesse http://localhost:8000
 ```
 
+## Suspender ou bloquear clientes (PARTE M do `setup.sql`)
+
+Para clientes que abusam do site (pedidos falsos, dados de outra pessoa etc.). Rode a **PARTE M** no
+Supabase (SQL Editor, do `-- PARTE M` até o fim) uma vez.
+
+- **Painel → Clientes → Suspender / bloquear** (só administradores): escolha 7, 30 ou 90 dias (suspensão)
+  ou **sem prazo** (bloqueio) e escreva o motivo.
+- Vale para a **conta, o e-mail e o CPF/CNPJ**: o cliente não consegue enviar pedidos e o documento não
+  pode ser usado em outra conta. A trava fica no banco de dados, então não dá para burlar pelo site.
+- O cliente vê, em "Minha conta", só o aviso de conta suspensa/bloqueada e o botão do WhatsApp. O **motivo
+  fica só para a equipe** (aparece no cartão do cliente, com quem bloqueou e a data).
+- A suspensão acaba sozinha no fim do prazo. Para liberar antes, use **Desbloquear**.
+- Filtro **Suspensos ou bloqueados** na aba Clientes. Vendedores veem o selo, mas não podem bloquear.
+
 ## E-mail da empresa para a equipe (joao@policoatingg.com.br)
 
 A equipe entra no site com e-mails da empresa, e o código de acesso chega na caixa pessoal de cada

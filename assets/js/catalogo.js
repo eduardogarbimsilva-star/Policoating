@@ -536,6 +536,50 @@
       (rp.data || []).forEach((p) => (porCliente[p.cliente_id] = porCliente[p.cliente_id] || []).push(p));
       return (rc.data || []).map((c) => resumir(c, porCliente[c.id] || []));
     },
+    /* ---------- Bloqueio e suspensão de clientes (PARTE M do setup.sql) ---------- */
+    /** Bloqueios em vigor (sem os encerrados e as suspensões vencidas) */
+    async listarBloqueios() {
+      const vigente = (b) => !b.encerrado_em && (!b.ate || new Date(b.ate) > new Date());
+      if (!ONLINE) return (ler("policoating_demo_bloqueios") || []).filter(vigente);
+      const sb = await cliente();
+      const { data, error } = await sb.from("bloqueios").select("*").is("encerrado_em", null).order("criado_em", { ascending: false }).limit(2000);
+      if (error) {
+        if (/bloqueios|schema cache|does not exist/i.test(error.message || "")) throw new Error("Para bloquear clientes, rode a PARTE M do setup.sql no Supabase.");
+        throw erro(error);
+      }
+      return (data || []).filter(vigente);
+    },
+    /** Suspende (dias) ou bloqueia sem prazo (dias vazio) a conta, o e-mail e o CPF/CNPJ do cliente */
+    async bloquearCliente(c, dias, motivo) {
+      motivo = String(motivo || "").replace(/\s+/g, " ").trim().slice(0, 300);
+      if (motivo.length < 5) throw new Error("Escreva o motivo (para a equipe saber por que o cliente foi bloqueado).");
+      const ate = +dias > 0 ? new Date(Date.now() + +dias * 864e5).toISOString() : null;
+      const documento = String((c.tipo === "pj" ? c.cnpj : c.cpf) || "").replace(/\D/g, "") || null;
+      const reg = { cliente_id: c.id || null, email: String(c.email || "").toLowerCase() || null, documento, motivo, ate };
+      if (!ONLINE) {
+        const t = ler("policoating_demo_bloqueios") || [];
+        t.unshift(Object.assign({ id: Date.now(), criado_em: new Date().toISOString(), criado_por: String(window.Conta.usuario.email), encerrado_em: null }, reg));
+        gravar("policoating_demo_bloqueios", t); return;
+      }
+      const sb = await cliente();
+      const { error } = await sb.from("bloqueios").insert(reg);
+      if (error) throw /row-level security|permission/i.test(error.message || "") ? new Error("Só administradores podem bloquear clientes.") : erro(error);
+    },
+    /** Encerra os bloqueios em vigor de um cliente */
+    async desbloquearCliente(ids) {
+      ids = [].concat(ids).filter((x) => x != null);
+      if (!ids.length) return;
+      const quem = String(window.Conta.usuario.email).toLowerCase(), agora = new Date().toISOString();
+      if (!ONLINE) {
+        const t = ler("policoating_demo_bloqueios") || [];
+        t.forEach((b) => { if (ids.includes(b.id)) { b.encerrado_em = agora; b.encerrado_por = quem; } });
+        gravar("policoating_demo_bloqueios", t); return;
+      }
+      const sb = await cliente();
+      const { error } = await sb.from("bloqueios").update({ encerrado_em: agora, encerrado_por: quem }).in("id", ids);
+      if (error) throw erro(error);
+    },
+
     /** Domínio dos e-mails da empresa (config.js: dominioEquipe) */
     dominioEquipe() { return String(CFG.dominioEquipe || "policoatingg.com.br").toLowerCase(); },
 

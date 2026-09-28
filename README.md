@@ -74,7 +74,7 @@ e os dados ficam só no navegador de quem testa. **Não publique para clientes r
    > **Nunca** coloque a chave `service_role`/secret no site.
 7. **Importante para produção:** o e-mail padrão do Supabase tem limite de poucos envios por hora. Em
    **Authentication → Emails → SMTP Settings**, configure um provedor de e-mail (ex.: Resend, Brevo, Amazon SES)
-   com um remetente do seu domínio, como `nao-responda@policoating.com.br`.
+   com um remetente do seu domínio, como `nao-responda@policoatingg.com.br`.
 
 Os cadastros e pedidos podem ser consultados pela equipe em **Table Editor → clientes / pedidos** no painel do Supabase.
 
@@ -163,7 +163,7 @@ se o vendedor tiver mandado mensagem para o número da empresa nas últimas 24 h
 
 **E-mail (opcional, grátis para começar):** crie uma conta no [Resend](https://resend.com), verifique o domínio e
 adicione os Secrets `RESEND_API_KEY`, `AVISO_EMAIL_PARA` (quem recebe) e `AVISO_EMAIL_DE`
-(ex.: `Policoating <pedidos@policoating.com.br>`). Dá para usar só o e-mail, sem o WhatsApp: os passos 5 a 8 são os
+(ex.: `Policoating <pedidos@policoatingg.com.br>`). Dá para usar só o e-mail, sem o WhatsApp: os passos 5 a 8 são os
 mesmos, sem os Secrets de WhatsApp.
 
 ## Personalização
@@ -174,7 +174,7 @@ Edite **`assets/js/config.js`**:
 ```js
 whatsapp: "5516992708155",   // 55 + DDD + número, só dígitos
 telefone: "(16) 99270-8155",
-email: "contato@policoating.com.br",
+email: "",
 ...
 ```
 
@@ -363,7 +363,7 @@ O guia **"Qual pó usar?"** (em Recursos) usa essas mesmas linhas para indicar p
 1. **Envio de e-mails em grande volume.** O e-mail padrão do Supabase manda poucos códigos por hora; com muitos
    acessos, clientes ficariam sem receber o código. Antes de divulgar o site, configurar um provedor de e-mail
    profissional (Resend, Brevo ou Amazon SES) em **Authentication → Emails → SMTP Settings**, com remetente do
-   domínio da empresa (ex.: `nao-responda@policoating.com.br`) e registros SPF/DKIM no domínio, e aumentar o
+   domínio da empresa (ex.: `nao-responda@policoatingg.com.br`) e registros SPF/DKIM no domínio, e aumentar o
    limite em **Authentication → Rate Limits**.
 2. **Parte fiscal (NF-e)**, quando for o momento: emissão por um serviço autorizado (ex.: Focus NFe, eNotas,
    PlugNotas ou o ERP da empresa), com certificado digital A1 e os dados fiscais dos produtos (NCM, CFOP,

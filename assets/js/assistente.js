@@ -409,7 +409,7 @@
 
     if (intencao === "agradecer") return { texto: "Por nada! Se precisar, é só chamar. Posso calcular a quantidade de pó ou montar o pedido para você.", sugestoes: ["Calcular quantidade", "Ver carrinho"] };
     if (intencao === "contato") {
-      return { texto: `**Atendimento Policoating**\n• WhatsApp: ${CFG.telefone || ""}\n• E-mail: ${CFG.email || ""}\n• Horário: ${CFG.horario || ""}\n• ${CFG.endereco || ""}`, acoes: ["whatsapp"] };
+      return { texto: `**Atendimento Policoating**\n• WhatsApp: ${CFG.telefone || ""}${CFG.email ? "\n• E-mail: " + CFG.email : ""}\n• Horário: ${CFG.horario || ""}\n• ${CFG.endereco || ""}`, acoes: ["whatsapp"] };
     }
     if (intencao === "lojas") {
       const lojas = Object.entries(CFG.lojas || {}).filter(([, u]) => /^https:\/\//.test(u || ""));

@@ -97,6 +97,11 @@
     if (/^\d{12,13}$/.test(zap)) o.whatsapp = zap;
     if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.email || "")) o.email = String(d.email).trim();
     TEXTO.forEach((k) => { if (typeof d[k] === "string" && d[k].trim()) o[k] = d[k].trim().slice(0, 140); });
+    // telefone digitado só com números vira (16) 99270-8155
+    if (o.telefone && /^[1-9]\d{9,10}$/.test(o.telefone.replace(/\D/g, "")) && !/\D/.test(o.telefone.replace(/[\s-]/g, ""))) {
+      const t = o.telefone.replace(/\D/g, "");
+      o.telefone = `(${t.slice(0, 2)}) ${t.slice(2, t.length - 4)}-${t.slice(-4)}`;
+    }
     o.redes = {}; REDES.forEach((k) => { const u = https((d.redes || {})[k]); if (u) o.redes[k] = u; });
     o.lojas = {}; LOJAS.forEach((k) => { const u = https((d.lojas || {})[k]); if (u) o.lojas[k] = u; });
     if (Array.isArray(d.marcas)) o.marcas = [...new Set(d.marcas.map((m) => String(m || "").replace(/\s+/g, " ").trim().slice(0, 40)).filter(Boolean))].slice(0, 100);

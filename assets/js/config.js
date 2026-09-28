@@ -10,7 +10,7 @@ window.SITE_CONFIG = {
   slogan: "Tecnologia que reveste, qualidade que permanece.",
   whatsapp: "5516992708155",
   telefone: "(16) 99270-8155",
-  email: "contato@policoating.com.br",
+  email: "",   // e-mail de contato mostrado no site (pode ser alterado no painel, em Contato e links)
   endereco: "Atendimento para todo o Brasil",
   horario: "Seg a Sex, 8h às 18h",
   // Exigir que o cliente entre na conta antes de enviar o pedido pelo WhatsApp

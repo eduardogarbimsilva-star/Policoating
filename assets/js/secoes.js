@@ -313,7 +313,7 @@
       } catch (err) {
         if (err.message === "sem-servidor") {
           // sem o cadastro online, abre o e-mail já preenchido
-          location.href = `mailto:${CFG.email || "contato@policoating.com.br"}?subject=${encodeURIComponent("Quero receber a newsletter")}&body=${encodeURIComponent("Meu e-mail: " + email)}`;
+          location.href = `mailto:${CFG.email || ""}?subject=${encodeURIComponent("Quero receber a newsletter")}&body=${encodeURIComponent("Meu e-mail: " + email)}`;
           status.textContent = "Abrimos seu e-mail para concluir o cadastro.";
         } else {
           status.textContent = err.message;

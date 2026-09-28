@@ -127,7 +127,12 @@
       el.rel = "noopener";
     });
     $$("[data-tel]").forEach((el) => (el.href = "tel:+" + String(CFG.whatsapp).replace(/\D/g, "")));
-    $$("[data-email]").forEach((el) => (el.href = "mailto:" + CFG.email));
+    // sem e-mail configurado (painel ou config.js): esconde os links de e-mail
+    $$("[data-email]").forEach((el) => {
+      const caixa = el.closest(".cartao-contato") || el.closest("li") || el;
+      caixa.hidden = !CFG.email;
+      if (CFG.email) el.href = "mailto:" + CFG.email;
+    });
     // redes sociais e lojas: cada link só aparece se o endereço estiver configurado
     $$("[data-rede], [data-loja]").forEach((el) => {
       const url = el.dataset.rede ? (CFG.redes || {})[el.dataset.rede] : (CFG.lojas || {})[el.dataset.loja];

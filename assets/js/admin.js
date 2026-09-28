@@ -656,12 +656,14 @@
       const eu = String(window.Conta.usuario.email).toLowerCase(), icone = window.Icone ? window.Icone("usuario") : "";
       $("#admin-equipe").innerHTML = lista.map((m) => {
         const souEu = m.email.toLowerCase() === eu;
-        return `<li data-email="${esc(m.email)}"><span>${icone}${esc(m.email)}${souEu ? " <em>(você)</em>" : ""}</span>
-          <div class="equipe-acoes">${souEu ? `<b class="cargo cargo-${m.papel}">${CARGOS[m.papel]}</b>`
+        const daEmpresa = m.email.toLowerCase().endsWith("@" + A.dominioEquipe());
+        const btnEmail = `<button type="button" class="btn-email-empresa" data-email-empresa title="${daEmpresa ? "Trocar o e-mail da empresa" : "Definir o e-mail da empresa para o login"}">${daEmpresa ? "Trocar e-mail" : "E-mail da empresa"}</button>`;
+        return `<li data-email="${esc(m.email)}"><span>${icone}${esc(m.email)}${souEu ? " <em>(você)</em>" : ""}${daEmpresa ? ' <small class="selo-empresa">e-mail da empresa</small>' : ""}</span>
+          <div class="equipe-acoes">${souEu ? `<b class="cargo cargo-${m.papel}">${CARGOS[m.papel]}</b>${btnEmail}`
             : `${m.papel === "admin" ? "" : `<label class="check-excluir"><input type="checkbox" data-permissao="pode_excluir" ${m.pode_excluir ? "checked" : ""}> Pode excluir pedidos</label>
                <label class="check-excluir"><input type="checkbox" data-permissao="pode_exportar" ${m.pode_exportar ? "checked" : ""}> Pode exportar clientes</label>`}
                <select data-cargo aria-label="Cargo de ${esc(m.email)}">${Object.entries(CARGOS).map(([k, v]) => `<option value="${k}" ${k === m.papel ? "selected" : ""}>${v}</option>`).join("")}</select>
-               <button type="button" class="perigo" data-remover-membro>Remover</button>`}</div></li>`;
+               ${btnEmail}<button type="button" class="perigo" data-remover-membro>Remover</button>`}</div></li>`;
       }).join("");
     }
     $("#form-equipe").addEventListener("submit", async (e) => {
@@ -686,6 +688,24 @@
       catch (err) { $("#equipe-erro").textContent = err.message; carregarEquipe(); }
     });
     $("#admin-equipe").addEventListener("click", async (e) => {
+      const be = e.target.closest("[data-email-empresa]");
+      if (be) {
+        const atual = be.closest("[data-email]").dataset.email, dominio = A.dominioEquipe();
+        const eu = String(window.Conta.usuario.email).toLowerCase() === atual.toLowerCase();
+        const sugestao = atual.toLowerCase().endsWith("@" + dominio) ? atual : atual.split("@")[0].normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9.]+/g, ".").replace(/^\.+|\.+$/g, "") + "@" + dominio;
+        const novo = (prompt(`E-mail da empresa para o login de ${atual}\n(precisa terminar em @${dominio})`, sugestao) || "").trim().toLowerCase();
+        if (!novo) return;
+        if (!novo.endsWith("@" + dominio) || !/^[^\s@*]+@/.test(novo)) { $("#equipe-erro").textContent = `O e-mail da empresa precisa terminar em @${dominio}.`; return; }
+        if (!confirm(`Trocar o login de ${atual} para ${novo}?\n\nAntes, confirme que ${novo} já redireciona para a caixa de e-mail da pessoa. Senão ela não recebe o código para entrar.\n\nA pessoa recebe um aviso nos dois e-mails.${eu ? "\n\nComo é o seu próprio login, você vai sair e entrar de novo com o e-mail novo." : ""}`)) return;
+        be.disabled = true; $("#equipe-erro").textContent = "";
+        try {
+          const r = await A.definirEmailEmpresa(atual, novo);
+          CW.mostrarToast(`Login trocado para ${esc(r.novo)}.${r.aviso === "ok" ? " A pessoa foi avisada por e-mail." : ""}`);
+          if (eu) { await window.Conta.sair(); location.href = "conta.html"; return; }
+          carregarEquipe();
+        } catch (err) { be.disabled = false; $("#equipe-erro").textContent = err.message; }
+        return;
+      }
       const b = e.target.closest("[data-remover-membro]"); if (!b) return;
       const email = b.closest("[data-email]").dataset.email;
       if (!confirm(`Remover o acesso de ${email}?`)) return;

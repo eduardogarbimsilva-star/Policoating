@@ -2301,3 +2301,6 @@ main { overflow-x: clip; }
 .so-vendedor .campo-preco, .so-vendedor .admin-botoes:empty { display: none; }
 .admin-abas .aba-novos { min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px; background: #d93025; color: #fff; font-size: .75rem; font-weight: 700; line-height: 20px; text-align: center; }
 .admin-abas .aba-novos[hidden] { display: none; }
+.equipe-acoes .btn-email-empresa { padding: 6px 10px; border: 1px solid var(--borda); border-radius: 6px; background: none; font: inherit; font-size: .85rem; color: var(--azul); cursor: pointer; }
+.equipe-acoes .btn-email-empresa:hover { border-color: var(--azul); }
+.selo-empresa { margin-left: 6px; padding: 1px 8px; border-radius: 10px; background: #e6f4ea; color: #1e7e34; font-size: .72rem; font-weight: 700; }

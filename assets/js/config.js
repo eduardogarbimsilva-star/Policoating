@@ -11,6 +11,7 @@ window.SITE_CONFIG = {
   whatsapp: "5516992708155",
   telefone: "(16) 99270-8155",
   email: "",   // e-mail de contato mostrado no site (pode ser alterado no painel, em Contato e links)
+  dominioEquipe: "policoatingg.com.br",   // e-mails da empresa da equipe (aba Equipe do painel)
   endereco: "Atendimento para todo o Brasil",
   horario: "Seg a Sex, 8h às 18h",
   // Exigir que o cliente entre na conta antes de enviar o pedido pelo WhatsApp

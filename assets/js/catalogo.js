@@ -523,6 +523,41 @@
       (rp.data || []).forEach((p) => (porCliente[p.cliente_id] = porCliente[p.cliente_id] || []).push(p));
       return (rc.data || []).map((c) => resumir(c, porCliente[c.id] || []));
     },
+    /** Domínio dos e-mails da empresa (config.js: dominioEquipe) */
+    dominioEquipe() { return String(CFG.dominioEquipe || "policoatingg.com.br").toLowerCase(); },
+
+    /** Troca o login de um membro da equipe para o e-mail da empresa (só administradores).
+        Online: função equipe-email do Supabase, que também avisa a pessoa por e-mail. */
+    async definirEmailEmpresa(atual, novo) {
+      atual = String(atual || "").trim().toLowerCase();
+      novo = String(novo || "").trim().toLowerCase();
+      const dominio = this.dominioEquipe();
+      if (!/^[^\s@*]+@[^\s@]+\.[^\s@]+$/.test(novo)) throw new Error("E-mail inválido.");
+      if (!novo.endsWith("@" + dominio)) throw new Error(`O e-mail da empresa precisa terminar em @${dominio}.`);
+      if (novo === atual) throw new Error("Esse já é o e-mail de acesso dessa pessoa.");
+      if (!ONLINE) {
+        const eq = equipeDemo();
+        if (eq.some((x) => x.email === novo)) throw new Error("Esse e-mail da empresa já está na equipe.");
+        const m = eq.find((x) => x.email === atual); if (!m) throw new Error("Essa pessoa não está na equipe.");
+        m.email = novo; gravar(CHAVE_EQUIPE_DEMO, eq);
+        const perfis = ler("policoating_demo_perfis") || {}, pedidos = ler("policoating_demo_pedidos") || {};
+        if (perfis[atual]) { perfis[novo] = Object.assign(perfis[atual], { email: novo }); delete perfis[atual]; gravar("policoating_demo_perfis", perfis); }
+        if (pedidos[atual]) { pedidos[novo] = pedidos[atual]; delete pedidos[atual]; gravar("policoating_demo_pedidos", pedidos); }
+        const sessao = ler("policoating_demo_sessao");
+        if (sessao && String(sessao.email).toLowerCase() === atual) gravar("policoating_demo_sessao", Object.assign(sessao, { email: novo }));
+        return { ok: true, novo, aviso: "demonstração" };
+      }
+      const sb = await cliente();
+      const { data, error } = await sb.functions.invoke("equipe-email", { body: { atual, novo } });
+      if (error) {
+        let msg = "";
+        try { msg = (await error.context.json()).erro; } catch (e) { /* sem corpo */ }
+        if (!msg && /Failed to send|fetch/i.test(String(error.message))) msg = "A função equipe-email ainda não foi publicada no Supabase (veja o README).";
+        throw new Error(msg || error.message || "Não foi possível trocar o e-mail.");
+      }
+      return data;
+    },
+
     async removerMembro(email) {
       if (String(email).toLowerCase() === String(window.Conta.usuario.email).toLowerCase()) throw new Error("Você não pode remover o seu próprio acesso.");
       if (!ONLINE) { gravar(CHAVE_EQUIPE_DEMO, equipeDemo().filter((x) => x.email !== email)); return; }

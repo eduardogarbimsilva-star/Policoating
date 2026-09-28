@@ -115,6 +115,35 @@
 </svg>`;
   }
 
+  /* ---------- Canais (redes e lojas): @ da conta e carrossel ---------- */
+  function arrobaDe(url, loja) {
+    try {
+      const u = new URL(url), host = u.hostname.replace(/^www\./, "");
+      if (/wa\.me|whatsapp/.test(host)) return "Atendimento pelo WhatsApp";
+      const partes = u.pathname.split("/").filter(Boolean).filter((x) => !/^(company|channel|c|user|in|loja|perfil|pages)$/i.test(x));
+      if (loja || !partes.length) return host;
+      return "@" + decodeURIComponent(partes[0]).replace(/^@/, "");
+    } catch (e) { return ""; }
+  }
+  function atualizarSetasCanais() {
+    $$("[data-canais-trilho]").forEach((trilho) => {
+      const secao = trilho.closest("section"), setas = secao && secao.querySelector(".canais-setas");
+      if (!setas) return;
+      const sobra = trilho.scrollWidth - trilho.clientWidth;
+      setas.hidden = sobra < 8;
+      setas.querySelector("[data-canais-ant]").disabled = trilho.scrollLeft < 8;
+      setas.querySelector("[data-canais-prox]").disabled = trilho.scrollLeft > sobra - 8;
+    });
+  }
+  document.addEventListener("click", (e) => {
+    const b = e.target.closest("[data-canais-ant], [data-canais-prox]"); if (!b) return;
+    const trilho = b.closest("section").querySelector("[data-canais-trilho]");
+    const card = trilho.querySelector(".canal-card:not([hidden])"), passo = card ? card.offsetWidth + 16 : trilho.clientWidth * .8;
+    trilho.scrollBy({ left: b.hasAttribute("data-canais-ant") ? -passo : passo, behavior: "smooth" });
+  });
+  document.addEventListener("scroll", (e) => { if (e.target.matches && e.target.matches("[data-canais-trilho]")) atualizarSetasCanais(); }, true);
+  window.addEventListener("resize", atualizarSetasCanais);
+
   /* ---------- Preenche dados da empresa nas páginas ---------- */
   function aplicarConfig() {
     $$("[data-cfg]").forEach((el) => {
@@ -141,6 +170,9 @@
       el.hidden = !ok;
     });
     $$("[data-canais]").forEach((box) => { box.hidden = !box.querySelector("[data-rede]:not([hidden]), [data-loja]:not([hidden])"); });
+    // @ da conta em cada card (instagram.com/policoating -> @policoating)
+    $$("[data-arroba]").forEach((el) => { const a = el.closest("a"); el.textContent = a && a.href ? arrobaDe(a.href, !!a.dataset.loja) : ""; });
+    atualizarSetasCanais();
     $$("[data-ano]").forEach((el) => (el.textContent = new Date().getFullYear()));
   }
 

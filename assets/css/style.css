@@ -2328,3 +2328,30 @@ main { overflow-x: clip; }
 .dlg-bloqueio p.form-erro { color: #b3261e; font-weight: 600; }
 .dlg-bloqueio p.form-erro:empty { display: none; }
 .adm-cli-acoes .btn-bloquear { font-size: .88rem; }
+/* ---------- Canais: carrossel de redes sociais e lojas ---------- */
+.secao-canais { background: var(--fundo-alt, #f4f6f9); }
+.canais-topo { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; }
+.canais-topo .secao-titulo { margin-bottom: 22px; }
+.canais-setas { display: flex; gap: 8px; margin-bottom: 26px; }
+.canais-seta { width: 42px; height: 42px; border: 1px solid var(--borda); border-radius: 50%; background: #fff; color: var(--texto); font-size: 1.5rem; line-height: 1; cursor: pointer; transition: background .2s, opacity .2s; }
+.canais-seta:hover:not(:disabled) { background: var(--azul); border-color: var(--azul); color: #fff; }
+.canais-seta:disabled { opacity: .35; cursor: default; }
+.canais-setas[hidden] { display: none; }
+.canais-trilho { display: flex; gap: 16px; overflow-x: auto; scroll-snap-type: x mandatory; scroll-behavior: smooth; padding: 4px 2px 18px; scrollbar-width: thin; -webkit-overflow-scrolling: touch; }
+.canais-trilho:focus-visible { outline: 2px solid var(--azul); outline-offset: 4px; }
+.canal-card { flex: 0 0 min(270px, 78vw); scroll-snap-align: start; display: flex; flex-direction: column; gap: 14px; padding: 22px; border: 1px solid var(--borda); border-top: 4px solid var(--cor-canal, #1558d6); border-radius: 12px; background: #fff; color: var(--texto); text-decoration: none; transition: transform .25s, box-shadow .25s; }
+.canal-card[hidden] { display: none; }
+.canal-card:hover { transform: translateY(-4px); box-shadow: var(--sombra-forte); }
+.canal-icone { display: grid; place-items: center; width: 56px; height: 56px; border-radius: 14px; background: var(--cor-canal, #1558d6); color: #fff; }
+.canal-icone svg { width: 30px; height: 30px; }
+.canal-instagram .canal-icone { background: radial-gradient(circle at 30% 107%, #fdf497 0%, #fd5949 45%, #d6249f 60%, #285aeb 90%); }
+.canal-mercadolivre .canal-icone { color: #2d3277; }
+.canal-texto { display: grid; gap: 3px; flex: 1; }
+.canal-texto strong { font-size: 1.1rem; }
+.canal-texto small { color: var(--cor-canal, #1558d6); font-weight: 700; font-size: .88rem; word-break: break-all; }
+.canal-mercadolivre .canal-texto small, .canal-tiktok .canal-texto small { color: var(--texto); }
+.canal-texto span { color: var(--texto-suave); font-size: .9rem; }
+.canal-cta { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 14px; border-radius: 8px; background: var(--cor-canal, #1558d6); color: #fff; font-weight: 700; font-size: .92rem; }
+.canal-mercadolivre .canal-cta { color: #2d3277; }
+.canal-cta .icone-svg { width: 16px; height: 16px; }
+@media (max-width: 700px) { .canais-setas { display: none; } }

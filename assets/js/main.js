@@ -508,8 +508,14 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
     modal.innerHTML = `
 <button class="fechar" aria-label="Fechar">×</button>
 <div class="modal-corpo">
-  <div class="modal-vitrine">
-    <div class="modal-foto" id="modal-vitrine">${fotosDe(p).length ? imgFoto(fotosDe(p)[0], p.nome, "") : imgProduto(p, corSel, FOTO_MODAL)}</div>
+  <div class="modal-vitrine"><div class="vitrine-fixa">
+    <div class="galeria-palco" id="galeria-palco">
+      <div class="modal-foto" id="modal-vitrine" role="button" tabindex="0" aria-label="Ampliar foto"></div>
+      <button type="button" class="galeria-seta ant" data-galeria="-1" aria-label="Foto anterior">‹</button>
+      <button type="button" class="galeria-seta prox" data-galeria="1" aria-label="Próxima foto">›</button>
+      <span class="galeria-contador" id="galeria-contador"></span>
+      <span class="galeria-dica">${ic("busca")}Clique para ampliar</span>
+    </div>
     <div class="modal-miniaturas" role="tablist" aria-label="Fotos do produto">
       ${fotosDe(p).length
         ? fotosDe(p).map((u, i) => `<button type="button" class="${i ? "" : "ativo"}" data-vista="f${i}" aria-label="Foto ${i + 1}">${imgFoto(u, "", "mini-foto")}</button>`).join("")
@@ -517,7 +523,12 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
       <button type="button" data-vista="caixa" aria-label="Embalagem">${caixaFoto("mini-foto")}</button>
     </div>
     <p class="modal-legenda" id="modal-legenda">${esc(corSel.nome)} · ${esc(p.acabamento || "")}</p>
-  </div>
+    <ul class="modal-garantias">
+      <li>${ic("escudo")}<span><strong>Qualidade Policoating</strong>Fabricação própria e ficha técnica</span></li>
+      <li>${ic("conversa")}<span><strong>Atendimento técnico</strong>Tire dúvidas com o vendedor</span></li>
+      <li>${ic("local")}<span><strong>Todo o Brasil</strong>Frete combinado no pedido</span></li>
+    </ul>
+  </div></div>
   <div class="modal-info">
     <div class="modal-topo"><span class="etiqueta" style="position:static">${esc(cat.nome || "")}</span>${botaoFav(p.id)}</div>
     <h2>${esc(p.nome)}</h2>
@@ -561,18 +572,95 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
 </div>`;
 
     $(".fechar", modal).addEventListener("click", fecharTudo);
+    /* ---------- Galeria: setas, contador, arrastar, zoom e tela cheia ---------- */
     let vista = fotosDe(p).length ? "f0" : "foto";
+    const vistas = () => $$(".modal-miniaturas button", modal).map((m) => m.dataset.vista);
+    const htmlVista = (v, cls) => v === "caixa" ? caixaFoto(cls) : /^f\d+$/.test(v) ? imgFoto(fotosDe(p)[+v.slice(1)], p.nome, cls || "") : imgProduto(p, corSel, FOTO_MODAL, cls);
+    const urlVista = (v) => v === "caixa" ? FOTO_CAIXA : /^f\d+$/.test(v) ? fotosDe(p)[+v.slice(1)] : "";
     const desenharVitrine = () => {
-      const alvo = $("#modal-vitrine");
+      const alvo = $("#modal-vitrine"), lista = vistas(), i = lista.indexOf(vista), url = urlVista(vista);
       alvo.classList.remove("trocando");
       void alvo.offsetWidth;
       alvo.classList.add("trocando");
-      alvo.innerHTML = vista === "caixa" ? caixaFoto() : /^f\d+$/.test(vista) ? imgFoto(fotosDe(p)[+vista.slice(1)], p.nome, "") : imgProduto(p, corSel, FOTO_MODAL);
+      alvo.style.setProperty("--fundo-foto", url ? `url("${url.replace(/"/g, "%22")}")` : "none");
+      alvo.innerHTML = htmlVista(vista);
       const minis = $$(".modal-miniaturas button", modal);
       minis.forEach((m) => m.classList.toggle("ativo", m.dataset.vista === vista));
+      const ativa = minis.find((m) => m.dataset.vista === vista);
+      if (ativa && ativa.parentNode.scrollWidth > ativa.parentNode.clientWidth) ativa.parentNode.scrollLeft = ativa.offsetLeft - ativa.parentNode.clientWidth / 2 + ativa.offsetWidth / 2;
+      $("#galeria-contador").textContent = `${i + 1} / ${lista.length}`;
+      $$(".galeria-seta", modal).forEach((b) => (b.hidden = lista.length < 2));
       $("#modal-legenda").textContent = vista === "caixa" ? "Embalagem: caixa de papelão Policoating" : `${corSel.nome} · ${p.acabamento || ""}`;
     };
+    const mudarFoto = (d) => { const lista = vistas(); vista = lista[(lista.indexOf(vista) + d + lista.length) % lista.length]; desenharVitrine(); };
     $$(".modal-miniaturas button", modal).forEach((b) => b.addEventListener("click", () => { vista = b.dataset.vista; desenharVitrine(); }));
+    $$("[data-galeria]", modal).forEach((b) => b.addEventListener("click", (e) => { e.stopPropagation(); mudarFoto(+b.dataset.galeria); }));
+    const palco = $("#modal-vitrine");
+    // zoom ao passar o mouse (computador)
+    palco.addEventListener("mousemove", (e) => {
+      if (!matchMedia("(hover: hover)").matches) return;
+      const r = palco.getBoundingClientRect(), img = palco.querySelector("img"); if (!img) return;
+      img.style.transformOrigin = `${((e.clientX - r.left) / r.width) * 100}% ${((e.clientY - r.top) / r.height) * 100}%`;
+      palco.classList.add("zoom");
+    });
+    palco.addEventListener("mouseleave", () => palco.classList.remove("zoom"));
+    // arrastar para o lado (celular); toque simples amplia
+    let x0 = null;
+    palco.addEventListener("touchstart", (e) => { x0 = e.touches[0].clientX; }, { passive: true });
+    palco.addEventListener("touchend", (e) => {
+      if (x0 == null) return;
+      const dx = e.changedTouches[0].clientX - x0; x0 = null;
+      e.preventDefault();
+      if (Math.abs(dx) > 40) mudarFoto(dx < 0 ? 1 : -1); else abrirTelaCheia();
+    });
+    palco.addEventListener("click", () => abrirTelaCheia());
+    palco.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); abrirTelaCheia(); } });
+    modal.addEventListener("keydown", (e) => {
+      if (document.getElementById("tela-cheia")) return;
+      if (e.target.closest("input, textarea, select")) return;
+      if (e.key === "ArrowRight") mudarFoto(1); else if (e.key === "ArrowLeft") mudarFoto(-1);
+    });
+    function abrirTelaCheia() {
+      if (document.getElementById("tela-cheia")) return;
+      palco.classList.remove("zoom");
+      const tela = document.createElement("div");
+      tela.id = "tela-cheia"; tela.className = "tela-cheia"; tela.setAttribute("role", "dialog"); tela.setAttribute("aria-label", "Foto ampliada");
+      tela.innerHTML = `<button type="button" class="tela-fechar" aria-label="Fechar">×</button>
+        <button type="button" class="galeria-seta ant" data-tela="-1" aria-label="Foto anterior">‹</button>
+        <div class="tela-foto" id="tela-foto"></div>
+        <button type="button" class="galeria-seta prox" data-tela="1" aria-label="Próxima foto">›</button>
+        <span class="galeria-contador" id="tela-contador"></span>`;
+      document.body.appendChild(tela);
+      const mostrar = () => {
+        const lista = vistas();
+        $("#tela-foto").innerHTML = htmlVista(vista, "tela-img");
+        $("#tela-contador").innerHTML = `${lista.indexOf(vista) + 1} / ${lista.length}<span class="dica-zoom"> · clique na foto para aproximar</span>`;
+        $$("[data-tela]", tela).forEach((b) => (b.hidden = lista.length < 2));
+      };
+      const teclas = (e) => {
+        if (e.key === "Escape") { e.stopPropagation(); e.preventDefault(); fechar(); }
+        else if (e.key === "ArrowRight") ir(1); else if (e.key === "ArrowLeft") ir(-1);
+      };
+      const fechar = () => { tela.remove(); document.removeEventListener("keydown", teclas, true); palco.focus(); };
+      const ir = (d) => { mudarFoto(d); mostrar(); };
+      document.addEventListener("keydown", teclas, true);
+      tela.addEventListener("click", (e) => {
+        const b = e.target.closest("[data-tela]"); if (b) return ir(+b.dataset.tela);
+        if (e.target.closest(".tela-fechar") || e.target === tela || e.target.id === "tela-foto") return fechar();
+        const img = e.target.closest(".tela-img");
+        if (img) {
+          const r = img.getBoundingClientRect();
+          img.style.transformOrigin = `${((e.clientX - r.left) / r.width) * 100}% ${((e.clientY - r.top) / r.height) * 100}%`;
+          img.classList.toggle("ampliada");
+        }
+      });
+      let tx = null;
+      tela.addEventListener("touchstart", (e) => { tx = e.touches[0].clientX; }, { passive: true });
+      tela.addEventListener("touchend", (e) => { if (tx == null) return; const dx = e.changedTouches[0].clientX - tx; tx = null; if (Math.abs(dx) > 40) ir(dx < 0 ? 1 : -1); });
+      mostrar();
+      $(".tela-fechar", tela).focus();
+    }
+    desenharVitrine();
 
     $$("[data-emb]", modal).forEach((b) =>
       b.addEventListener("click", () => $$("[data-emb]", modal).forEach((x) => x.classList.toggle("ativo", x === b)))

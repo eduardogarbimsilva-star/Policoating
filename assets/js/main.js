@@ -231,7 +231,7 @@
       <textarea id="cliente-obs" rows="2" maxlength="500" placeholder="Observações (opcional)"></textarea>
     </div>
     <button class="btn btn-whats btn-bloco" id="btn-finalizar">${iconeWhats()} Enviar pedido pelo WhatsApp</button>
-    <p class="aviso">O pedido fica salvo em Meus pedidos e abre o WhatsApp do vendedor com todos os dados. Frete e pagamento você combina com ele.
+    <p class="aviso">O pedido é registrado e chega ao vendedor na hora, mesmo que a mensagem do WhatsApp não seja enviada. O WhatsApp abre com todos os dados para agilizar. Frete e pagamento você combina com o vendedor.
       <button class="limpar" id="btn-limpar">Esvaziar carrinho</button></p>
   </div>
 </aside>
@@ -366,9 +366,9 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
   }
 
   /** Mensagem do pedido para o WhatsApp do vendedor */
-  function mensagemPedido(numero, obs) {
+  function mensagemPedido(numero, obs, salvo) {
     const p = Conta.perfil || {}, L = [], tv = totalValor();
-    L.push(`Olá! Vim pelo site da *${CFG.empresa}* e gostaria de fazer um pedido.`, `*Pedido nº ${numero}*`, "");
+    L.push(`Olá! Vim pelo site da *${CFG.empresa}* e gostaria de fazer um pedido.`, `*Pedido nº ${numero}*${salvo ? " (já registrado no site)" : ""}`, "");
     carrinho.forEach((item, i) => {
       const prod = buscarProduto(item.id), pi = precoInfo(prod);
       L.push(`*${i + 1}. ${prod.nome}*`, `   Código: ${prod.codigo || prod.id} | Cor: ${item.cor}`, `   Quantidade: ${descreverQtd(item)}`,
@@ -409,14 +409,16 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
         // não conseguiu salvar: o pedido vai pelo WhatsApp mesmo assim (o vendedor não perde a venda)
         numero = numeroLocal(); salvo = false; console.warn("Pedido não registrado:", e.message);
       }
-      const link = linkWhatsApp(mensagemPedido(numero, obs));
+      const link = linkWhatsApp(mensagemPedido(numero, obs, salvo));
       if (janela && !janela.closed) janela.location.href = link;
       else { const w = window.open(link, "_blank", "noopener"); if (!w) setTimeout(() => (location.href = link), 300); }
       carrinho = [];
       $("#cliente-obs").value = "";
       salvarCarrinho();
       fecharTudo();
-      mostrarToast(`Pedido <strong>${esc(numero)}</strong> enviado pelo WhatsApp${salvo ? "! Ele fica salvo em <a href=\"conta.html#pedidos\" style=\"color:var(--destaque)\">Meus pedidos</a>." : ". (Não foi possível salvá-lo em Meus pedidos agora.)"}`);
+      mostrarToast(salvo
+        ? `Pedido <strong>${esc(numero)}</strong> registrado! O vendedor já recebeu e ele fica em <a href="conta.html#pedidos" style="color:var(--destaque)">Meus pedidos</a>. No WhatsApp, é só tocar em Enviar para agilizar o atendimento.`
+        : `Não conseguimos registrar o pedido <strong>${esc(numero)}</strong> agora. <strong>Envie a mensagem no WhatsApp</strong> para o vendedor recebê-lo.`);
     } catch (e) {
       if (janela) janela.close();
       mostrarToast(esc(e.message));

@@ -364,6 +364,45 @@
     };
     abas.forEach((b) => b.addEventListener("click", () => abrirAba(b.dataset.aba)));
 
+    /* ---------- Alerta de pedido novo (confere a cada minuto com o painel aberto) ---------- */
+    const CHAVE_VISTO = "policoating_pedidos_visto_em", tituloBase = document.title;
+    const lerVisto = () => { try { return localStorage.getItem(CHAVE_VISTO) || ""; } catch (e) { return ""; } };
+    // guarda a data do pedido mais recente (hora do servidor, não do computador)
+    const marcarVisto = async () => {
+      let v; try { v = (await A.ultimoPedidoEm()) || "1970-01-01T00:00:00Z"; } catch (e) { return; }
+      if (v > lerVisto()) try { localStorage.setItem(CHAVE_VISTO, v); } catch (e) { /* ignora */ }
+    };
+    const abaPedidos = $('.admin-abas [data-aba="pedidos"]');
+    const selo = document.createElement("span");
+    selo.className = "aba-novos"; selo.hidden = true;
+    if (abaPedidos) abaPedidos.appendChild(selo);
+    const primeiroAcesso = lerVisto() ? Promise.resolve() : marcarVisto();   // sem registro: só avisa dos próximos
+    let novosAntes = 0;
+    async function conferirNovos() {
+      await primeiroAcesso;
+      const vendoPedidos = abaPedidos && abaPedidos.classList.contains("ativo") && !document.hidden;
+      if (vendoPedidos) { await marcarVisto(); novosAntes = 0; }
+      let n = 0;
+      try { n = vendoPedidos ? 0 : await A.contarPedidosDesde(lerVisto()); } catch (e) { return; }
+      selo.textContent = n > 99 ? "99+" : String(n); selo.hidden = !n;
+      selo.title = n ? `${n} ${n === 1 ? "pedido novo" : "pedidos novos"}` : "";
+      document.title = n ? `(${n}) ${tituloBase}` : tituloBase;
+      if (n > novosAntes) {
+        CW.mostrarToast(`${n === 1 ? "Chegou 1 pedido novo" : `Chegaram ${n} pedidos novos`}. Veja na aba Pedidos.`);
+        try { if (window.Notification && Notification.permission === "granted") new Notification("Policoating: pedido novo", { body: "Abra a aba Pedidos do painel." }); } catch (e) { /* ignora */ }
+      }
+      novosAntes = n;
+    }
+    if (abaPedidos) {
+      abaPedidos.addEventListener("click", () => {
+        marcarVisto(); novosAntes = 0; selo.hidden = true; document.title = tituloBase;
+        try { if (window.Notification && Notification.permission === "default") Notification.requestPermission(); } catch (e) { /* ignora */ }
+      });
+      setInterval(conferirNovos, 60000);
+      document.addEventListener("visibilitychange", () => { if (!document.hidden) conferirNovos(); });
+      setTimeout(conferirNovos, 1500);
+    }
+
     /* ---------- Pedidos feitos pelo site (enviados pelo WhatsApp) ---------- */
     const nomeCliente = (c) => (c.tipo === "pj" ? (c.nome_fantasia || c.razao_social) : c.nome) || c.email || "Cliente";
     const dataBR = (d) => (d ? new Date(d).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }) : "");

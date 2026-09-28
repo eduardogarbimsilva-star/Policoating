@@ -118,6 +118,53 @@ O carrinho e o pedido mostram o total em kg e o valor pelo preço por kg. Não h
 3. Se não for possível salvar o pedido no banco (por exemplo, sem a PARTE L), o WhatsApp abre mesmo assim, para a
    venda não se perder.
 
+### Aviso automático de pedido (o vendedor recebe mesmo se o cliente não enviar)
+
+Nenhum site consegue tocar em "Enviar" no WhatsApp do cliente: o WhatsApp não permite. Se o cliente fechar o
+WhatsApp ou apagar o texto, o pedido **continua registrado** e o vendedor fica sabendo de três formas:
+
+1. **Aba Pedidos do painel:** o pedido aparece na hora. Com o painel aberto, a aba mostra um contador vermelho de
+   pedidos novos, o título da guia do navegador ganha o número, e aparece um aviso na tela (e uma notificação do
+   navegador, se permitida ao abrir a aba Pedidos).
+2. **WhatsApp automático (API oficial do WhatsApp):** a função `supabase/functions/avisar-pedido` manda o pedido
+   completo para o WhatsApp do vendedor assim que ele é gravado, sem depender do cliente.
+3. **E-mail automático (opcional):** a mesma função manda o pedido por e-mail.
+
+**Como ligar o WhatsApp automático** (feito uma vez; o envio sai de um número da empresa na API da Meta):
+
+1. Em [business.facebook.com](https://business.facebook.com) crie a conta empresarial. Em
+   [developers.facebook.com](https://developers.facebook.com) crie um app do tipo **Empresa** e adicione o produto
+   **WhatsApp**.
+2. Cadastre um **número da empresa** para enviar os avisos. Precisa ser um número que **não** esteja no app do
+   WhatsApp (por exemplo, um chip novo). O número que **recebe** (ex.: 16 99270-8155) continua no celular normal.
+3. Em **WhatsApp → Gerenciador → Modelos de mensagem**, crie um modelo **Utilidade**, idioma **Português (BR)**,
+   nome `novo_pedido`, com o texto:
+   `Novo pedido pelo site: {{1}}. Cliente: {{2}}. Itens: {{3}}. Total: {{4}}. Veja os detalhes na aba Pedidos do painel.`
+   Espere a aprovação (costuma sair em minutos).
+4. Gere um **token permanente** (Configurações do negócio → Usuários do sistema → gerar token com as permissões
+   `whatsapp_business_messaging` e `whatsapp_business_management`) e copie o **Phone number ID** do número.
+5. No Supabase, **Edge Functions → Deploy a new function**, nome `avisar-pedido`, cole o arquivo
+   `supabase/functions/avisar-pedido/index.ts` e **desative "Verify JWT"**.
+6. **Edge Functions → Secrets**, adicione:
+   - `AVISO_SEGREDO`: uma senha longa qualquer, inventada por você;
+   - `WHATSAPP_TOKEN`: o token do passo 4;
+   - `WHATSAPP_PHONE_ID`: o Phone number ID;
+   - `WHATSAPP_DESTINO`: quem recebe, com 55 e DDD (ex.: `5516992708155`; vários separados por vírgula);
+   - `WHATSAPP_TEMPLATE`: `novo_pedido`.
+7. **Database → Webhooks → Create a new hook**: tabela `pedidos`, evento **Insert**, tipo **Supabase Edge
+   Functions**, função `avisar-pedido`. Em **HTTP Headers**, adicione `x-aviso-segredo` com o mesmo valor de
+   `AVISO_SEGREDO`.
+8. Faça um pedido de teste. O resultado de cada envio aparece em **Edge Functions → avisar-pedido → Logs**.
+
+**Custo:** a Meta cobra por mensagem de modelo enviada (mensagens de utilidade custam centavos no Brasil; confira a
+tabela atual da Meta). Sem o modelo (`WHATSAPP_TEMPLATE` vazio), a função envia texto livre, que o WhatsApp só entrega
+se o vendedor tiver mandado mensagem para o número da empresa nas últimas 24 horas. Por isso use o modelo.
+
+**E-mail (opcional, grátis para começar):** crie uma conta no [Resend](https://resend.com), verifique o domínio e
+adicione os Secrets `RESEND_API_KEY`, `AVISO_EMAIL_PARA` (quem recebe) e `AVISO_EMAIL_DE`
+(ex.: `Policoating <pedidos@policoating.com.br>`). Dá para usar só o e-mail, sem o WhatsApp: os passos 5 a 8 são os
+mesmos, sem os Secrets de WhatsApp.
+
 ## Personalização
 
 ### Número do WhatsApp e dados da empresa

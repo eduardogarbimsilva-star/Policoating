@@ -2299,3 +2299,5 @@ main { overflow-x: clip; }
 .acoes-massa .btn { padding: 8px 16px; }
 .acoes-massa .btn-link { color: #cfe0ff; }
 .so-vendedor .campo-preco, .so-vendedor .admin-botoes:empty { display: none; }
+.admin-abas .aba-novos { min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px; background: #d93025; color: #fff; font-size: .75rem; font-weight: 700; line-height: 20px; text-align: center; }
+.admin-abas .aba-novos[hidden] { display: none; }

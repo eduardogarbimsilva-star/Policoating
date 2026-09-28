@@ -550,6 +550,32 @@
       return pedidos.map((p) => Object.assign({}, p, { cliente: porId[p.cliente_id] || {} }));
     },
 
+    /** Quantos pedidos chegaram depois de uma data (alerta de pedido novo no painel) */
+    async contarPedidosDesde(desde) {
+      if (!ONLINE) {
+        const todos = ler("policoating_demo_pedidos") || {};
+        return Object.values(todos).flat().filter((p) => !desde || String(p.criado_em) > desde).length;
+      }
+      const sb = await cliente();
+      let q = sb.from("pedidos").select("id", { count: "exact", head: true });
+      if (desde) q = q.gt("criado_em", desde);
+      const { count, error } = await q;
+      if (error) throw erro(error);
+      return count || 0;
+    },
+
+    /** Data do pedido mais recente (hora do servidor), para marcar os pedidos como vistos */
+    async ultimoPedidoEm() {
+      if (!ONLINE) {
+        const todos = Object.values(ler("policoating_demo_pedidos") || {}).flat();
+        return todos.reduce((m, p) => (String(p.criado_em) > m ? String(p.criado_em) : m), "");
+      }
+      const sb = await cliente();
+      const { data, error } = await sb.from("pedidos").select("criado_em").order("criado_em", { ascending: false }).limit(1);
+      if (error) throw erro(error);
+      return (data && data[0] && data[0].criado_em) || "";
+    },
+
     /** Exclui um pedido (quem tem a permissão). Some também de "Minha conta" do cliente. */
     async excluirPedido(numero) {
       if (!(await this.podeExcluirPedidos())) throw new Error("Você não tem permissão para excluir pedidos. Peça a um administrador.");

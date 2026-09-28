@@ -19,7 +19,8 @@
 //        WHATSAPP_IDIOMA    (opcional) idioma do modelo, padrão pt_BR
 //      E-mail (opcional, pode usar só ele ou os dois):
 //        RESEND_API_KEY, AVISO_EMAIL_PARA (vários separados por vírgula),
-//        AVISO_EMAIL_DE (ex.: Policoating <pedidos@seudominio.com.br>)
+//        AVISO_EMAIL_DE (ex.: Policoating Pedidos <pedidos@policoatingg.com.br>)
+//        SITE_URL (opcional, padrão https://policoatingg.com.br) para o botão "Abrir no painel"
 //   4. Database -> Webhooks -> Create: tabela pedidos, evento Insert, tipo
 //      "Supabase Edge Functions" -> avisar-pedido, cabeçalho
 //      x-aviso-segredo = o mesmo valor de AVISO_SEGREDO
@@ -37,14 +38,24 @@ const kgTxt = (v: number) => `${(Math.round(v * 100) / 100).toLocaleString("pt-B
 const qtdTxt = (i: Item) => i.embalagem === "Sob medida" ? `${kgTxt(+(i.qtd || 0))} (sob medida)` : `${i.qtd} × ${i.embalagem} (${kgTxt(+(i.kg || 0))})`;
 const nomeCliente = (c: Cliente) => (c.tipo === "pj" ? (c.nome_fantasia || c.razao_social) : c.nome) || c.email || "Cliente";
 
+/** Chave de servidor que o Supabase entrega à função (a antiga service_role ou a nova sb_secret_) */
+function chaveServidor() {
+  const antiga = env("SUPABASE_SERVICE_ROLE_KEY");
+  if (antiga) return antiga;
+  try { const k = Object.values(JSON.parse(env("SUPABASE_SECRET_KEYS") || "{}"))[0]; return typeof k === "string" ? k : ""; } catch { return ""; }
+}
+
 async function lerCliente(id?: string): Promise<Cliente> {
-  const url = env("SUPABASE_URL"), chave = env("SUPABASE_SERVICE_ROLE_KEY");
-  if (!id || !url || !chave) return {};
+  const url = env("SUPABASE_URL"), chave = chaveServidor();
+  if (!id || !url || !chave) { console.log("sem chave de servidor: e-mail vai sem os dados do cliente"); return {}; }
   try {
-    const r = await fetch(`${url}/rest/v1/clientes?id=eq.${encodeURIComponent(id)}&select=*`, { headers: { apikey: chave, Authorization: `Bearer ${chave}` } });
+    const headers: Record<string, string> = { apikey: chave };
+    if (!chave.startsWith("sb_")) headers.Authorization = `Bearer ${chave}`;   // chave nova não vai no Authorization
+    const r = await fetch(`${url}/rest/v1/clientes?id=eq.${encodeURIComponent(id)}&select=*`, { headers });
+    if (!r.ok) console.log(`não leu o cliente: ${r.status} ${(await r.text()).slice(0, 200)}`);
     const d = r.ok ? await r.json() : [];
     return d[0] || {};
-  } catch { return {}; }
+  } catch (e) { console.log(`não leu o cliente: ${e}`); return {}; }
 }
 
 function totais(p: Pedido) {
@@ -97,12 +108,63 @@ async function enviarWhatsApp(p: Pedido, c: Cliente) {
   return resultados.join(" | ");
 }
 
+const esc = (t: unknown) => String(t ?? "").replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]!));
+
+/** E-mail do pedido em HTML (itens, totais, cliente e botões para responder) */
+function emailHtml(p: Pedido, c: Cliente) {
+  const t = totais(p), site = env("SITE_URL") || "https://policoatingg.com.br";
+  const tel = String(c.telefone || "").replace(/\D/g, ""), zap = tel ? (tel.length <= 11 ? "55" + tel : tel) : "";
+  const data = new Date(p.criado_em || Date.now()).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", dateStyle: "short", timeStyle: "short" });
+  const linha = (rotulo: string, valor: unknown) => valor ? `<tr><td style="padding:3px 12px 3px 0; color:#5a6775; white-space:nowrap; vertical-align:top;">${rotulo}</td><td style="padding:3px 0; color:#1d2733;">${esc(valor)}</td></tr>` : "";
+  const itens = (p.itens || []).map((i) => `<tr>
+      <td style="padding:12px 0; border-bottom:1px solid #e6ebf1; vertical-align:top;"><strong style="color:#0b1424;">${esc(i.nome)}</strong><br><span style="font-size:12px; color:#5a6775;">Cód. ${esc(i.codigo || "-")} · ${esc(i.cor || "")}</span></td>
+      <td style="padding:12px 8px; border-bottom:1px solid #e6ebf1; vertical-align:top; white-space:nowrap; color:#1d2733;">${esc(qtdTxt(i))}</td>
+      <td style="padding:12px 0; border-bottom:1px solid #e6ebf1; vertical-align:top; text-align:right; white-space:nowrap; color:#1d2733;">${i.preco_kg != null ? `${esc(reais(+i.preco_kg))}/kg<br><strong>${esc(reais(+(i.subtotal || 0)))}</strong>` : "a combinar"}</td>
+    </tr>`).join("");
+  const endereco = c.cidade ? `${[c.logradouro, c.numero].filter(Boolean).join(", ")}${c.complemento ? " - " + c.complemento : ""}${c.bairro ? " - " + c.bairro : ""}, ${c.cidade}/${c.uf} · CEP ${c.cep}` : "";
+  const botao = (href: string, texto: string, cor: string) => `<a href="${esc(href)}" style="display:inline-block; margin:0 8px 8px 0; padding:11px 18px; border-radius:8px; background:${cor}; color:#ffffff; font-weight:700; text-decoration:none;">${texto}</a>`;
+  return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head>
+<body style="margin:0; padding:0; background:#eef2f7;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#eef2f7;"><tr><td align="center" style="padding:24px 10px;">
+<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:100%; max-width:600px; background:#ffffff; border-radius:12px; overflow:hidden; border:1px solid #dfe5ec; font-family:Arial, Helvetica, sans-serif; font-size:14px; line-height:21px;">
+  <tr><td style="background:#0b1424; padding:20px 28px;"><span style="font-size:22px; font-weight:900; font-style:italic; color:#ffffff;">POLI<span style="color:#4d8bff;">COATING</span></span>
+    <span style="float:right; margin-top:4px; padding:4px 10px; border-radius:20px; background:#3cb043; color:#ffffff; font-size:12px; font-weight:700;">NOVO PEDIDO</span></td></tr>
+  <tr><td style="padding:26px 28px 6px;">
+    <p style="margin:0; font-size:12px; font-weight:700; letter-spacing:1px; color:#1558d6; text-transform:uppercase;">Pedido pelo site · ${esc(data)}</p>
+    <h1 style="margin:4px 0 2px; font-size:24px; color:#0b1424;">${esc(p.numero)}</h1>
+    <p style="margin:0; color:#5a6775;">${esc(nomeCliente(c))}${c.cidade ? ` · ${esc(c.cidade)}/${esc(c.uf)}` : ""}</p>
+  </td></tr>
+  <tr><td style="padding:14px 28px 0;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+      <tr><th align="left" style="padding-bottom:6px; font-size:12px; color:#5a6775; border-bottom:2px solid #0b1424;">Produto</th><th align="left" style="padding:0 8px 6px; font-size:12px; color:#5a6775; border-bottom:2px solid #0b1424;">Quantidade</th><th align="right" style="padding-bottom:6px; font-size:12px; color:#5a6775; border-bottom:2px solid #0b1424;">Valor</th></tr>
+      ${itens}
+      <tr><td colspan="3" style="padding:14px 0 0; text-align:right; font-size:16px; color:#0b1424;"><strong>Total: ${esc(t.texto)}</strong></td></tr>
+    </table>
+    ${p.observacoes ? `<p style="margin:16px 0 0; padding:12px 14px; background:#fffbea; border-left:4px solid #f7c600; color:#5c4a00;"><strong>Observações:</strong> ${esc(p.observacoes)}</p>` : ""}
+  </td></tr>
+  <tr><td style="padding:22px 28px 0;">
+    <p style="margin:0 0 8px; font-size:12px; font-weight:700; letter-spacing:1px; color:#1558d6; text-transform:uppercase;">Cliente</p>
+    <table role="presentation" cellpadding="0" cellspacing="0">
+      ${c.tipo === "pj" ? linha("Empresa", `${c.razao_social || ""}${c.nome_fantasia ? ` (${c.nome_fantasia})` : ""}`) + linha("CNPJ", c.cnpj) + linha("IE", c.inscricao_estadual) + linha("Responsável", c.responsavel) : linha("Nome", c.nome) + linha("CPF", c.cpf)}
+      ${linha("Telefone", c.telefone)}${linha("E-mail", c.email)}${linha("Entrega", endereco)}
+    </table>
+    ${c.email || c.telefone ? "" : `<p style="margin:6px 0 0; color:#b3261e;">Não foi possível ler os dados do cliente. Veja o pedido no painel.</p>`}
+  </td></tr>
+  <tr><td style="padding:22px 28px 26px;">
+    ${zap ? botao(`https://wa.me/${zap}?text=${encodeURIComponent(`Olá, ${nomeCliente(c)}! Aqui é da Policoating, sobre o seu pedido ${p.numero}.`)}`, "Chamar no WhatsApp", "#1f9d55") : ""}
+    ${c.email ? botao(`mailto:${c.email}?subject=${encodeURIComponent(`Seu pedido ${p.numero} - Policoating`)}`, "Responder por e-mail", "#1558d6") : ""}
+    ${botao(`${site.replace(/\/$/, "")}/admin.html#pedidos`, "Abrir no painel", "#0b1424")}
+  </td></tr>
+  <tr><td style="background:#f4f7fa; padding:14px 28px; font-size:12px; color:#5a6775;">Aviso automático do site Policoating. Responder este e-mail fala direto com o cliente.</td></tr>
+</table></td></tr></table></body></html>`;
+}
+
 async function enviarEmail(p: Pedido, c: Cliente) {
   const chave = env("RESEND_API_KEY"), para = lista("AVISO_EMAIL_PARA"), de = env("AVISO_EMAIL_DE");
   if (!chave || !para.length || !de) return "e-mail não configurado";
   const r = await fetch("https://api.resend.com/emails", {
     method: "POST", headers: { Authorization: `Bearer ${chave}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ from: de, to: para, subject: `Novo pedido ${p.numero} — ${nomeCliente(c)}`, text: mensagem(p, c, false), reply_to: c.email || undefined }),
+    body: JSON.stringify({ from: de, to: para, subject: `Novo pedido ${p.numero} — ${nomeCliente(c)}`, html: emailHtml(p, c), text: mensagem(p, c, false), reply_to: c.email || undefined }),
   });
   return r.ok ? "ok" : `erro ${r.status} ${(await r.text()).slice(0, 300)}`;
 }

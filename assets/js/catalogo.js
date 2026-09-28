@@ -173,6 +173,19 @@
 
   /* ---------- Painel da empresa ---------- */
   const lerDemo = () => ler(CHAVE_DEMO) || {};
+  /** Chama a função equipe-email do Supabase (ações da equipe com e-mail da empresa) */
+  async function funcaoEquipe(corpo) {
+    const sb = await cliente();
+    const { data, error } = await sb.functions.invoke("equipe-email", { body: corpo });
+    if (error) {
+      let msg = "";
+      try { msg = (await error.context.json()).erro; } catch (e) { /* sem corpo */ }
+      if (!msg && /Failed to send|fetch/i.test(String(error.message))) msg = "A função equipe-email ainda não foi publicada no Supabase (veja o README).";
+      throw new Error(msg || error.message || "Não foi possível concluir. Tente de novo.");
+    }
+    return data || {};
+  }
+
   const CHAVE_EQUIPE_DEMO = "policoating_demo_equipe";
   function equipeDemo() {
     let eq = ler(CHAVE_EQUIPE_DEMO);
@@ -547,23 +560,41 @@
         if (sessao && String(sessao.email).toLowerCase() === atual) gravar("policoating_demo_sessao", Object.assign(sessao, { email: novo }));
         return { ok: true, novo, aviso: "demonstração" };
       }
-      const sb = await cliente();
-      const { data, error } = await sb.functions.invoke("equipe-email", { body: { atual, novo } });
-      if (error) {
-        let msg = "";
-        try { msg = (await error.context.json()).erro; } catch (e) { /* sem corpo */ }
-        if (!msg && /Failed to send|fetch/i.test(String(error.message))) msg = "A função equipe-email ainda não foi publicada no Supabase (veja o README).";
-        throw new Error(msg || error.message || "Não foi possível trocar o e-mail.");
+      return funcaoEquipe({ acao: "trocar", atual, novo });
+    },
+
+    /** Adiciona à equipe com e-mail da empresa: cria o apelido nome@dominio -> e-mail pessoal
+        (ImprovMX, pela função equipe-email) e manda boas-vindas para o e-mail pessoal. */
+    async adicionarMembroEmpresa(apelido, pessoal, papel) {
+      const dominio = this.dominioEquipe();
+      apelido = String(apelido || "").trim().toLowerCase().replace(/@.*$/, "");
+      pessoal = String(pessoal || "").trim().toLowerCase();
+      if (!/^[a-z0-9][a-z0-9._-]{0,40}$/.test(apelido)) throw new Error("Nome do e-mail inválido. Use letras, números, ponto, hífen ou sublinhado (ex.: joao.silva).");
+      if (!/^[^\s@*]+@[^\s@]+\.[^\s@]+$/.test(pessoal)) throw new Error("Digite o e-mail pessoal da pessoa (onde chegam os códigos).");
+      if (pessoal.endsWith("@" + dominio)) throw new Error(`O e-mail pessoal precisa ser a caixa de verdade da pessoa (Gmail, Outlook...), não um @${dominio}.`);
+      if (!["admin", "vendedor"].includes(papel)) throw new Error("Escolha o cargo.");
+      const email = `${apelido}@${dominio}`;
+      if (!ONLINE) {
+        const eq = equipeDemo();
+        if (eq.some((x) => x.email === email)) throw new Error(`${email} já está na equipe.`);
+        eq.push({ email, papel, pode_excluir: false, pessoal }); gravar(CHAVE_EQUIPE_DEMO, eq);
+        return { ok: true, email, aviso: "demonstração" };
       }
-      return data;
+      return funcaoEquipe({ acao: "adicionar", apelido, pessoal, papel });
     },
 
     async removerMembro(email) {
       if (String(email).toLowerCase() === String(window.Conta.usuario.email).toLowerCase()) throw new Error("Você não pode remover o seu próprio acesso.");
-      if (!ONLINE) { gravar(CHAVE_EQUIPE_DEMO, equipeDemo().filter((x) => x.email !== email)); return; }
+      if (!ONLINE) { gravar(CHAVE_EQUIPE_DEMO, equipeDemo().filter((x) => x.email !== email)); return {}; }
+      // e-mail da empresa: a função também apaga o apelido do ImprovMX
+      if (String(email).toLowerCase().endsWith("@" + this.dominioEquipe())) {
+        try { return await funcaoEquipe({ acao: "remover", email }); }
+        catch (e) { if (!/não foi publicada/.test(e.message)) throw e; }   // sem a função: remove só da equipe
+      }
       const sb = await cliente();
       const { error } = await sb.from("admins").delete().eq("email", email);
       if (error) throw erro(error);
+      return {};
     },
 
     /** Pedidos feitos pelo site, com os dados do cliente (mais recentes primeiro).

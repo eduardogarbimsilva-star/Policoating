@@ -666,13 +666,42 @@
                ${btnEmail}<button type="button" class="perigo" data-remover-membro>Remover</button>`}</div></li>`;
       }).join("");
     }
+    // "joao" ou "joao@policoatingg.com.br" = e-mail da empresa (pede o pessoal); outro e-mail completo = entra com ele mesmo
+    const loginEquipe = () => {
+      const v = $("#equipe-email").value.trim().toLowerCase(), dominio = A.dominioEquipe();
+      if (!v) return { vazio: true, empresa: true };
+      if (!v.includes("@")) return { empresa: true, apelido: v, email: `${v}@${dominio}` };
+      if (v.endsWith("@" + dominio)) return { empresa: true, apelido: v.split("@")[0], email: v };
+      return { empresa: false, email: v };
+    };
+    function mostrarPrevia() {
+      const l = loginEquipe();
+      $("#equipe-pessoal-campo").hidden = !l.empresa;
+      $("#equipe-previa").innerHTML = l.vazio
+        ? `Digite um nome (ex.: <strong>joao</strong>) para criar o e-mail da empresa, ou um e-mail completo para a pessoa entrar com ele mesmo.`
+        : l.empresa
+          ? `Login: <strong>${esc(l.email)}</strong>. O apelido é criado sozinho e o código chega no e-mail pessoal${$("#equipe-pessoal").value.trim() ? ` (<strong>${esc($("#equipe-pessoal").value.trim())}</strong>)` : ""}.`
+          : `A pessoa entra com <strong>${esc(l.email)}</strong> (sem e-mail da empresa).`;
+    }
+    $("#equipe-email").addEventListener("input", mostrarPrevia);
+    $("#equipe-pessoal").addEventListener("input", mostrarPrevia);
+    mostrarPrevia();
     $("#form-equipe").addEventListener("submit", async (e) => {
       e.preventDefault();
+      const l = loginEquipe(), cargo = $("#equipe-cargo").value, botao = e.submitter || $("#form-equipe button");
+      if (l.vazio) { $("#equipe-erro").textContent = "Digite o nome do e-mail da empresa ou um e-mail completo."; return; }
+      botao.disabled = true; $("#equipe-erro").textContent = "";
       try {
-        await A.salvarMembro($("#equipe-email").value, $("#equipe-cargo").value);
-        CW.mostrarToast(`${CARGOS[$("#equipe-cargo").value]} adicionado.`);
-        $("#equipe-email").value = ""; $("#equipe-erro").textContent = ""; carregarEquipe();
+        if (l.empresa) {
+          const r = await A.adicionarMembroEmpresa(l.apelido, $("#equipe-pessoal").value, cargo);
+          CW.mostrarToast(`${CARGOS[cargo]} adicionado: ${esc(r.email)}.${r.aviso === "ok" ? " A pessoa recebeu as instruções no e-mail pessoal." : ""}`);
+        } else {
+          await A.salvarMembro(l.email, cargo);
+          CW.mostrarToast(`${CARGOS[cargo]} adicionado.`);
+        }
+        $("#equipe-email").value = ""; $("#equipe-pessoal").value = ""; mostrarPrevia(); carregarEquipe();
       } catch (err) { $("#equipe-erro").textContent = err.message; }
+      finally { botao.disabled = false; }
     });
     $("#admin-equipe").addEventListener("change", async (e) => {
       const chk = e.target.closest("[data-permissao]");
@@ -696,7 +725,7 @@
         const novo = (prompt(`E-mail da empresa para o login de ${atual}\n(precisa terminar em @${dominio})`, sugestao) || "").trim().toLowerCase();
         if (!novo) return;
         if (!novo.endsWith("@" + dominio) || !/^[^\s@*]+@/.test(novo)) { $("#equipe-erro").textContent = `O e-mail da empresa precisa terminar em @${dominio}.`; return; }
-        if (!confirm(`Trocar o login de ${atual} para ${novo}?\n\nAntes, confirme que ${novo} já redireciona para a caixa de e-mail da pessoa. Senão ela não recebe o código para entrar.\n\nA pessoa recebe um aviso nos dois e-mails.${eu ? "\n\nComo é o seu próprio login, você vai sair e entrar de novo com o e-mail novo." : ""}`)) return;
+        if (!confirm(`Trocar o login de ${atual} para ${novo}?\n\nO e-mail da empresa passa a redirecionar para ${atual.toLowerCase().endsWith("@" + dominio) ? "a mesma caixa de antes" : atual}, e é por lá que chegam os códigos.\n\nA pessoa recebe um aviso por e-mail.${eu ? "\n\nComo é o seu próprio login, você vai sair e entrar de novo com o e-mail novo." : ""}`)) return;
         be.disabled = true; $("#equipe-erro").textContent = "";
         try {
           const r = await A.definirEmailEmpresa(atual, novo);
@@ -708,8 +737,8 @@
       }
       const b = e.target.closest("[data-remover-membro]"); if (!b) return;
       const email = b.closest("[data-email]").dataset.email;
-      if (!confirm(`Remover o acesso de ${email}?`)) return;
-      try { await A.removerMembro(email); carregarEquipe(); CW.mostrarToast("Acesso removido."); }
+      if (!confirm(`Remover o acesso de ${email}?${email.toLowerCase().endsWith("@" + A.dominioEquipe()) ? "\n\nO e-mail da empresa também é apagado (para de redirecionar)." : ""}`)) return;
+      try { const r = await A.removerMembro(email) || {}; carregarEquipe(); CW.mostrarToast(r.apelido === "apagado" ? "Acesso removido e e-mail da empresa apagado." : "Acesso removido."); }
       catch (err) { $("#equipe-erro").textContent = err.message; }
     });
 

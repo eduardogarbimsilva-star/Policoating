@@ -23,7 +23,7 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Barlow:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/style.css?v=1ccc81a8">
+  <link rel="stylesheet" href="assets/css/style.css?v=376efbb9">
 </head>
 <body>
   <a class="pular" href="#conteudo">Pular para o conteúdo</a>
@@ -277,12 +277,14 @@
               <div><b class="cargo cargo-admin">Administrador</b><span>Tudo: produtos e preços, pedidos (inclusive excluir), clientes (inclusive exportar), contato e links, galeria e equipe.</span></div>
               <div><b class="cargo cargo-vendedor">Vendedor</b><span>Pedidos feitos pelo site, promoções e clientes. Exclui pedidos e exporta clientes só se o administrador liberar.</span></div>
             </div>
-            <p class="dica">A pessoa entra no site com o próprio e-mail (código de acesso) e vê o botão "Painel da empresa" no menu da conta. Depois, em <strong>E-mail da empresa</strong>, o login dela passa para um e-mail @policoatingg.com.br (que redireciona para a caixa dela) e ela recebe um aviso.</p>
+            <p class="dica">Para a equipe, digite só o <strong>nome</strong> (ex.: joao) e o <strong>e-mail pessoal</strong> da pessoa: o site cria joao@policoatingg.com.br, que redireciona para o pessoal, e manda as instruções. Na primeira vez, a pessoa clica em "Criar conta" com o e-mail da empresa. Quem já tem conta com e-mail pessoal pode passar para o da empresa pelo botão <strong>E-mail da empresa</strong>.</p>
             <form class="admin-barra" id="form-equipe" novalidate>
-              <label class="busca" style="flex:1"><input type="email" id="equipe-email" placeholder="email@empresa.com.br" aria-label="E-mail para liberar"></label>
+              <label class="campo-equipe equipe-login"><input type="text" id="equipe-email" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="nome (vira nome@policoatingg.com.br)" aria-label="E-mail de acesso: nome da empresa ou e-mail completo"></label>
+              <label class="campo-equipe" id="equipe-pessoal-campo"><input type="email" id="equipe-pessoal" autocomplete="off" placeholder="E-mail pessoal (onde chegam os códigos)" aria-label="E-mail pessoal da pessoa"></label>
               <select id="equipe-cargo" aria-label="Cargo"><option value="vendedor">Vendedor</option><option value="admin">Administrador</option></select>
               <button type="submit" class="btn btn-primario">Adicionar à equipe</button>
             </form>
+            <p class="dica" id="equipe-previa"></p>
             <ul class="admin-equipe" id="admin-equipe"></ul>
             <p class="form-erro" id="equipe-erro" role="alert"></p>
           </div>
@@ -431,7 +433,7 @@
 
   <script src="assets/js/config.js?v=1d44b601"></script>
   <script src="assets/js/produtos.js?v=efe7e02f"></script>
-  <script src="assets/js/catalogo.js?v=67e5e1c9"></script>
+  <script src="assets/js/catalogo.js?v=d3f66517"></script>
   <script src="assets/js/icones.js?v=0f357f8d"></script>
   <script src="assets/js/midia.js?v=781286f8"></script>
   <script src="assets/js/fotos-reais.js?v=cd443528"></script>
@@ -442,6 +444,6 @@
   <script src="assets/js/animacoes.js?v=d458c529"></script>
   <script src="assets/js/secoes.js?v=b03394b5"></script>
   <script src="assets/js/assistente.js?v=22edb703"></script>
-  <script src="assets/js/admin.js?v=c037c5c6"></script>
+  <script src="assets/js/admin.js?v=dec61570"></script>
 </body>
 </html>

@@ -378,36 +378,32 @@ python3 -m http.server 8000
 # acesse http://localhost:8000
 ```
 
-## E-mail da empresa para a equipe (vendas@policoatingg.com.br)
+## E-mail da empresa para a equipe (joao@policoatingg.com.br)
 
-A equipe entra no site com e-mails da empresa, e o código de acesso chega na caixa de sempre de cada
+A equipe entra no site com e-mails da empresa, e o código de acesso chega na caixa pessoal de cada
 pessoa (Gmail, Outlook...). Os clientes continuam entrando com o próprio e-mail.
 
-**Como funciona:** a pessoa cria a conta com o e-mail normal → o administrador adiciona na **Equipe** →
-clica em **E-mail da empresa** e digita, por exemplo, `vendas@policoatingg.com.br` → o login dela muda
-na hora, a equipe e o cadastro são atualizados e ela recebe um aviso nos dois e-mails. Para trocar o do
-próprio administrador, o site sai da conta e pede para entrar de novo com o e-mail novo.
+**No dia a dia (painel → Equipe):** digite só o **nome** (ex.: `joao`), o **e-mail pessoal** da pessoa e o
+cargo → **Adicionar à equipe**. O site cria sozinho o apelido `joao@policoatingg.com.br` → e-mail pessoal no
+ImprovMX, coloca a pessoa na equipe e manda as instruções para o e-mail pessoal. Na primeira vez, ela clica
+em **Criar conta** com o e-mail da empresa. **Remover** tira o acesso e apaga o apelido. Para quem já tem
+conta com e-mail pessoal, o botão **E-mail da empresa** troca o login e cria o apelido para a caixa atual.
+Um e-mail completo de fora (ex.: `fulano@outlook.com`) também pode ser adicionado, sem e-mail da empresa.
 
-**1. Redirecionamento dos e-mails (grátis, feito uma vez):**
-1. Crie uma conta no [ImprovMX](https://improvmx.com) e adicione o domínio `policoatingg.com.br`.
-2. No Registro.br (Configurar endereçamento → modo avançado), crie os registros que o ImprovMX mostrar.
-   Em geral: **MX** (nome vazio) `mx1.improvmx.com` prioridade 10, **MX** (nome vazio) `mx2.improvmx.com`
-   prioridade 20 e **TXT** (nome vazio) `v=spf1 include:spf.improvmx.com ~all`.
-3. No ImprovMX, crie os apelidos: `vendas` → Gmail do vendedor, `eduardo` → Gmail do Eduardo etc.
-4. Teste mandando um e-mail qualquer para o endereço novo: ele deve chegar no Gmail da pessoa.
+**Configuração (uma vez):**
+1. **ImprovMX:** conta criada, domínio `policoatingg.com.br` adicionado e registros no Registro.br:
+   **MX** (nome vazio) `mx1.improvmx.com` prioridade 10, **MX** `mx2.improvmx.com` prioridade 20 e **TXT**
+   `v=spf1 include:spf.improvmx.com ~all`.
+2. **ImprovMX → Chaves de API:** copie a chave e crie no Supabase (Edge Functions → Secrets) o
+   `IMPROVMX_API_KEY`.
+3. **Supabase → Edge Functions → Deploy a new function → Via Editor**, nome `equipe-email`, cole
+   `supabase/functions/equipe-email/index.ts`, **Deploy**, e em **Settings desligue "Verify JWT"**.
+4. Os avisos usam os Secrets `RESEND_API_KEY` e `AVISO_EMAIL_DE` (os mesmos do aviso de pedido).
 
-**Crie o apelido antes de trocar o login no painel**, senão a pessoa não recebe o código para entrar.
-Se no futuro a empresa contratar caixas de e-mail de verdade (Microsoft 365 / Outlook), os apelidos
-passam a ser criados lá e os registros MX do ImprovMX são trocados pelos da Microsoft.
-
-**2. Função no Supabase:**
-1. **Edge Functions → Deploy a new function → Via Editor**, nome `equipe-email`, cole o arquivo
-   `supabase/functions/equipe-email/index.ts` e clique em **Deploy**.
-2. Em **Settings** da função, **desligue "Verify JWT"** (a função confere o login e o cargo por conta própria).
-3. O aviso por e-mail usa os mesmos Secrets do aviso de pedido: `RESEND_API_KEY` e `AVISO_EMAIL_DE`.
-
-O domínio aceito fica em `assets/js/config.js` (`dominioEquipe`) e, na função, no Secret opcional
-`DOMINIO_EQUIPE` (padrão `policoatingg.com.br`).
+**Cuidados:** o plano grátis do ImprovMX tem limite de apelidos (o painel avisa quando chegar). Se alguém
+tentar entrar com um e-mail da empresa que ainda não existe, o Resend bloqueia o endereço ("Suprimido"):
+remova em **Resend → Supressões**. Se a empresa contratar caixas de verdade (Microsoft 365 / Outlook), os
+registros MX do ImprovMX são trocados pelos da Microsoft.
 
 ## Publicar
 

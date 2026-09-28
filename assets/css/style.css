@@ -2304,3 +2304,7 @@ main { overflow-x: clip; }
 .equipe-acoes .btn-email-empresa { padding: 6px 10px; border: 1px solid var(--borda); border-radius: 6px; background: none; font: inherit; font-size: .85rem; color: var(--azul); cursor: pointer; }
 .equipe-acoes .btn-email-empresa:hover { border-color: var(--azul); }
 .selo-empresa { margin-left: 6px; padding: 1px 8px; border-radius: 10px; background: #e6f4ea; color: #1e7e34; font-size: .72rem; font-weight: 700; }
+#form-equipe .equipe-login { flex: 1 1 220px; }
+#form-equipe #equipe-pessoal-campo { flex: 1 1 240px; }
+#form-equipe #equipe-pessoal-campo[hidden] { display: none; }
+.admin-barra .campo-equipe input { width: 100%; padding: 11px 14px; border: 1px solid var(--borda); border-radius: 6px; font: inherit; background: #fff; }

@@ -13,7 +13,7 @@
 //        AVISO_SEGREDO      uma senha longa qualquer (a mesma do cabeçalho do webhook)
 //        WHATSAPP_TOKEN     token permanente do app da Meta (usuário do sistema)
 //        WHATSAPP_PHONE_ID  "Phone number ID" do número da empresa na Cloud API
-//        WHATSAPP_DESTINO   WhatsApp de quem recebe, com DDI e DDD (ex.: 5516992708155;
+//        WHATSAPP_DESTINO   WhatsApp de quem recebe, com DDI e DDD (ex.: 5516996304811;
 //                           vários separados por vírgula)
 //        WHATSAPP_TEMPLATE  (recomendado) nome do modelo aprovado, ex.: novo_pedido
 //        WHATSAPP_IDIOMA    (opcional) idioma do modelo, padrão pt_BR

@@ -137,7 +137,7 @@ WhatsApp ou apagar o texto, o pedido **continua registrado** e o vendedor fica s
    [developers.facebook.com](https://developers.facebook.com) crie um app do tipo **Empresa** e adicione o produto
    **WhatsApp**.
 2. Cadastre um **número da empresa** para enviar os avisos. Precisa ser um número que **não** esteja no app do
-   WhatsApp (por exemplo, um chip novo). O número que **recebe** (ex.: 16 99270-8155) continua no celular normal.
+   WhatsApp (por exemplo, um chip novo). O número que **recebe** (ex.: 16 99630-4811) continua no celular normal.
 3. Em **WhatsApp → Gerenciador → Modelos de mensagem**, crie um modelo **Utilidade**, idioma **Português (BR)**,
    nome `novo_pedido`, com o texto:
    `Novo pedido pelo site: {{1}}. Cliente: {{2}}. Itens: {{3}}. Total: {{4}}. Veja os detalhes na aba Pedidos do painel.`
@@ -150,7 +150,7 @@ WhatsApp ou apagar o texto, o pedido **continua registrado** e o vendedor fica s
    - `AVISO_SEGREDO`: uma senha longa qualquer, inventada por você;
    - `WHATSAPP_TOKEN`: o token do passo 4;
    - `WHATSAPP_PHONE_ID`: o Phone number ID;
-   - `WHATSAPP_DESTINO`: quem recebe, com 55 e DDD (ex.: `5516992708155`; vários separados por vírgula);
+   - `WHATSAPP_DESTINO`: quem recebe, com 55 e DDD (ex.: `5516996304811`; vários separados por vírgula);
    - `WHATSAPP_TEMPLATE`: `novo_pedido`.
 7. **Database → Webhooks → Create a new hook**: tabela `pedidos`, evento **Insert**, tipo **Supabase Edge
    Functions**, função `avisar-pedido`. Em **HTTP Headers**, adicione `x-aviso-segredo` com o mesmo valor de
@@ -172,8 +172,8 @@ mesmos, sem os Secrets de WhatsApp.
 Edite **`assets/js/config.js`**:
 
 ```js
-whatsapp: "5516992708155",   // 55 + DDD + número, só dígitos
-telefone: "(16) 99270-8155",
+whatsapp: "5516996304811",   // 55 + DDD + número, só dígitos
+telefone: "(16) 99630-4811",
 email: "",
 ...
 ```

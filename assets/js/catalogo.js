@@ -97,7 +97,7 @@
     if (/^\d{12,13}$/.test(zap)) o.whatsapp = zap;
     if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.email || "")) o.email = String(d.email).trim();
     TEXTO.forEach((k) => { if (typeof d[k] === "string" && d[k].trim()) o[k] = d[k].trim().slice(0, 140); });
-    // telefone digitado só com números vira (16) 99270-8155
+    // telefone digitado só com números vira (16) 99630-4811
     if (o.telefone && /^[1-9]\d{9,10}$/.test(o.telefone.replace(/\D/g, "")) && !/\D/.test(o.telefone.replace(/[\s-]/g, ""))) {
       const t = o.telefone.replace(/\D/g, "");
       o.telefone = `(${t.slice(0, 2)}) ${t.slice(2, t.length - 4)}-${t.slice(-4)}`;
@@ -462,7 +462,7 @@
 
     async salvarConfig(bruto) {
       const d = limparConfig(bruto);
-      if (!d.whatsapp) throw new Error("WhatsApp inválido: use 55 + DDD + número, só dígitos (ex.: 5516992708155).");
+      if (!d.whatsapp) throw new Error("WhatsApp inválido: use 55 + DDD + número, só dígitos (ex.: 5516996304811).");
       if (!ONLINE) { gravar(CHAVE_CFG_DEMO, d); aplicarConfig(d); return d; }
       const sb = await cliente();
       const { error } = await sb.from("configuracoes").upsert({ id: 1, dados: d, atualizado_em: new Date().toISOString() });

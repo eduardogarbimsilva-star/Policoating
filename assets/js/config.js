@@ -2,14 +2,14 @@
  * CONFIGURAÇÃO GERAL DO SITE
  * Altere aqui os dados da empresa e o número de WhatsApp do vendedor.
  * O número deve estar no formato internacional, apenas dígitos:
- *   55 (Brasil) + DDD + número  ->  ex.: 5516992708155
+ *   55 (Brasil) + DDD + número  ->  ex.: 5516996304811
  */
 window.SITE_CONFIG = {
   empresa: "Policoating",
   descricao: "Tinta eletrostática em pó",
   slogan: "Tecnologia que reveste, qualidade que permanece.",
-  whatsapp: "5516992708155",
-  telefone: "(16) 99270-8155",
+  whatsapp: "5516996304811",
+  telefone: "(16) 99630-4811",
   email: "",   // e-mail de contato mostrado no site (pode ser alterado no painel, em Contato e links)
   dominioEquipe: "policoatingg.com.br",   // e-mails da empresa da equipe (aba Equipe do painel)
   endereco: "Atendimento para todo o Brasil",
@@ -41,7 +41,7 @@ window.SITE_CONFIG = {
   redes: {
     instagram: "",
     facebook: "",
-    whatsappBusiness: "",   // link do catálogo do WhatsApp Business, ex.: https://wa.me/c/5516992708155
+    whatsappBusiness: "",   // link do catálogo do WhatsApp Business, ex.: https://wa.me/c/5516996304811
     linkedin: "",
     youtube: "",
     tiktok: ""

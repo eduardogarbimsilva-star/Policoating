@@ -523,7 +523,7 @@
       if (!BR.cpfValido(d.cpf)) return erro("#erro-dados", "CPF inválido. Confira os números.");
     }
     if (!BR.so(d.telefone)) faltando.push("telefone com DDD");
-    else if (!BR.telefoneValido(d.telefone)) return erro("#erro-dados", "Telefone inválido. Use DDD + número (celular começa com 9), ex.: (16) 99270-8155.");
+    else if (!BR.telefoneValido(d.telefone)) return erro("#erro-dados", "Telefone inválido. Use DDD + número (celular começa com 9), ex.: (16) 99630-4811.");
     if (!BR.so(d.cep)) faltando.push("CEP");
     else if (!BR.cepValido(d.cep)) return erro("#erro-dados", "CEP inválido. Confira os 8 números.");
     if (d.uf && !BR.UFS.includes(d.uf)) return erro("#erro-dados", "Escolha o estado na lista.");

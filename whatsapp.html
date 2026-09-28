@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Abrindo o WhatsApp | Policoating</title>
+<style>
+  :root { --fundo: #eef2f7; --texto: #1d2733; --suave: #5a6775; --verde: #1f9d55; }
+  @media (prefers-color-scheme: dark) { :root { --fundo: #0b1424; --texto: #e8edf4; --suave: #9fb0c6; } }
+  body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 16px; box-sizing: border-box;
+    background: var(--fundo); color: var(--texto); font: 16px/1.5 Arial, Helvetica, sans-serif; text-align: center; }
+  a { display: inline-block; margin-top: 14px; padding: 12px 22px; border-radius: 8px; background: var(--verde); color: #fff; font-weight: 700; text-decoration: none; }
+  p { margin: 6px 0; color: var(--suave); }
+</style>
+</head>
+<body>
+<main>
+  <strong>Abrindo o WhatsApp da Policoating...</strong>
+  <p>Se não abrir sozinho, toque no botão.</p>
+  <a id="abrir" href="#">Abrir o WhatsApp</a>
+</main>
+<script src="assets/js/config.js"></script>
+<script>
+  /* Link fixo para os e-mails: sempre abre o WhatsApp salvo no painel (Contato e links). */
+  (function () {
+    var CFG = window.SITE_CONFIG || {}, SB = CFG.supabase || {}, foi = false;
+    var texto = "Olá! Preciso de ajuda com a minha conta no site da Policoating.";
+    function abrir(numero) {
+      if (foi) return; foi = true;
+      var n = String(numero || CFG.whatsapp || "").replace(/\D/g, "");
+      var link = "https://wa.me/" + n + "?text=" + encodeURIComponent(texto);
+      document.getElementById("abrir").href = link;
+      location.replace(link);
+    }
+    setTimeout(function () { abrir(); }, 2500);   // sem resposta do banco: usa o número do config.js
+    if (!SB.url || !SB.anonKey) return abrir();
+    fetch(SB.url + "/rest/v1/configuracoes?id=eq.1&select=dados", { headers: { apikey: SB.anonKey } })
+      .then(function (r) { return r.ok ? r.json() : []; })
+      .then(function (d) { var z = String(((d[0] || {}).dados || {}).whatsapp || "").replace(/\D/g, ""); abrir(/^\d{12,13}$/.test(z) ? z : ""); })
+      .catch(function () { abrir(); });
+  })();
+</script>
+</body>
+</html>

@@ -60,7 +60,8 @@ e os dados ficam só no navegador de quem testa. **Não publique para clientes r
    [`assets/js/config.js`](assets/js/config.js) (hoje `8`); se mudar no Supabase, mude lá também.
    Colar o código inteiro sempre funciona, de qualquer tamanho.
 5. Em **Authentication → URL Configuration**, coloque o endereço do site em **Site URL**
-   (ex.: `https://eduardogarbimsilva-star.github.io/Color-Weg/`).
+   (`https://policoatingg.com.br/`) e, em **Redirect URLs**, `https://policoatingg.com.br/**` e
+   `https://www.policoatingg.com.br/**`.
 6. Em **Project Settings → API**, copie a **Project URL** e a chave pública **anon / publishable** e cole em
    `assets/js/config.js`:
    ```js
@@ -379,5 +380,22 @@ python3 -m http.server 8000
 
 ## Publicar
 
-Por ser estático, pode ser hospedado gratuitamente no **GitHub Pages** (Settings → Pages → branch),
-Netlify, Vercel ou qualquer hospedagem comum.
+O site é estático e fica no **GitHub Pages** (grátis), com o domínio **policoatingg.com.br**.
+
+1. **GitHub → Settings → Pages:** em **Source**, escolha **Deploy from a branch**, a branch do site e a pasta
+   **/ (root)**.
+2. **Registro.br → domínio → DNS → Editar zona** (com os servidores DNS do Registro.br), crie:
+
+   | Tipo | Nome | Valor |
+   |---|---|---|
+   | A | *(vazio)* | `185.199.108.153` |
+   | A | *(vazio)* | `185.199.109.153` |
+   | A | *(vazio)* | `185.199.110.153` |
+   | A | *(vazio)* | `185.199.111.153` |
+   | CNAME | `www` | `eduardogarbimsilva-star.github.io` |
+
+   Apague outros registros A/CNAME do domínio raiz e do `www`, se houver.
+3. Quando o domínio já responder (minutos a algumas horas), em **Settings → Pages → Custom domain** digite
+   `policoatingg.com.br`, clique em **Save**, espere o "DNS check successful" e marque **Enforce HTTPS**
+   (o certificado pode levar até 24 h para ficar pronto).
+4. No Supabase, atualize **Site URL** e **Redirect URLs** (veja a seção do login acima).

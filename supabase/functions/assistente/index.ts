@@ -14,6 +14,8 @@ import Anthropic from "npm:@anthropic-ai/sdk";
 
 const MODELO = "claude-opus-5";
 const ORIGENS_PERMITIDAS = [
+  "https://policoatingg.com.br",
+  "https://www.policoatingg.com.br",
   "https://eduardogarbimsilva-star.github.io",
   "http://localhost:8000",
   "http://localhost:8765",

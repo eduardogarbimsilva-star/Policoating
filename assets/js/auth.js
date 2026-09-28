@@ -105,6 +105,9 @@
     async enviarCodigo(email, criar) {
       email = normalizarEmail(email);
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error("Informe um e-mail válido.");
+      // e-mail da empresa (equipe): "Entrar" já cria a conta no primeiro acesso
+      const dominioEquipe = String(CFG.dominioEquipe || "").toLowerCase();
+      const daEquipe = !!dominioEquipe && email.endsWith("@" + dominioEquipe);
       if (USAR_SUPABASE) {
         const sb = await supabase();
         // Criar conta com e-mail que já tem cadastro: avisa e segue como "Entrar"
@@ -113,13 +116,13 @@
         // Se o modelo de e-mail do Supabase enviar um link em vez do código, o link também funciona:
         // ele volta para a página "Minha conta" deste site, já com o cliente conectado.
         const voltarPara = location.origin + location.pathname.replace(/[^/]*$/, "") + "conta.html";
-        const { error } = await sb.auth.signInWithOtp({ email, options: { shouldCreateUser: !!criar, emailRedirectTo: voltarPara } });
+        const { error } = await sb.auth.signInWithOtp({ email, options: { shouldCreateUser: !!criar || daEquipe, emailRedirectTo: voltarPara } });
         if (error) throw traduzirErro(error);
         return { jaTinhaConta: jaTem };
       }
       const perfis = ler(K.perfis, {});
       const jaTinhaConta = !!(criar && perfis[email] && perfis[email].tipo);
-      if (!criar && !perfis[email]) throw new Error("Não encontramos uma conta com este e-mail. Clique em \"Criar conta\".");
+      if (!criar && !daEquipe && !perfis[email]) throw new Error("Não encontramos uma conta com este e-mail. Clique em \"Criar conta\".");
       const codigo = String(Math.floor(100000 + Math.random() * 900000));
       gravar(K.codigo, { email, codigo, expira: Date.now() + 10 * 60 * 1000, tentativas: 0 });
       return { codigoDemo: codigo, jaTinhaConta };

@@ -60,8 +60,8 @@ e os dados ficam só no navegador de quem testa. **Não publique para clientes r
    [`assets/js/config.js`](assets/js/config.js) (hoje `8`); se mudar no Supabase, mude lá também.
    Colar o código inteiro sempre funciona, de qualquer tamanho.
 5. Em **Authentication → URL Configuration**, coloque o endereço do site em **Site URL**
-   (`https://policoatingg.com.br/`) e, em **Redirect URLs**, `https://policoatingg.com.br/**` e
-   `https://www.policoatingg.com.br/**`.
+   (`https://policoatingtintas.com.br/`) e, em **Redirect URLs**, `https://policoatingtintas.com.br/**` e
+   `https://www.policoatingtintas.com.br/**`.
 6. Em **Project Settings → API**, copie a **Project URL** e a chave pública **anon / publishable** e cole em
    `assets/js/config.js`:
    ```js
@@ -74,7 +74,7 @@ e os dados ficam só no navegador de quem testa. **Não publique para clientes r
    > **Nunca** coloque a chave `service_role`/secret no site.
 7. **Importante para produção:** o e-mail padrão do Supabase tem limite de poucos envios por hora. Em
    **Authentication → Emails → SMTP Settings**, configure um provedor de e-mail (ex.: Resend, Brevo, Amazon SES)
-   com um remetente do seu domínio, como `nao-responda@policoatingg.com.br`.
+   com um remetente do seu domínio, como `nao-responda@policoatingtintas.com.br`.
 
 Os cadastros e pedidos podem ser consultados pela equipe em **Table Editor → clientes / pedidos** no painel do Supabase.
 
@@ -163,7 +163,7 @@ se o vendedor tiver mandado mensagem para o número da empresa nas últimas 24 h
 
 **E-mail (opcional, grátis para começar):** crie uma conta no [Resend](https://resend.com), verifique o domínio e
 adicione os Secrets `RESEND_API_KEY`, `AVISO_EMAIL_PARA` (quem recebe) e `AVISO_EMAIL_DE`
-(ex.: `Policoating <pedidos@policoatingg.com.br>`). Dá para usar só o e-mail, sem o WhatsApp: os passos 5 a 8 são os
+(ex.: `Policoating <pedidos@policoatingtintas.com.br>`). Dá para usar só o e-mail, sem o WhatsApp: os passos 5 a 8 são os
 mesmos, sem os Secrets de WhatsApp.
 
 ## Personalização
@@ -363,7 +363,7 @@ O guia **"Qual pó usar?"** (em Recursos) usa essas mesmas linhas para indicar p
 1. **Envio de e-mails em grande volume.** O e-mail padrão do Supabase manda poucos códigos por hora; com muitos
    acessos, clientes ficariam sem receber o código. Antes de divulgar o site, configurar um provedor de e-mail
    profissional (Resend, Brevo ou Amazon SES) em **Authentication → Emails → SMTP Settings**, com remetente do
-   domínio da empresa (ex.: `nao-responda@policoatingg.com.br`) e registros SPF/DKIM no domínio, e aumentar o
+   domínio da empresa (ex.: `nao-responda@policoatingtintas.com.br`) e registros SPF/DKIM no domínio, e aumentar o
    limite em **Authentication → Rate Limits**.
 2. **Parte fiscal (NF-e)**, quando for o momento: emissão por um serviço autorizado (ex.: Focus NFe, eNotas,
    PlugNotas ou o ERP da empresa), com certificado digital A1 e os dados fiscais dos produtos (NCM, CFOP,
@@ -392,20 +392,20 @@ Supabase (SQL Editor, do `-- PARTE M` até o fim) uma vez.
 - A suspensão acaba sozinha no fim do prazo. Para liberar antes, use **Desbloquear**.
 - Filtro **Suspensos ou bloqueados** na aba Clientes. Vendedores veem o selo, mas não podem bloquear.
 
-## E-mail da empresa para a equipe (joao@policoatingg.com.br)
+## E-mail da empresa para a equipe (joao@policoatingtintas.com.br)
 
 A equipe entra no site com e-mails da empresa, e o código de acesso chega na caixa pessoal de cada
 pessoa (Gmail, Outlook...). Os clientes continuam entrando com o próprio e-mail.
 
 **No dia a dia (painel → Equipe):** digite só o **nome** (ex.: `joao`), o **e-mail pessoal** da pessoa e o
-cargo → **Adicionar à equipe**. O site cria sozinho o apelido `joao@policoatingg.com.br` → e-mail pessoal no
+cargo → **Adicionar à equipe**. O site cria sozinho o apelido `joao@policoatingtintas.com.br` → e-mail pessoal no
 ImprovMX, coloca a pessoa na equipe e manda as instruções para o e-mail pessoal. Na primeira vez, ela clica
 em **Criar conta** com o e-mail da empresa. **Remover** tira o acesso e apaga o apelido. Para quem já tem
 conta com e-mail pessoal, o botão **E-mail da empresa** troca o login e cria o apelido para a caixa atual.
 Um e-mail completo de fora (ex.: `fulano@outlook.com`) também pode ser adicionado, sem e-mail da empresa.
 
 **Configuração (uma vez):**
-1. **ImprovMX:** conta criada, domínio `policoatingg.com.br` adicionado e registros no Registro.br:
+1. **ImprovMX:** conta criada, domínio `policoatingtintas.com.br` adicionado e registros no Registro.br:
    **MX** (nome vazio) `mx1.improvmx.com` prioridade 10, **MX** `mx2.improvmx.com` prioridade 20 e **TXT**
    `v=spf1 include:spf.improvmx.com ~all`.
 2. **ImprovMX → Chaves de API:** copie a chave e crie no Supabase (Edge Functions → Secrets) o
@@ -421,7 +421,7 @@ registros MX do ImprovMX são trocados pelos da Microsoft.
 
 ## Publicar
 
-O site é estático e fica no **GitHub Pages** (grátis), com o domínio **policoatingg.com.br**.
+O site é estático e fica no **GitHub Pages** (grátis), com o domínio **policoatingtintas.com.br**.
 
 1. **GitHub → Settings → Pages:** em **Source**, escolha **Deploy from a branch**, a branch do site e a pasta
    **/ (root)**.
@@ -437,6 +437,6 @@ O site é estático e fica no **GitHub Pages** (grátis), com o domínio **polic
 
    Apague outros registros A/CNAME do domínio raiz e do `www`, se houver.
 3. Quando o domínio já responder (minutos a algumas horas), em **Settings → Pages → Custom domain** digite
-   `policoatingg.com.br`, clique em **Save**, espere o "DNS check successful" e marque **Enforce HTTPS**
+   `policoatingtintas.com.br`, clique em **Save**, espere o "DNS check successful" e marque **Enforce HTTPS**
    (o certificado pode levar até 24 h para ficar pronto).
 4. No Supabase, atualize **Site URL** e **Redirect URLs** (veja a seção do login acima).

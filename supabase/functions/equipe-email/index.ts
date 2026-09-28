@@ -2,7 +2,7 @@
 // Policoating — Equipe com e-mail da empresa (Supabase Edge Function)
 //
 // Chamada pelo painel (aba Equipe), só por administradores. Ações:
-//   adicionar: cria o apelido nome@policoatingg.com.br -> e-mail pessoal no ImprovMX,
+//   adicionar: cria o apelido nome@policoatingtintas.com.br -> e-mail pessoal no ImprovMX,
 //              coloca a pessoa na equipe e manda boas-vindas para o e-mail pessoal
 //   remover:   tira da equipe e apaga o apelido do ImprovMX
 //   trocar:    muda o login de quem já tem conta para o e-mail da empresa, criando
@@ -12,12 +12,12 @@
 //   1. Edge Functions -> Deploy a new function -> nome "equipe-email" -> cole este arquivo
 //   2. Desative "Verify JWT" desta função (ela confere o login por conta própria)
 //   3. Secrets: IMPROVMX_API_KEY (ImprovMX -> Chaves de API), RESEND_API_KEY e AVISO_EMAIL_DE
-//      Opcional: DOMINIO_EQUIPE (padrão policoatingg.com.br)
+//      Opcional: DOMINIO_EQUIPE (padrão policoatingtintas.com.br)
 // =========================================================
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const env = (k: string) => (Deno.env.get(k) || "").trim();
-const ORIGENS = ["https://policoatingg.com.br", "https://www.policoatingg.com.br", "http://localhost:8000", "http://localhost:8765"];
+const ORIGENS = ["https://policoatingtintas.com.br", "https://www.policoatingtintas.com.br", "http://localhost:8000", "http://localhost:8765"];
 const EMAIL_RE = /^[^\s@*]+@[^\s@]+\.[^\s@]+$/;
 const APELIDO_RE = /^[a-z0-9][a-z0-9._-]{0,40}$/;
 // compara e-mail sem diferenciar maiúsculas; "_" e "%" não viram curinga
@@ -59,12 +59,12 @@ async function criarApelido(apelido: string, destino: string) {
   return `O ImprovMX recusou o apelido (${r.status}${r.erro ? ": " + r.erro.slice(0, 160) : ""}).`;
 }
 const apagarApelido = (apelido: string) => improvmx("DELETE", `/${encodeURIComponent(apelido)}`);
-const dominio = () => (env("DOMINIO_EQUIPE") || "policoatingg.com.br").toLowerCase();
+const dominio = () => (env("DOMINIO_EQUIPE") || "policoatingtintas.com.br").toLowerCase();
 const daEmpresa = (email: string) => email.endsWith("@" + dominio());
 
 /* ---------- E-mails de aviso (Resend) ---------- */
 function moldura(rotulo: string, titulo: string, miolo: string) {
-  const site = (env("SITE_URL") || "https://policoatingg.com.br").replace(/\/$/, "");
+  const site = (env("SITE_URL") || "https://policoatingtintas.com.br").replace(/\/$/, "");
   return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"></head>
 <body style="margin:0; padding:0; background:#eef2f7;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#eef2f7;"><tr><td align="center" style="padding:24px 10px;">

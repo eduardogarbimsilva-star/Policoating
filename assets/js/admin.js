@@ -721,7 +721,7 @@
                ${btnEmail}<button type="button" class="perigo" data-remover-membro>Remover</button>`}</div></li>`;
       }).join("");
     }
-    // "joao" ou "joao@policoatingg.com.br" = e-mail da empresa (pede o pessoal); outro e-mail completo = entra com ele mesmo
+    // "joao" ou "joao@policoatingtintas.com.br" = e-mail da empresa (pede o pessoal); outro e-mail completo = entra com ele mesmo
     const loginEquipe = () => {
       const v = $("#equipe-email").value.trim().toLowerCase(), dominio = A.dominioEquipe();
       if (!v) return { vazio: true, empresa: true };

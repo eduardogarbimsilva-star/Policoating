@@ -19,8 +19,8 @@
 //        WHATSAPP_IDIOMA    (opcional) idioma do modelo, padrão pt_BR
 //      E-mail (opcional, pode usar só ele ou os dois):
 //        RESEND_API_KEY, AVISO_EMAIL_PARA (vários separados por vírgula),
-//        AVISO_EMAIL_DE (ex.: Policoating Pedidos <pedidos@policoatingg.com.br>)
-//        SITE_URL (opcional, padrão https://policoatingg.com.br) para o botão "Abrir no painel"
+//        AVISO_EMAIL_DE (ex.: Policoating Pedidos <pedidos@policoatingtintas.com.br>)
+//        SITE_URL (opcional, padrão https://policoatingtintas.com.br) para o botão "Abrir no painel"
 //   4. Database -> Webhooks -> Create: tabela pedidos, evento Insert, tipo
 //      "Supabase Edge Functions" -> avisar-pedido, cabeçalho
 //      x-aviso-segredo = o mesmo valor de AVISO_SEGREDO
@@ -112,7 +112,7 @@ const esc = (t: unknown) => String(t ?? "").replace(/[&<>"']/g, (ch) => ({ "&": 
 
 /** E-mail do pedido em HTML (itens, totais, cliente e botões para responder) */
 function emailHtml(p: Pedido, c: Cliente) {
-  const t = totais(p), site = env("SITE_URL") || "https://policoatingg.com.br";
+  const t = totais(p), site = env("SITE_URL") || "https://policoatingtintas.com.br";
   const tel = String(c.telefone || "").replace(/\D/g, ""), zap = tel ? (tel.length <= 11 ? "55" + tel : tel) : "";
   const data = new Date(p.criado_em || Date.now()).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", dateStyle: "short", timeStyle: "short" });
   const linha = (rotulo: string, valor: unknown) => valor ? `<tr><td style="padding:3px 12px 3px 0; color:#5a6775; white-space:nowrap; vertical-align:top;">${rotulo}</td><td style="padding:3px 0; color:#1d2733;">${esc(valor)}</td></tr>` : "";

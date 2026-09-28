@@ -581,7 +581,7 @@
     },
 
     /** Domínio dos e-mails da empresa (config.js: dominioEquipe) */
-    dominioEquipe() { return String(CFG.dominioEquipe || "policoatingg.com.br").toLowerCase(); },
+    dominioEquipe() { return String(CFG.dominioEquipe || "policoatingtintas.com.br").toLowerCase(); },
 
     /** Troca o login de um membro da equipe para o e-mail da empresa (só administradores).
         Online: função equipe-email do Supabase, que também avisa a pessoa por e-mail. */

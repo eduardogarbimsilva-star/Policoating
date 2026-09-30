@@ -12,6 +12,7 @@
 //   1. Edge Functions -> Deploy a new function -> nome "equipe-email" -> cole este arquivo
 //   2. Desative "Verify JWT" desta função (ela confere o login por conta própria)
 //   3. Secrets: IMPROVMX_API_KEY (ImprovMX -> Chaves de API), RESEND_API_KEY e AVISO_EMAIL_DE
+//      Opcional: EXIGIR_2FA = nao (desliga a exigência da verificação em 2 etapas; o padrão é exigir)
 //      Opcional: DOMINIO_EQUIPE (padrão policoatingtintas.com.br)
 // =========================================================
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -59,6 +60,13 @@ async function criarApelido(apelido: string, destino: string) {
   return `O ImprovMX recusou o apelido (${r.status}${r.erro ? ": " + r.erro.slice(0, 160) : ""}).`;
 }
 const apagarApelido = (apelido: string) => improvmx("DELETE", `/${encodeURIComponent(apelido)}`);
+/** Nível de segurança da sessão ("aal1" = só e-mail, "aal2" = e-mail + código do celular). O token já foi validado pelo getUser. */
+function nivelDoToken(token: string): string {
+  try {
+    const parte = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+    return String(JSON.parse(atob(parte + "===".slice((parte.length + 3) % 4))).aal || "");
+  } catch { return ""; }
+}
 const dominio = () => (env("DOMINIO_EQUIPE") || "policoatingtintas.com.br").toLowerCase();
 const daEmpresa = (email: string) => email.endsWith("@" + dominio());
 
@@ -112,6 +120,8 @@ Deno.serve(async (req) => {
   const { data: quem } = await sb.auth.getUser(token);
   const meuEmail = String(quem?.user?.email || "").toLowerCase();
   if (!meuEmail) return falha("Entre na sua conta de novo.", 401);
+  // verificação em 2 etapas: o token precisa ser de uma sessão confirmada com o código do celular (aal2)
+  if (env("EXIGIR_2FA") !== "nao" && nivelDoToken(token) !== "aal2") return falha("Confirme o código de 2 etapas: saia e entre de novo no painel.", 401);
   const { data: eu } = await sb.from("admins").select("papel").ilike("email", exato(meuEmail)).maybeSingle();
   if (!eu || (eu.papel && eu.papel !== "admin")) return falha("Só administradores podem mexer na equipe.", 403);
 

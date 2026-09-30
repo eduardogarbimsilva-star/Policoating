@@ -2474,3 +2474,20 @@ video.video-produto { object-fit: contain; }
 }
 .nota-campos input { padding: 10px 12px; border: 1px solid var(--borda); border-radius: 6px; font: inherit; font-weight: 400; background: #fff; }
 .nota-campos input:focus { outline: 2px solid var(--azul); outline-offset: 1px; border-color: var(--azul); }
+
+/* ---------- Painel: verificação em 2 etapas ---------- */
+.aviso-2fa { max-width: 520px; margin: 0 auto; text-align: center; }
+.dfa-icone { display: grid; place-items: center; width: 56px; height: 56px; margin: 0 auto 10px; border-radius: 50%; background: #e8f0fe; color: var(--azul); }
+.dfa-icone .icone-svg { width: 30px; height: 30px; }
+.aviso-2fa h2 { margin: 0 0 8px; }
+.dfa-passos { text-align: left; margin: 12px auto; padding-left: 22px; display: grid; gap: 6px; font-size: .92rem; }
+.dfa-qr { display: grid; place-items: center; margin: 14px auto; }
+.dfa-qr img { width: 200px; height: 200px; padding: 10px; background: #fff; border: 1px solid var(--borda); border-radius: 10px; }
+.dfa-chave { margin: 0 auto 12px; font-size: .85rem; }
+.dfa-chave summary { cursor: pointer; color: var(--azul); }
+.dfa-chave code { display: inline-block; margin-top: 8px; padding: 6px 10px; border-radius: 6px; background: var(--fundo-alt); font-size: .95rem; letter-spacing: .06em; word-break: break-all; }
+.dfa-form { display: flex; gap: 10px; justify-content: center; margin-top: 14px; flex-wrap: wrap; }
+.dfa-form input { width: 170px; padding: 12px; border: 1px solid var(--borda); border-radius: 8px; font: inherit; font-size: 1.35rem; font-weight: 700; letter-spacing: .25em; text-align: center; }
+.dfa-form input:focus { outline: 2px solid var(--azul); outline-offset: 1px; }
+.aviso-2fa .form-erro:empty { display: none; }
+.dfa-rodape { margin: 16px 0 0; font-size: .8rem; color: var(--texto-suave); }

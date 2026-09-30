@@ -414,6 +414,30 @@ Rode a **PARTE N** no Supabase (SQL Editor, do `-- PARTE N` até o fim) uma vez.
 - O vídeo aparece na galeria do produto, junto com as fotos (miniatura com ▶), e o cartão do catálogo
   ganha o selo **Vídeo**. Links que não são do YouTube, do Vimeo ou de arquivo de vídeo são recusados.
 
+## Verificação em 2 etapas da equipe (PARTE O do `setup.sql`)
+
+O painel exige um **código do celular** além do e-mail. Cada pessoa usa o **Google Authenticator** ou o
+**Microsoft Authenticator** (grátis):
+
+1. **Primeira vez:** ao abrir o painel, aparece um QR Code. A pessoa lê o código com o aplicativo e digita
+   os 6 números.
+2. **Depois:** a cada vez que o navegador é aberto, o painel pede o código atual do aplicativo. Recarregar
+   a página na mesma aba não pede de novo.
+
+Para funcionar de verdade no servidor:
+
+- No Supabase, em **Authentication → Multi-Factor** (ou Sign In / Providers → MFA), o **TOTP** precisa estar
+  ativado. Ele já vem ativado por padrão.
+- Rode a **PARTE O** no SQL Editor. Sem o código, a conta da equipe passa a ser tratada como a de um
+  cliente comum também no banco (não vê pedidos, clientes nem notas e não mexe em nada).
+- A função **equipe-email** exige a sessão com código. Atualize o código dela. Para desligar só essa
+  exigência, crie o segredo `EXIGIR_2FA` = `nao`.
+- **Perdeu o celular:** rode
+  `delete from auth.mfa_factors where user_id = (select id from auth.users where lower(email) = 'email-da-pessoa');`
+  e a pessoa cadastra o aplicativo de novo no próximo acesso.
+- **Emergência** (desligar a exigência no banco):
+  `create or replace function public.dois_fatores_ok() returns boolean language sql stable as $$ select true $$;`
+
 ## E-mail da empresa para a equipe (joao@policoatingtintas.com.br)
 
 A equipe entra no site com e-mails da empresa, e o código de acesso chega na caixa pessoal de cada

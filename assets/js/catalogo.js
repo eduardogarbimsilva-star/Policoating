@@ -222,6 +222,37 @@
     },
     async ehAdmin() { return (await this.meuPapel()) === "admin"; },
 
+    /* ---------- Verificação em 2 etapas (app autenticador: Google Authenticator, Microsoft Authenticator...) ---------- */
+    /** Situação: { ativa: tem app cadastrado, nivel: "aal1" | "aal2", fator: id do app } */
+    async estado2fa() {
+      if (!ONLINE) return { ativa: true, nivel: "aal2", fator: "demo", demo: true };
+      const sb = await cliente();
+      const [{ data: f, error: e1 }, { data: n, error: e2 }] = await Promise.all([sb.auth.mfa.listFactors(), sb.auth.mfa.getAuthenticatorAssuranceLevel()]);
+      if (e1 || e2) throw erro(e1 || e2);
+      const ok = (f && f.totp || []).find((x) => x.status === "verified");
+      return { ativa: !!ok, nivel: n && n.currentLevel, fator: ok ? ok.id : null };
+    },
+    /** Começa o cadastro do app: devolve o QR Code (imagem) e a chave para digitar à mão */
+    async iniciar2fa() {
+      const sb = await cliente();
+      // limpa tentativas anteriores não concluídas (senão o Supabase recusa um novo cadastro)
+      const { data: f } = await sb.auth.mfa.listFactors();
+      for (const x of (f && f.all || []).filter((x) => x.status !== "verified")) await sb.auth.mfa.unenroll({ factorId: x.id }).catch(() => {});
+      const { data, error } = await sb.auth.mfa.enroll({ factorType: "totp", friendlyName: "Policoating " + new Date().toISOString().slice(0, 16) });
+      if (error) throw /disabled|not enabled/i.test(error.message || "") ? new Error("A verificação em 2 etapas está desligada no Supabase (Authentication → Multi-Factor → TOTP).") : erro(error);
+      return { fator: data.id, qr: data.totp.qr_code, chave: data.totp.secret };
+    },
+    /** Confere o código de 6 dígitos do app (serve para o cadastro e para cada entrada no painel) */
+    async verificar2fa(fator, codigo) {
+      codigo = String(codigo || "").replace(/\D/g, "");
+      if (codigo.length !== 6) throw new Error("Digite os 6 números que aparecem no aplicativo.");
+      if (!ONLINE) return true;
+      const sb = await cliente();
+      const { error } = await sb.auth.mfa.challengeAndVerify({ factorId: fator, code: codigo });
+      if (error) throw /invalid|expired|code/i.test(error.message || "") ? new Error("Código incorreto ou vencido. Confira o horário do celular e use o código atual do aplicativo.") : erro(error);
+      return true;
+    },
+
     /** Pode excluir pedidos? Administradores sempre; os demais só com a permissão dada por um administrador. */
     /** Pode exportar a planilha de clientes? Administradores sempre; vendedores só com a permissão. */
     async podeExportarClientes() {

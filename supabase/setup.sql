@@ -1305,3 +1305,63 @@ update storage.buckets
  where id = 'produtos';
 
 notify pgrst, 'reload schema';
+
+-- ===========================================================
+-- PARTE O — Verificação em 2 etapas obrigatória para a equipe (rode depois das outras; pode rodar de novo)
+--   • O painel pede, na primeira vez, o cadastro do app autenticador (Google/Microsoft Authenticator)
+--     e, a cada vez que o navegador é aberto, o código de 6 números.
+--   • Aqui a exigência vale também no banco: sem o código (sessão "aal2"), a conta da equipe
+--     é tratada como cliente comum — não vê pedidos de outros, clientes, notas nem mexe em nada.
+--   • Emergência (desligar a exigência por um tempo):
+--       create or replace function public.dois_fatores_ok() returns boolean language sql stable as $$ select true $$;
+--   • Pessoa perdeu o celular: apague o app cadastrado dela (ela cadastra de novo no próximo acesso):
+--       delete from auth.mfa_factors where user_id = (select id from auth.users where lower(email) = 'EMAIL-DA-PESSOA');
+-- ===========================================================
+
+create or replace function public.dois_fatores_ok()
+returns boolean language sql stable set search_path = public
+as $$ select coalesce(auth.jwt() ->> 'aal', 'aal1') = 'aal2' $$;
+revoke all on function public.dois_fatores_ok() from public;
+grant execute on function public.dois_fatores_ok() to anon, authenticated;
+
+create or replace function public.eh_admin()
+returns boolean language sql stable security definer set search_path = public
+as $$
+  select public.dois_fatores_ok() and exists (select 1 from public.admins where lower(email) = lower(auth.jwt() ->> 'email') and papel = 'admin');
+$$;
+
+create or replace function public.eh_equipe()
+returns boolean language sql stable security definer set search_path = public
+as $$
+  select public.dois_fatores_ok() and exists (select 1 from public.admins where lower(email) = lower(auth.jwt() ->> 'email'));
+$$;
+
+create or replace function public.pode_excluir_pedidos()
+returns boolean language sql stable security definer set search_path = public
+as $$
+  select public.dois_fatores_ok() and exists (select 1 from public.admins
+                 where lower(email) = lower(auth.jwt() ->> 'email') and (papel = 'admin' or pode_excluir));
+$$;
+
+do $$ begin
+  if exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'admins' and column_name = 'pode_exportar') then
+    execute $f$
+      create or replace function public.pode_exportar_clientes()
+      returns boolean language sql stable security definer set search_path = public
+      as $b$ select public.dois_fatores_ok() and exists (select 1 from public.admins
+                    where lower(email) = lower(auth.jwt() ->> 'email') and (papel = 'admin' or pode_exportar)) $b$;
+    $f$;
+  end if;
+  if exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'admins' and column_name = 'pode_estoque') then
+    execute $f$
+      create or replace function public.pode_mexer_estoque()
+      returns boolean language sql stable security definer set search_path = public
+      as $b$ select public.dois_fatores_ok() and exists (select 1 from public.admins
+                    where lower(email) = lower(auth.jwt() ->> 'email') and (papel = 'admin' or pode_estoque)) $b$;
+    $f$;
+  end if;
+end $$;
+
+grant execute on function public.eh_admin(), public.eh_equipe(), public.pode_excluir_pedidos() to anon, authenticated;
+
+notify pgrst, 'reload schema';

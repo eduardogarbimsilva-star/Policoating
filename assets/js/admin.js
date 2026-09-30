@@ -10,12 +10,57 @@
     const CW = window.ColorWeg, esc = CW.esc, A = window.Catalogo.Admin;
     const CATS = window.CATEGORIAS || {};
     const slug = (window.Fotos && window.Fotos.slug) || ((t) => String(t).toLowerCase().replace(/[^a-z0-9]+/g, "-"));
-    const mostrar = (id) => ["admin-carregando", "admin-entrar", "admin-negado", "admin-painel"].forEach((x) => ($("#" + x).hidden = x !== id));
+    const mostrar = (id) => ["admin-carregando", "admin-entrar", "admin-negado", "admin-2fa", "admin-painel"].forEach((x) => ($("#" + x).hidden = x !== id));
+
+    /**
+     * Verificação em 2 etapas: na primeira vez, cadastra o app autenticador (QR Code);
+     * depois, pede o código de 6 números a cada vez que o navegador é aberto (a marca fica só nesta aba/sessão).
+     */
+    async function exigir2fa() {
+      if (!A.online) return true;
+      const CHAVE = "policoating_2fa_sessao", eu = String(window.Conta.usuario.id || window.Conta.usuario.email);
+      let marca = ""; try { marca = sessionStorage.getItem(CHAVE) || ""; } catch (e) { /* sem sessionStorage: pede o código */ }
+      let est;
+      try { est = await A.estado2fa(); }
+      catch (e) { mostrar("admin-2fa"); $("#dfa-form").hidden = true; $("#dfa-erro").textContent = e.message; return false; }
+      if (est.ativa && est.nivel === "aal2" && marca === eu) return true;
+      mostrar("admin-2fa");
+      let fator = est.fator;
+      $("#dfa-cadastro").hidden = est.ativa; $("#dfa-entrar").hidden = !est.ativa;
+      if (!est.ativa) {
+        try {
+          const r = await A.iniciar2fa(); fator = r.fator;
+          const svg = String(r.qr || ""), img = new Image();
+          img.alt = "Código QR para o aplicativo autenticador"; img.width = img.height = 200;
+          img.src = svg.startsWith("data:image/svg+xml;utf-8,") ? "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg.slice(25)) : svg;
+          $("#dfa-qr").replaceChildren(img);
+          $("#dfa-chave").textContent = String(r.chave || "").replace(/(.{4})/g, "$1 ").trim();
+        } catch (e) { $("#dfa-form").hidden = true; $("#dfa-erro").textContent = e.message; return false; }
+      }
+      const campo = $("#dfa-codigo"), botao = $("#dfa-ok");
+      campo.focus();
+      return new Promise((pronto) => {
+        let enviando = false;
+        const enviar = async () => {
+          if (enviando) return; enviando = true; botao.disabled = true; $("#dfa-erro").textContent = "";
+          try {
+            await A.verificar2fa(fator, campo.value);
+            try { sessionStorage.setItem(CHAVE, eu); } catch (e) { /* segue sem lembrar */ }
+            if (!est.ativa) CW.mostrarToast("Verificação em 2 etapas ativada.");
+            pronto(true);
+          } catch (e) { $("#dfa-erro").textContent = e.message; campo.select(); }
+          enviando = false; botao.disabled = false;
+        };
+        $("#dfa-form").addEventListener("submit", (e) => { e.preventDefault(); enviar(); });
+        campo.addEventListener("input", () => { if (campo.value.replace(/\D/g, "").length === 6) enviar(); });
+      });
+    }
 
     await window.ContaPronta;
     if (!window.Conta.usuario) return mostrar("admin-entrar");
     const papel = await A.meuPapel();
     if (!papel) { $("#admin-email").textContent = window.Conta.usuario.email; return mostrar("admin-negado"); }
+    if (!(await exigir2fa())) return;
     mostrar("admin-painel");
     $("#admin-demo").hidden = A.online;
     const ehAdmin = papel === "admin";

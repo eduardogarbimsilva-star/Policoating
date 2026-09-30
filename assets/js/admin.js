@@ -69,7 +69,7 @@
       document.title = "Área do vendedor | Policoating";
       $(".cabecalho-pagina h1").textContent = "Área do vendedor";
       $(".cabecalho-pagina p").textContent = "Pedidos feitos pelo site, promoções, carteira de clientes e notas de entrada.";
-      $$(".admin-abas [data-aba]").forEach((b) => { if (!["produtos", "pedidos", "clientes", "notas"].includes(b.dataset.aba)) b.remove(); });
+      $$(".admin-abas [data-aba]").forEach((b) => { if (!["produtos", "pedidos", "clientes", "notas", "relatorios"].includes(b.dataset.aba)) b.remove(); });
       document.body.classList.add("so-vendedor");
     }
     const [podeExcluir, podeExportar] = await Promise.all([A.podeExcluirPedidos(), A.podeExportarClientes()]);
@@ -436,6 +436,7 @@
       if (nome === "galeria") carregarGaleria();
       if (nome === "equipe") carregarEquipe();
       if (nome === "notas") carregarNotas();
+      if (nome === "relatorios") prepararRelatorios();
     };
     abas.forEach((b) => b.addEventListener("click", () => abrirAba(b.dataset.aba)));
 
@@ -964,6 +965,194 @@
         catch (err) { $("#notas-erro").textContent = err.message; }
       }
     });
+
+    /* ---------- Relatórios: vendas da semana, relatório do mês e cópia de segurança ---------- */
+    const CANCELADOS = ["cancelado", "cancelada", "reembolsado"];
+    const SITUACAO = { recebido: "Recebido", confirmado: "Confirmado", confirmada: "Confirmado", enviado: "Enviado", entregue: "Entregue", cancelado: "Cancelado", cancelada: "Cancelado", reembolsado: "Reembolsado" };
+    const diaISO = (d) => d.toLocaleDateString("sv-SE");   // AAAA-MM-DD no horário local
+    const dBR = (iso) => (iso ? new Date(iso.length === 10 ? iso + "T12:00:00" : iso).toLocaleDateString("pt-BR") : "");
+    const hBR = (iso) => (iso ? new Date(iso).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }) : "");
+    const r2 = (n) => Math.round((+n || 0) * 100) / 100;
+    const docRel = (c) => (c.tipo === "pj" ? c.cnpj : c.cpf) || "";
+    const vendido = (p) => !CANCELADOS.includes(String(p.status || "").toLowerCase());
+    function semana(desloc) {
+      const hoje = new Date(), seg = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() - ((hoje.getDay() + 6) % 7) + 7 * desloc);
+      const dom = new Date(seg.getFullYear(), seg.getMonth(), seg.getDate() + 6);
+      $("#rel-sem-de").value = diaISO(seg); $("#rel-sem-ate").value = diaISO(dom);
+    }
+    let relPronto = false;
+    function prepararRelatorios() {
+      if (relPronto) return; relPronto = true;
+      semana(0);
+      const h = new Date(); $("#rel-mes").value = `${h.getFullYear()}-${String(h.getMonth() + 1).padStart(2, "0")}`;
+      if (!ehAdmin) $("#rel-backup").remove();
+      previaSemana(); previaMes();
+    }
+    $$("[data-semana]").forEach((b) => b.addEventListener("click", () => { semana(+b.dataset.semana); previaSemana(); }));
+    ["#rel-sem-de", "#rel-sem-ate"].forEach((id) => $(id).addEventListener("change", previaSemana));
+    $("#rel-mes").addEventListener("change", previaMes);
+
+    function periodoSemana() {
+      const de = $("#rel-sem-de").value, ate = $("#rel-sem-ate").value;
+      if (!de || !ate) throw new Error("Escolha as datas da semana.");
+      if (ate < de) throw new Error("A data final é antes da inicial.");
+      if ((new Date(ate) - new Date(de)) / 864e5 > 92) throw new Error("Escolha um período de no máximo 3 meses.");
+      return { de, ate };
+    }
+    function periodoMes() {
+      const m = $("#rel-mes").value; if (!/^\d{4}-\d{2}$/.test(m)) throw new Error("Escolha o mês.");
+      const [a, mm] = m.split("-").map(Number), fim = new Date(a, mm, 0).getDate();
+      return { de: `${m}-01`, ate: `${m}-${String(fim).padStart(2, "0")}`, nome: new Date(a, mm - 1, 15).toLocaleDateString("pt-BR", { month: "long", year: "numeric" }) };
+    }
+    function resumo(pedidos) {
+      const ok = pedidos.filter(vendido), clientesU = new Set(ok.map((p) => p.cliente_id || (p.cliente || {}).email));
+      const total = r2(ok.reduce((s, p) => s + valorPedido(p), 0)), kg = r2(ok.reduce((s, p) => s + kgPedido(p), 0));
+      return { pedidos: ok.length, cancelados: pedidos.length - ok.length, total, kg, clientes: clientesU.size, ticket: ok.length ? r2(total / ok.length) : 0 };
+    }
+    function maisVendidos(pedidos) {
+      const m = new Map();
+      pedidos.filter(vendido).forEach((p) => (p.itens || []).forEach((i) => {
+        const k = i.codigo || i.id || i.nome, x = m.get(k) || { codigo: i.codigo || "", nome: i.nome || "", kg: 0, valor: 0, pedidos: new Set(), clientes: new Set(), combinar: 0 };
+        x.kg += kgItem(i); if (i.preco_kg != null) x.valor += (+i.preco_kg) * kgItem(i); else x.combinar++;
+        x.pedidos.add(p.numero); x.clientes.add(p.cliente_id || (p.cliente || {}).email); m.set(k, x);
+      }));
+      return [...m.values()].map((x) => ({ codigo: x.codigo, nome: x.nome, kg: r2(x.kg), valor: r2(x.valor), pedidos: x.pedidos.size, clientes: x.clientes.size, combinar: x.combinar }))
+        .sort((a, b) => b.kg - a.kg || b.valor - a.valor);
+    }
+    const linhaPedido = (p) => { const c = p.cliente || {}; return [p.numero, hBR(p.criado_em), SITUACAO[p.status] || p.status || "", nomeCliente(c), docRel(c), c.email || "", c.telefone || "", [c.cidade, c.uf].filter(Boolean).join("/"), r2(kgPedido(p)), vendido(p) ? r2(valorPedido(p)) : 0, (p.itens || []).some((i) => i.preco_kg == null) ? "sim" : "", p.observacoes || ""]; };
+    const CAB_PEDIDOS = ["Pedido", "Data", "Situação", "Cliente", "CPF/CNPJ", "E-mail", "Telefone", "Cidade/UF", "Kg", "Valor (R$)", "Tem item a combinar", "Observações"];
+    const linhasItens = (pedidos) => pedidos.flatMap((p) => (p.itens || []).map((i) => [p.numero, dBR(p.criado_em), SITUACAO[p.status] || p.status || "", nomeCliente(p.cliente || {}), i.codigo || "", i.nome || "", i.embalagem || "", +i.qtd || 0, r2(kgItem(i)), i.preco_kg != null ? r2(i.preco_kg) : "a combinar", i.preco_kg != null ? r2((+i.preco_kg) * kgItem(i)) : ""]));
+    const CAB_ITENS = ["Pedido", "Data", "Situação", "Cliente", "Código", "Produto", "Embalagem", "Qtd", "Kg", "R$/kg", "Valor (R$)"];
+    const notasDoPeriodo = (lista, de, ate) => lista.filter((n) => { const d = n.data_nf || diaISO(new Date(n.criado_em)); return d >= de && d <= ate; })
+      .sort((a, b) => String(a.data_nf || a.criado_em).localeCompare(String(b.data_nf || b.criado_em)));
+
+    async function previaSemana() {
+      const el = $("#rel-sem-previa"); let per; try { per = periodoSemana(); } catch (e) { el.textContent = e.message; return; }
+      el.textContent = "Calculando...";
+      try { const r = resumo(await A.pedidosPeriodo(per.de, per.ate)); el.innerHTML = `${dBR(per.de)} a ${dBR(per.ate)}: <b>${r.pedidos}</b> ${r.pedidos === 1 ? "pedido" : "pedidos"} · <b>${r.kg.toLocaleString("pt-BR")}</b> kg · <b>${fmtR(r.total)}</b>${r.cancelados ? ` · ${r.cancelados} cancelado(s)` : ""}`; }
+      catch (e) { el.textContent = e.message; }
+    }
+    async function previaMes() {
+      const el = $("#rel-mes-previa"); let per; try { per = periodoMes(); } catch (e) { el.textContent = e.message; return; }
+      el.textContent = "Calculando...";
+      try {
+        const [ped, nts] = await Promise.all([A.pedidosPeriodo(per.de, per.ate), A.listarNotas().catch(() => [])]);
+        const r = resumo(ped), top = maisVendidos(ped)[0], nn = notasDoPeriodo(nts, per.de, per.ate).length;
+        el.innerHTML = `${per.nome}: <b>${r.pedidos}</b> pedidos · <b>${fmtR(r.total)}</b> · <b>${nn}</b> ${nn === 1 ? "nota" : "notas"} de entrada${top ? `<br>Mais vendido: <b>${esc(top.nome)}</b> (${top.kg.toLocaleString("pt-BR")} kg)` : ""}`;
+      } catch (e) { el.textContent = e.message; }
+    }
+
+    // Planilha do Excel (.xlsx) com várias abas; se a biblioteca não carregar, baixa CSV da primeira aba de dados
+    let xlsxPromessa = null;
+    const carregarXlsx = () => (xlsxPromessa = xlsxPromessa || new Promise((ok, falha) => {
+      if (window.XLSX) return ok(window.XLSX);
+      const sc = document.createElement("script"); sc.src = "https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js";
+      sc.onload = () => (window.XLSX ? ok(window.XLSX) : falha(new Error("x"))); sc.onerror = () => { xlsxPromessa = null; falha(new Error("x")); };
+      document.head.appendChild(sc);
+    }));
+    function baixarArquivo(blob, nome) {
+      const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = nome;
+      document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    }
+    async function baixarPlanilha(nome, abas) {
+      try {
+        const X = await carregarXlsx(), wb = X.utils.book_new();
+        abas.forEach(([titulo, linhas]) => {
+          const ws = X.utils.aoa_to_sheet(linhas);
+          ws["!cols"] = (linhas[0] || []).map((_, j) => ({ wch: Math.min(48, Math.max(8, ...linhas.map((l) => String(l[j] == null ? "" : l[j]).length + 2))) }));
+          X.utils.book_append_sheet(wb, ws, titulo.slice(0, 31));
+        });
+        X.writeFile(wb, nome + ".xlsx");
+      } catch (e) {
+        const cel = (v) => (typeof v === "number" ? String(v).replace(".", ",") : `"${String(v == null ? "" : v).replace(/"/g, '""')}"`);
+        const csv = "\ufeff" + abas.map(([t, l]) => [[t]].concat(l).map((x) => x.map(cel).join(";")).join("\r\n")).join("\r\n\r\n");
+        baixarArquivo(new Blob([csv], { type: "text/csv;charset=utf-8" }), nome + ".csv");
+      }
+    }
+    // Versão para imprimir / salvar em PDF (abre numa janela nova)
+    function abrirImpressao(janela, titulo, subtitulo, blocos) {
+      const tabela = (cab, linhas, direita) => `<table><thead><tr>${cab.map((c, j) => `<th${direita.includes(j) ? ' class="n"' : ""}>${esc(c)}</th>`).join("")}</tr></thead><tbody>${linhas.length ? linhas.map((l) => `<tr>${l.map((v, j) => `<td${direita.includes(j) ? ' class="n"' : ""}>${esc(typeof v === "number" ? v.toLocaleString("pt-BR", { maximumFractionDigits: 2 }) : v)}</td>`).join("")}</tr>`).join("") : `<tr><td colspan="${cab.length}" class="vazio">Nada no período.</td></tr>`}</tbody></table>`;
+      janela.document.open();
+      janela.document.write(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>${esc(titulo)}</title><style>
+        body{font:13px/1.45 system-ui,Segoe UI,Arial,sans-serif;color:#111418;margin:28px}h1{font-size:20px;margin:0}h2{font-size:15px;margin:24px 0 8px;color:#1558d6}
+        .sub{color:#5a6775;margin:2px 0 16px}.cards{display:flex;flex-wrap:wrap;gap:10px}.card{border:1px solid #d6dde6;border-radius:8px;padding:8px 12px;min-width:120px}
+        .card b{display:block;font-size:17px}.card span{color:#5a6775;font-size:11px;text-transform:uppercase;letter-spacing:.04em}
+        table{width:100%;border-collapse:collapse;font-size:11.5px}th,td{border-bottom:1px solid #e3e8ef;padding:5px 6px;text-align:left;vertical-align:top}th{background:#f2f5f9}
+        .n{text-align:right;white-space:nowrap}.vazio{color:#5a6775;text-align:center}.rodape{margin-top:24px;color:#5a6775;font-size:11px}
+        @media print{body{margin:10mm}.naoimprime{display:none}h2{break-after:avoid}tr{break-inside:avoid}}
+        </style></head><body><p class="naoimprime"><button onclick="print()">Imprimir / salvar em PDF</button></p><h1>${esc(titulo)}</h1><p class="sub">${esc(subtitulo)}</p>
+        ${blocos.map((b) => b.cartoes ? `<div class="cards">${b.cartoes.map(([r, v]) => `<div class="card"><span>${esc(r)}</span><b>${esc(v)}</b></div>`).join("")}</div>` : `<h2>${esc(b.titulo)}</h2>${tabela(b.cab, b.linhas, b.direita || [])}`).join("")}
+        <p class="rodape">Policoating · gerado em ${esc(new Date().toLocaleString("pt-BR"))}</p></body></html>`);
+      janela.document.close();
+      setTimeout(() => { try { janela.focus(); janela.print(); } catch (e) { /* o usuário imprime pelo botão */ } }, 400);
+    }
+    const cartoesResumo = (r) => [["Pedidos", String(r.pedidos)], ["Vendido", fmtR(r.total)], ["Quilos", r.kg.toLocaleString("pt-BR") + " kg"], ["Clientes", String(r.clientes)], ["Ticket médio", fmtR(r.ticket)], ["Cancelados", String(r.cancelados)]];
+    async function gerar(botao, fn) {
+      $("#rel-erro").textContent = ""; const txt = botao.innerHTML; botao.disabled = true; botao.textContent = "Gerando...";
+      try { await fn(); } catch (e) { $("#rel-erro").textContent = e.message; }
+      botao.disabled = false; botao.innerHTML = txt;
+    }
+    async function dadosSemana() {
+      const per = periodoSemana(), ped = await A.pedidosPeriodo(per.de, per.ate);
+      return { per, ped, r: resumo(ped), top: maisVendidos(ped) };
+    }
+    async function dadosMes() {
+      const per = periodoMes(), [ped, nts] = await Promise.all([A.pedidosPeriodo(per.de, per.ate), A.listarNotas().catch(() => [])]);
+      return { per, ped, r: resumo(ped), top: maisVendidos(ped), notas: notasDoPeriodo(nts, per.de, per.ate) };
+    }
+    const linhasTop = (top) => top.map((x, i) => [i + 1, x.codigo, x.nome, x.kg, x.valor, x.pedidos, x.clientes]);
+    const CAB_TOP = ["#", "Código", "Produto", "Kg", "Valor (R$)", "Pedidos", "Clientes"];
+    const linhasNotas = (ns) => ns.map((n) => [dBR(n.data_nf) || dBR(n.criado_em), n.nf, n.lote, n.fornecedor, n.fornecedor_codigo || "", (n.arquivos || []).map((a) => a.nome).join(", "), n.criado_por || "", n.obs || ""]);
+    const CAB_NOTAS = ["Data da NF", "NF", "Lote (cor/código)", "Fornecedor", "Cód. fornecedor", "Arquivos", "Guardada por", "Observação"];
+
+    $("#rel-sem-xlsx").addEventListener("click", (e) => gerar(e.currentTarget, async () => {
+      const { per, ped, r, top } = await dadosSemana();
+      await baixarPlanilha(`vendas-policoating-${per.de}-a-${per.ate}`, [
+        ["Resumo", [["Período", `${dBR(per.de)} a ${dBR(per.ate)}`], ...cartoesResumo(r).map(([a, b]) => [a, b])]],
+        ["Pedidos", [CAB_PEDIDOS, ...ped.map(linhaPedido)]],
+        ["Itens", [CAB_ITENS, ...linhasItens(ped)]],
+        ["Mais vendidos", [CAB_TOP, ...linhasTop(top)]],
+      ]);
+    }));
+    $("#rel-sem-pdf").addEventListener("click", (e) => { const j = window.open("", "_blank"); if (j) j.document.write("Gerando relatório..."); gerar(e.currentTarget, async () => {
+      if (!j) throw new Error("O navegador bloqueou a janela. Permita pop-ups para este site.");
+      const { per, ped, r, top } = await dadosSemana();
+      abrirImpressao(j, "Vendas da semana", `${dBR(per.de)} a ${dBR(per.ate)}`, [
+        { cartoes: cartoesResumo(r) },
+        { titulo: "Pedidos", cab: ["Pedido", "Data", "Situação", "Cliente", "Cidade/UF", "Kg", "Valor (R$)"], linhas: ped.map((p) => { const l = linhaPedido(p); return [l[0], l[1], l[2], l[3], l[7], l[8], l[9]]; }), direita: [5, 6] },
+        { titulo: "Mais vendidos", cab: CAB_TOP, linhas: linhasTop(top), direita: [0, 3, 4, 5, 6] },
+      ]);
+    }); });
+    $("#rel-mes-xlsx").addEventListener("click", (e) => gerar(e.currentTarget, async () => {
+      const { per, ped, r, top, notas: ns } = await dadosMes();
+      await baixarPlanilha(`relatorio-policoating-${per.de.slice(0, 7)}`, [
+        ["Resumo", [["Mês", per.nome], ...cartoesResumo(r).map(([a, b]) => [a, b]), ["Notas de entrada", String(ns.length)]]],
+        ["Mais vendidos", [CAB_TOP, ...linhasTop(top)]],
+        ["Notas de entrada", [CAB_NOTAS, ...linhasNotas(ns)]],
+        ["Pedidos", [CAB_PEDIDOS, ...ped.map(linhaPedido)]],
+        ["Itens", [CAB_ITENS, ...linhasItens(ped)]],
+      ]);
+    }));
+    $("#rel-mes-pdf").addEventListener("click", (e) => { const j = window.open("", "_blank"); if (j) j.document.write("Gerando relatório..."); gerar(e.currentTarget, async () => {
+      if (!j) throw new Error("O navegador bloqueou a janela. Permita pop-ups para este site.");
+      const { per, r, top, notas: ns } = await dadosMes();
+      abrirImpressao(j, "Relatório do mês", per.nome.charAt(0).toUpperCase() + per.nome.slice(1), [
+        { cartoes: cartoesResumo(r).concat([["Notas de entrada", String(ns.length)]]) },
+        { titulo: "Produtos mais vendidos", cab: CAB_TOP, linhas: linhasTop(top), direita: [0, 3, 4, 5, 6] },
+        { titulo: "Notas de entrada do mês", cab: ["Data da NF", "NF", "Lote (cor/código)", "Fornecedor", "Cód.", "Arquivos"], linhas: linhasNotas(ns).map((l) => l.slice(0, 6)) },
+      ]);
+    }); });
+    $("#rel-backup-baixar").addEventListener("click", (e) => gerar(e.currentTarget, async () => {
+      const copia = await A.backupCompleto();
+      const n = Object.values(copia.tabelas).reduce((s, t) => s + (Array.isArray(t) ? t.length : 0), 0);
+      baixarArquivo(new Blob([JSON.stringify(copia, null, 1)], { type: "application/json" }), `backup-policoating-${diaISO(new Date())}.json`);
+      $("#rel-backup-info").textContent = `Cópia baixada: ${n.toLocaleString("pt-BR")} registros. Guarde o arquivo em local seguro.`;
+      try { localStorage.setItem("policoating_ultimo_backup", new Date().toISOString()); } catch (err) { /* sem problema */ }
+    }));
+    try {
+      const ult = localStorage.getItem("policoating_ultimo_backup");
+      $("#rel-backup-info").textContent = ult ? `Última cópia neste computador: ${dBR(ult)}${(Date.now() - new Date(ult)) / 864e5 > 7 ? " — já passou uma semana, faça outra." : "."}` : "Nenhuma cópia baixada neste computador ainda.";
+    } catch (e) { /* sem localStorage */ }
 
     // vendedor abre direto nos pedidos
     if (location.hash === "#pedidos" || !ehAdmin) abrirAba("pedidos");

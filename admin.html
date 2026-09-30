@@ -23,7 +23,7 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Barlow:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/style.css?v=4448f50c">
+  <link rel="stylesheet" href="assets/css/style.css?v=502c3546">
 </head>
 <body>
   <a class="pular" href="#conteudo">Pular para o conteúdo</a>
@@ -147,6 +147,7 @@
             <button type="button" role="tab" data-aba="pedidos"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h2l2.4 11h11L21 8H6.2"/><circle cx="9.5" cy="19.5" r="1.5"/><circle cx="17.5" cy="19.5" r="1.5"/></svg> Pedidos</button>
             <button type="button" role="tab" data-aba="clientes"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg> Clientes</button>
             <button type="button" role="tab" data-aba="notas"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg> Notas de entrada</button>
+            <button type="button" role="tab" data-aba="relatorios"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16"/><path d="M7 16v-5M12 16V6M17 16v-8"/></svg> Relatórios</button>
             <button type="button" role="tab" data-aba="contato"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/></svg> Contato e links</button>
             <button type="button" role="tab" data-aba="galeria"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18c1.1 0 2-.9 2-2 0-.5-.2-1-.5-1.3-.3-.4-.5-.8-.5-1.2 0-1.1.9-2 2-2h2.4A4.6 4.6 0 0 0 22 10c0-3.9-4.5-7-10-7"/><circle cx="7.5" cy="11.5" r="1"/><circle cx="10.5" cy="7.5" r="1"/><circle cx="15.5" cy="7.5" r="1"/></svg> Galeria</button>
             <button type="button" role="tab" data-aba="equipe"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg> Equipe</button>
@@ -337,6 +338,42 @@
             </div>
             <p class="form-erro" id="notas-erro" role="alert"></p>
             <div class="notas-lista" id="notas-lista"></div>
+          </div>
+
+          <div class="admin-aba" data-conteudo="relatorios" hidden>
+            <div class="rel-grade">
+              <section class="rel-cartao">
+                <h3><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h2l2.4 11h11L21 8H6.2"/><circle cx="9.5" cy="19.5" r="1.5"/><circle cx="17.5" cy="19.5" r="1.5"/></svg> Vendas da semana</h3>
+                <p>Todos os pedidos da semana, com cliente, itens, kg, valor e situação. Os cancelados aparecem, mas não entram nos totais.</p>
+                <div class="rel-campos">
+                  <label>De<input type="date" id="rel-sem-de"></label>
+                  <label>Até<input type="date" id="rel-sem-ate"></label>
+                </div>
+                <div class="rel-atalhos"><button type="button" class="btn-mini" data-semana="0">Esta semana</button><button type="button" class="btn-mini" data-semana="-1">Semana passada</button></div>
+                <p class="rel-previa" id="rel-sem-previa" aria-live="polite"></p>
+                <div class="rel-acoes">
+                  <button type="button" class="btn btn-primario" id="rel-sem-xlsx"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg> Baixar planilha</button>
+                  <button type="button" class="btn btn-contorno-azul" id="rel-sem-pdf"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h6"/></svg> Imprimir / PDF</button>
+                </div>
+              </section>
+              <section class="rel-cartao">
+                <h3><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16"/><path d="M7 16v-5M12 16V6M17 16v-8"/></svg> Relatório do mês</h3>
+                <p>Resumo de vendas, <strong>produtos mais vendidos</strong> (kg e valor) e as <strong>notas de entrada</strong> guardadas no mês.</p>
+                <div class="rel-campos"><label>Mês<input type="month" id="rel-mes"></label></div>
+                <p class="rel-previa" id="rel-mes-previa" aria-live="polite"></p>
+                <div class="rel-acoes">
+                  <button type="button" class="btn btn-primario" id="rel-mes-xlsx"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg> Baixar planilha</button>
+                  <button type="button" class="btn btn-contorno-azul" id="rel-mes-pdf"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h6"/></svg> Imprimir / PDF</button>
+                </div>
+              </section>
+              <section class="rel-cartao so-admin" id="rel-backup">
+                <h3><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg> Cópia de segurança</h3>
+                <p>Baixa <strong>todos os dados do site</strong> (produtos, pedidos, clientes, notas, equipe e configurações) num arquivo. Faça <strong>uma vez por semana</strong> e guarde no Google Drive ou num pen drive. O arquivo tem dados pessoais: não compartilhe.</p>
+                <p class="rel-previa" id="rel-backup-info"></p>
+                <div class="rel-acoes"><button type="button" class="btn btn-primario" id="rel-backup-baixar"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg> Baixar cópia de segurança</button></div>
+              </section>
+            </div>
+            <p class="form-erro" id="rel-erro" role="alert"></p>
           </div>
 
           <div class="admin-aba" data-conteudo="equipe" hidden>
@@ -533,19 +570,19 @@
     </div>
   </footer>
 
-  <script src="assets/js/config.js?v=804df409"></script>
+  <script src="assets/js/config.js?v=1a02af0a"></script>
   <script src="assets/js/produtos.js?v=efe7e02f"></script>
-  <script src="assets/js/catalogo.js?v=4b6e37af"></script>
+  <script src="assets/js/catalogo.js?v=b43fbe8d"></script>
   <script src="assets/js/icones.js?v=1858ced1"></script>
   <script src="assets/js/midia.js?v=781286f8"></script>
   <script src="assets/js/fotos-reais.js?v=cd443528"></script>
   <script src="assets/js/fotos.js?v=48f81340"></script>
-  <script src="assets/js/auth.js?v=6e6ad94b"></script>
+  <script src="assets/js/auth.js?v=db6d8f07"></script>
   <script src="assets/js/loja.js?v=67be2651"></script>
   <script src="assets/js/main.js?v=f3e009be"></script>
   <script src="assets/js/animacoes.js?v=d458c529"></script>
   <script src="assets/js/secoes.js?v=b03394b5"></script>
   <script src="assets/js/assistente.js?v=22edb703"></script>
-  <script src="assets/js/admin.js?v=99ba4962"></script>
+  <script src="assets/js/admin.js?v=5d7099a8"></script>
 </body>
 </html>

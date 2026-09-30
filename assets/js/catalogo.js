@@ -697,6 +697,51 @@
       return pedidos.map((p) => Object.assign({}, p, { cliente: porId[p.cliente_id] || {} }));
     },
 
+    /** Pedidos de um período (de/até em "AAAA-MM-DD", horário de Brasília), com os dados do cliente — para os relatórios */
+    async pedidosPeriodo(de, ate) {
+      const ini = new Date(de + "T00:00:00-03:00").toISOString(), fim = new Date(ate + "T23:59:59.999-03:00").toISOString();
+      if (!ONLINE) return (await this.listarPedidos()).filter((p) => p.criado_em >= ini && p.criado_em <= fim);
+      const sb = await cliente(), pedidos = [];
+      for (let de0 = 0; de0 < 20000; de0 += 1000) {
+        const { data, error } = await sb.from("pedidos").select("*").gte("criado_em", ini).lte("criado_em", fim).order("criado_em", { ascending: true }).range(de0, de0 + 999);
+        if (error) throw erro(error);
+        pedidos.push(...(data || []));
+        if (!data || data.length < 1000) break;
+      }
+      const ids = [...new Set(pedidos.map((p) => p.cliente_id).filter(Boolean))], clientes = [];
+      for (let i = 0; i < ids.length; i += 200) {
+        const { data } = await sb.from("clientes").select("*").in("id", ids.slice(i, i + 200));
+        clientes.push(...(data || []));
+      }
+      const porId = Object.fromEntries(clientes.map((c) => [c.id, c]));
+      return pedidos.map((p) => Object.assign({}, p, { cliente: porId[p.cliente_id] || {} }));
+    },
+
+    /** Cópia de segurança: todas as tabelas que o administrador pode ler, num objeto só (vira um arquivo .json) */
+    async backupCompleto() {
+      const copia = { gerado_em: new Date().toISOString(), site: location.hostname, tabelas: {} };
+      if (!ONLINE) {
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (/^policoating_demo_/.test(k)) copia.tabelas[k] = ler(k);
+        }
+        return copia;
+      }
+      const sb = await cliente();
+      const tabelas = ["produtos", "pedidos", "clientes", "configuracoes", "admins", "notas_entrada", "bloqueios", "newsletter",
+        "pedido_mensagens", "pedido_solicitacoes", "vendas", "estoque_movimentos", "estoque_minimos"];
+      for (const t of tabelas) {
+        const linhas = [];
+        for (let de0 = 0; de0 < 100000; de0 += 1000) {
+          const { data, error } = await sb.from(t).select("*").range(de0, de0 + 999);
+          if (error) { copia.tabelas[t] = { erro: /does not exist|schema cache/i.test(error.message || "") ? "tabela não existe" : error.message }; break; }
+          linhas.push(...(data || []));
+          if (!data || data.length < 1000) { copia.tabelas[t] = linhas; break; }
+        }
+      }
+      return copia;
+    },
+
     /** Quantos pedidos chegaram depois de uma data (alerta de pedido novo no painel) */
     async contarPedidosDesde(desde) {
       if (!ONLINE) {

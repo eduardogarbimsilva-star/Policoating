@@ -438,6 +438,27 @@ Para funcionar de verdade no servidor:
 - **Emergência** (desligar a exigência no banco):
   `create or replace function public.dois_fatores_ok() returns boolean language sql stable as $$ select true $$;`
 
+## Relatórios e cópia de segurança (Painel → Relatórios)
+
+- **Vendas da semana:** escolha as datas (ou os atalhos "Esta semana" e "Semana passada") e baixe a
+  **planilha do Excel** com as abas Resumo, Pedidos, Itens e Mais vendidos, ou abra a versão para
+  **imprimir ou salvar em PDF**. Os pedidos cancelados aparecem, mas não entram nos totais.
+- **Relatório do mês:** resumo de vendas, **produtos mais vendidos** (kg, valor, pedidos e clientes) e as
+  **notas de entrada** do mês, em planilha ou PDF.
+- **Cópia de segurança** (só administradores): baixa todos os dados do site num arquivo `.json`. O
+  plano grátis do Supabase não guarda cópias, então faça **uma vez por semana** e guarde o arquivo em
+  local seguro (tem dados pessoais). O painel lembra a data da última cópia.
+
+## Captcha anti-robô no login (opcional)
+
+1. Em **dash.cloudflare.com** (conta grátis), abra **Turnstile → Add widget**. Coloque o domínio
+   `policoatingtintas.com.br` e escolha o modo **Managed**. O Cloudflare mostra a **Site Key** e a
+   **Secret Key**.
+2. No Supabase, em **Authentication → Attack Protection → Enable Captcha protection**, escolha
+   **Turnstile** e cole a **Secret Key**.
+3. Em `assets/js/config.js`, preencha `captcha: "SITE_KEY"`. A Site Key é pública. Faça os passos 2 e 3
+   juntos: com um ligado e o outro não, o login não funciona.
+
 ## E-mail da empresa para a equipe (joao@policoatingtintas.com.br)
 
 A equipe entra no site com e-mails da empresa, e o código de acesso chega na caixa pessoal de cada

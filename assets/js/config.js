@@ -25,6 +25,9 @@ window.SITE_CONFIG = {
     // Nunca coloque aqui a chave secreta (sb_secret_... / service_role).
     anonKey: "sb_publishable_K5qH5wJJ4mLbQAInGiUqZw_i2AFC1y9"
   },
+  // Captcha anti-robô no login (Cloudflare Turnstile). Cole aqui a "Site Key" (é pública) e ative o captcha
+  // no Supabase (Authentication → Attack Protection) com a "Secret Key". Vazio = sem captcha.
+  captcha: "",
   // Quantos dígitos tem o código que chega no e-mail (Supabase: Authentication → Email → "Email OTP Length").
   tamanhoCodigo: 8,
 

@@ -46,6 +46,44 @@
     return clientePromise;
   }
 
+  /* ---------- Captcha (Cloudflare Turnstile) contra robôs ----------
+     Ligado quando config.js tem "captcha" (chave do site, pública) E o Supabase tem o captcha ativado
+     (Authentication → Attack Protection). Na maioria das vezes é invisível: só aparece se o Cloudflare desconfiar. */
+  const CHAVE_CAPTCHA = String(CFG.captcha || "").trim();
+  let turnstilePromise = null;
+  function carregarTurnstile() {
+    if (!turnstilePromise) turnstilePromise = new Promise((ok, falha) => {
+      if (window.turnstile) return ok(window.turnstile);
+      const s = document.createElement("script");
+      s.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+      s.async = true;
+      s.onload = () => (window.turnstile ? ok(window.turnstile) : falha(new Error("captcha")));
+      s.onerror = () => { turnstilePromise = null; falha(new Error("Não foi possível carregar a verificação anti-robô. Confira a internet e tente de novo.")); };
+      document.head.appendChild(s);
+    });
+    return turnstilePromise;
+  }
+  async function tokenCaptcha() {
+    if (!CHAVE_CAPTCHA) return undefined;
+    const ts = await carregarTurnstile();
+    let caixa = document.getElementById("captcha-caixa");
+    if (!caixa) {
+      caixa = document.createElement("div");
+      caixa.id = "captcha-caixa"; caixa.className = "captcha-caixa"; caixa.setAttribute("aria-live", "polite");
+      document.body.appendChild(caixa);
+    }
+    caixa.replaceChildren();
+    return new Promise((ok, falha) => {
+      const id = ts.render(caixa, {
+        sitekey: CHAVE_CAPTCHA, language: "pt-br", appearance: "interaction-only", execution: "render",
+        callback: (t) => { caixa.classList.remove("aberta"); setTimeout(() => { try { ts.remove(id); } catch (e) { /* já removido */ } }, 0); ok(t); },
+        "before-interactive-callback": () => caixa.classList.add("aberta"),
+        "error-callback": () => { caixa.classList.remove("aberta"); falha(new Error("A verificação anti-robô falhou. Recarregue a página e tente de novo.")); },
+        "timeout-callback": () => { caixa.classList.remove("aberta"); falha(new Error("A verificação anti-robô expirou. Tente de novo.")); },
+      });
+    });
+  }
+
   const DUPLICADO = {
     cpf: "Este CPF já está cadastrado em outra conta. Entre com o e-mail dessa conta ou fale com a gente pelo WhatsApp.",
     cnpj: "Este CNPJ já está cadastrado em outra conta. Entre com o e-mail dessa conta ou fale com a gente pelo WhatsApp.",
@@ -72,6 +110,7 @@
     if ((erro && erro.code === "23514") || /check constraint/i.test(msg)) return new Error("Alguns dados estão inválidos. Confira CPF/CNPJ, nome, telefone, CEP e estado.");
     if (/signups? not allowed|user not found/i.test(msg)) return new Error("Não encontramos uma conta com este e-mail. Clique em \"Criar conta\".");
     if (/expired|invalid/i.test(msg) && /token|otp/i.test(msg)) return new Error("Código inválido ou expirado. Confira ou peça um novo código.");
+    if (/captcha/i.test(msg)) return new Error("A verificação anti-robô não passou. Recarregue a página e tente de novo.");
     if (/rate limit|security purposes|only request/i.test(msg)) return new Error("Muitas tentativas. Aguarde um minuto antes de pedir outro código.");
     if (/invalid.*email|email.*invalid/i.test(msg)) return new Error("E-mail inválido.");
     return new Error(msg || "Ocorreu um erro. Tente novamente.");
@@ -128,7 +167,8 @@
         // Se o modelo de e-mail do Supabase enviar um link em vez do código, o link também funciona:
         // ele volta para a página "Minha conta" deste site, já com o cliente conectado.
         const voltarPara = location.origin + location.pathname.replace(/[^/]*$/, "") + "conta.html";
-        const { error } = await sb.auth.signInWithOtp({ email, options: { shouldCreateUser: !!criar || daEquipe, emailRedirectTo: voltarPara } });
+        const captchaToken = await tokenCaptcha();
+        const { error } = await sb.auth.signInWithOtp({ email, options: { shouldCreateUser: !!criar || daEquipe, emailRedirectTo: voltarPara, captchaToken } });
         if (error) throw traduzirErro(error);
         return { jaTinhaConta: jaTem };
       }

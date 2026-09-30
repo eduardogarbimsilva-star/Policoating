@@ -2512,3 +2512,13 @@ video.video-produto { object-fit: contain; }
 /* ---------- Captcha anti-robô (só aparece se o Cloudflare pedir) ---------- */
 .captcha-caixa { position: fixed; left: 50%; bottom: 24px; z-index: 3000; transform: translateX(-50%); }
 .captcha-caixa.aberta { padding: 12px; border-radius: 10px; background: #fff; box-shadow: 0 10px 40px rgba(11,20,36,.25); }
+
+/* ---------- Aviso: o acesso da conta mudou ---------- */
+.aviso-acesso { position: fixed; left: 50%; top: 84px; z-index: 2500; transform: translateX(-50%); display: flex; align-items: flex-start; gap: 12px; width: min(560px, calc(100% - 32px)); padding: 14px 16px; border-radius: 10px; background: #0b1424; color: #fff; box-shadow: 0 12px 40px rgba(11,20,36,.35); font-size: .92rem; line-height: 1.45; }
+.aviso-acesso span { display: flex; gap: 10px; }
+.aviso-acesso .icone-svg { flex: 0 0 auto; width: 22px; height: 22px; color: #6ea8ff; }
+.aviso-acesso button { margin-left: auto; border: 0; background: none; color: #fff; font-size: 1.3rem; line-height: 1; cursor: pointer; }
+.adm-cli-acoes .btn-excluir-cli { padding: 8px 12px; border: 1px solid transparent; border-radius: 6px; background: none; color: #8a1c14; font: inherit; font-size: .85rem; font-weight: 600; text-decoration: underline; cursor: pointer; }
+.adm-cli-acoes .btn-excluir-cli:hover { background: #fdecea; }
+#dlg-excluir-cli .check { display: flex; gap: 8px; align-items: center; font-weight: 600; }
+#dlg-excluir-cli input[type=text] { letter-spacing: .1em; text-transform: uppercase; }

@@ -965,6 +965,56 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
     }
   });
 
+  /* ---------- Acesso mudou (virou vendedor/administrador, saiu da equipe ou trocou o e-mail de acesso) ----------
+     O site confere de tempos em tempos; se mudou, sai da conta e pede para entrar de novo com o acesso novo. */
+  const NOMES_PAPEL = { admin: "Administrador", vendedor: "Vendedor" };
+  function avisoAcesso(texto) {
+    const caixa = document.createElement("div");
+    caixa.className = "aviso-acesso"; caixa.setAttribute("role", "alert");
+    caixa.innerHTML = `<span>${ic("escudo")}${esc(texto)}</span><button type="button" aria-label="Fechar">×</button>`;
+    $("button", caixa).addEventListener("click", () => caixa.remove());
+    document.body.appendChild(caixa);
+  }
+  (async function vigiarAcesso() {
+    try { const m = sessionStorage.getItem("policoating_aviso_acesso"); if (m) { sessionStorage.removeItem("policoating_aviso_acesso"); avisoAcesso(m); } } catch (e) { /* sem sessionStorage */ }
+    if (!Conta || !window.Catalogo) return;
+    await (window.ContaPronta || Promise.resolve());
+    const A = window.Catalogo.Admin;
+    const chaveDe = (u) => "policoating_acesso_" + String(u.id || u.email).toLowerCase();
+    // login novo: o acesso de agora vira a referência (não derruba quem acabou de entrar)
+    let ultimo = Conta.usuario ? chaveDe(Conta.usuario) : null;
+    if (Conta.aoMudar) Conta.aoMudar((u) => {
+      const k = u ? chaveDe(u) : null;
+      if (k && k !== ultimo) { try { localStorage.removeItem(k); } catch (e) { /* modo privado */ } setTimeout(conferir, 500); }
+      ultimo = k;
+    });
+    let ocupado = false;
+    async function conferir() {
+      const u = Conta.usuario; if (!u || ocupado) return;
+      ocupado = true;
+      try {
+        const agora = await A.acessoAtual(); if (!agora) return;
+        const chave = chaveDe(u);
+        let antes = null; try { antes = JSON.parse(localStorage.getItem(chave) || "null"); } catch (e) { /* sem registro */ }
+        const atual = { papel: agora.papel || "", email: String(agora.email || u.email).toLowerCase() };
+        try { localStorage.setItem(chave, JSON.stringify(atual)); } catch (e) { /* modo privado */ }
+        if (!antes || Conta.usuario !== u) return;
+        const mudouEmail = antes.email && atual.email && antes.email !== atual.email;
+        if (antes.papel === atual.papel && !mudouEmail) return;
+        const msg = mudouEmail ? `Seu e-mail de acesso mudou para ${atual.email}. Entre de novo com ele (o código chega na sua caixa de sempre).`
+          : atual.papel ? `Seu acesso mudou: agora você é ${NOMES_PAPEL[atual.papel] || atual.papel} na Policoating. Entre de novo para usar o painel.`
+          : "Seu acesso à equipe da Policoating foi encerrado. Entre de novo para continuar como cliente.";
+        try { sessionStorage.setItem("policoating_aviso_acesso", msg); sessionStorage.removeItem("policoating_2fa_sessao"); } catch (e) { /* segue */ }
+        await Conta.sair();
+        location.href = "conta.html";
+      } catch (e) { /* sem internet: tenta de novo depois */ }
+      finally { ocupado = false; }
+    }
+    conferir();
+    setInterval(conferir, 60000);
+    document.addEventListener("visibilitychange", () => { if (!document.hidden) conferir(); });
+  })();
+
   /* API pública usada pelas páginas */
   window.ColorWeg = { videoInfo, videoDe, acharProduto, precoInfo, htmlPreco, formatarPreco, descreverQtd, kgDoItem, embalagemPadrao, lerVistos, iconeWhats, totalItens: () => totalItens(), itensCarrinho: () => carrinho.slice(), fotoProduto, imgProduto, lerFavoritos, alternarFavorito, gravarStorage, lerStorage, buscarProduto, $, $$, caixaSVG, renderProdutos, abrirProduto, adicionarAoCarrinho, linkWhatsApp, ehEscura, esc, observarRevelar, mostrarToast, abrirCarrinho };
 })();

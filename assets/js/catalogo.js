@@ -221,6 +221,16 @@
       return data === "admin" || data === "vendedor" ? data : null;
     },
     async ehAdmin() { return (await this.meuPapel()) === "admin"; },
+    /** Cargo e e-mail atuais direto do servidor (para perceber quando o acesso da pessoa mudou) */
+    async acessoAtual() {
+      if (!window.Conta || !window.Conta.usuario) return null;
+      const papel = await this.meuPapel();
+      if (!ONLINE) return { papel: papel || "", email: window.Conta.usuario.email };
+      const sb = await cliente();
+      const { data, error } = await sb.auth.getUser();
+      if (error || !data || !data.user) return null;
+      return { papel: papel || "", email: String(data.user.email || "") };
+    },
 
     /* ---------- Verificação em 2 etapas (app autenticador: Google Authenticator, Microsoft Authenticator...) ---------- */
     /** Situação: { ativa: tem app cadastrado, nivel: "aal1" | "aal2", fator: id do app } */
@@ -568,6 +578,23 @@
       (rp.data || []).forEach((p) => (porCliente[p.cliente_id] = porCliente[p.cliente_id] || []).push(p));
       return (rc.data || []).map((c) => resumir(c, porCliente[c.id] || []));
     },
+    /** Exclui a conta e o cadastro do cliente (só administradores). Os pedidos ficam no histórico, a não ser que apagarPedidos. */
+    async excluirCliente(c, apagarPedidos) {
+      if (!ONLINE) {
+        const email = String(c.email || "").toLowerCase(), perfis = ler("policoating_demo_perfis") || {}, todos = ler("policoating_demo_pedidos") || {};
+        if (equipeDemo().some((m) => m.email === email)) throw new Error("Essa pessoa é da equipe. Tire da equipe antes de excluir.");
+        delete perfis[email]; gravar("policoating_demo_perfis", perfis);
+        if (apagarPedidos) { delete todos[email]; gravar("policoating_demo_pedidos", todos); }
+        return;
+      }
+      const sb = await cliente();
+      const { error } = await sb.rpc("excluir_cliente", { p_id: c.id, p_apagar_pedidos: !!apagarPedidos });
+      if (error) {
+        const m = String(error.message || "");
+        if (/function.*excluir_cliente|schema cache/i.test(m)) throw new Error("Para excluir clientes, rode a PARTE P do setup.sql no Supabase.");
+        throw new Error(m || "Não foi possível excluir.");
+      }
+    },
     /* ---------- Bloqueio e suspensão de clientes (PARTE M do setup.sql) ---------- */
     /** Bloqueios em vigor (sem os encerrados e as suspensões vencidas) */
     async listarBloqueios() {
@@ -694,7 +721,7 @@
       let clientes = [];
       if (ids.length) { const r = await sb.from("clientes").select("*").in("id", ids); clientes = r.data || []; }
       const porId = Object.fromEntries(clientes.map((c) => [c.id, c]));
-      return pedidos.map((p) => Object.assign({}, p, { cliente: porId[p.cliente_id] || {} }));
+      return pedidos.map((p) => Object.assign({}, p, { cliente: porId[p.cliente_id] || p.cliente_dados || {} }));
     },
 
     /** Pedidos de um período (de/até em "AAAA-MM-DD", horário de Brasília), com os dados do cliente — para os relatórios */
@@ -714,7 +741,7 @@
         clientes.push(...(data || []));
       }
       const porId = Object.fromEntries(clientes.map((c) => [c.id, c]));
-      return pedidos.map((p) => Object.assign({}, p, { cliente: porId[p.cliente_id] || {} }));
+      return pedidos.map((p) => Object.assign({}, p, { cliente: porId[p.cliente_id] || p.cliente_dados || {} }));
     },
 
     /** Cópia de segurança: todas as tabelas que o administrador pode ler, num objeto só (vira um arquivo .json) */

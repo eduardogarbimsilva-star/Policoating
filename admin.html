@@ -23,7 +23,7 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Barlow:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/style.css?v=502c3546">
+  <link rel="stylesheet" href="assets/css/style.css?v=65fde551">
 </head>
 <body>
   <a class="pular" href="#conteudo">Pular para o conteúdo</a>
@@ -421,6 +421,25 @@
       </form>
     </dialog>
 
+    <!-- Excluir cliente -->
+    <dialog class="dlg-bloqueio" id="dlg-excluir-cli" aria-labelledby="excluir-cli-titulo">
+      <form id="form-excluir-cli" novalidate>
+        <h3 id="excluir-cli-titulo">Excluir cliente</h3>
+        <p id="excluir-cli-quem"></p>
+        <p class="dica">Apaga a <strong>conta e o cadastro</strong> (dados pessoais, endereço, favoritos). A pessoa não consegue mais entrar com essa conta. Não dá para desfazer.</p>
+        <label class="check"><input type="checkbox" id="excluir-cli-pedidos"> Apagar também os pedidos dela</label>
+        <p class="dica" id="excluir-cli-dica-pedidos">Sem marcar, os pedidos continuam no histórico e nos relatórios (com nome e CPF/CNPJ guardados só para registro de venda).</p>
+        <label>Para confirmar, digite <strong>EXCLUIR</strong>
+          <input type="text" id="excluir-cli-confirma" autocomplete="off" autocapitalize="characters" spellcheck="false">
+        </label>
+        <p class="form-erro" id="excluir-cli-erro" role="alert"></p>
+        <div class="dlg-botoes">
+          <button type="button" id="excluir-cli-cancelar">Cancelar</button>
+          <button type="submit" class="confirmar">Excluir cliente</button>
+        </div>
+      </form>
+    </dialog>
+
     <!-- Formulário do produto -->
     <div class="admin-modal" id="admin-modal" role="dialog" aria-modal="true" aria-labelledby="form-titulo" hidden>
       <form class="admin-form" id="admin-form" novalidate>
@@ -572,17 +591,17 @@
 
   <script src="assets/js/config.js?v=1a02af0a"></script>
   <script src="assets/js/produtos.js?v=efe7e02f"></script>
-  <script src="assets/js/catalogo.js?v=b43fbe8d"></script>
+  <script src="assets/js/catalogo.js?v=701caee8"></script>
   <script src="assets/js/icones.js?v=1858ced1"></script>
   <script src="assets/js/midia.js?v=781286f8"></script>
   <script src="assets/js/fotos-reais.js?v=cd443528"></script>
   <script src="assets/js/fotos.js?v=48f81340"></script>
   <script src="assets/js/auth.js?v=db6d8f07"></script>
   <script src="assets/js/loja.js?v=67be2651"></script>
-  <script src="assets/js/main.js?v=f3e009be"></script>
+  <script src="assets/js/main.js?v=dc4885b5"></script>
   <script src="assets/js/animacoes.js?v=d458c529"></script>
   <script src="assets/js/secoes.js?v=b03394b5"></script>
   <script src="assets/js/assistente.js?v=22edb703"></script>
-  <script src="assets/js/admin.js?v=5d7099a8"></script>
+  <script src="assets/js/admin.js?v=b61a3a9a"></script>
 </body>
 </html>

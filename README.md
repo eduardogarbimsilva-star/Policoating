@@ -459,6 +459,18 @@ Para funcionar de verdade no servidor:
 3. Em `assets/js/config.js`, preencha `captcha: "SITE_KEY"`. A Site Key é pública. Faça os passos 2 e 3
    juntos: com um ligado e o outro não, o login não funciona.
 
+## Excluir cliente (PARTE P do `setup.sql`)
+
+Em **Painel → Clientes → Excluir** (só administradores). Apaga a conta e o cadastro, e para confirmar é
+preciso digitar **EXCLUIR**. Os **pedidos continuam** no histórico e nos relatórios, com nome e CPF/CNPJ
+guardados no próprio pedido, a não ser que o administrador marque "apagar também os pedidos". Os bloqueios
+por e-mail ou CPF/CNPJ continuam valendo. Não exclui quem é da equipe: tire da equipe antes. Rode a
+**PARTE P** uma vez.
+
+**Mudança de acesso:** quando alguém vira vendedor ou administrador, sai da equipe ou tem o e-mail de acesso
+trocado, o site percebe sozinho (confere a cada minuto e quando a aba volta a ser usada). A pessoa sai da
+conta e vê um aviso para entrar de novo com o acesso novo.
+
 ## E-mail da empresa para a equipe (joao@policoatingtintas.com.br)
 
 A equipe entra no site com e-mails da empresa, e o código de acesso chega na caixa pessoal de cada

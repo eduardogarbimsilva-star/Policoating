@@ -1365,3 +1365,56 @@ end $$;
 grant execute on function public.eh_admin(), public.eh_equipe(), public.pode_excluir_pedidos() to anon, authenticated;
 
 notify pgrst, 'reload schema';
+
+-- ===========================================================
+-- PARTE P — Excluir cliente (rode depois das outras; pode rodar de novo)
+--   • Só administradores. Apaga a conta e o cadastro (não dá para desfazer).
+--   • Os pedidos continuam no histórico (com nome e CPF/CNPJ guardados no próprio pedido),
+--     a não ser que o administrador marque "apagar também os pedidos".
+--   • Bloqueios por e-mail e CPF/CNPJ continuam valendo (não dá para "limpar" um bloqueio excluindo a conta).
+--   • Não exclui quem é da equipe (tire da equipe antes).
+-- ===========================================================
+
+alter table public.pedidos add column if not exists cliente_dados jsonb;
+alter table public.pedidos alter column cliente_id drop not null;
+do $$
+declare r record;
+begin
+  -- a ligação pedido → conta passa a ficar vazia (em vez de apagar o pedido) quando a conta é excluída
+  for r in select c.conname from pg_constraint c
+           where c.conrelid = 'public.pedidos'::regclass and c.contype = 'f'
+             and c.conkey = array[(select attnum from pg_attribute where attrelid = 'public.pedidos'::regclass and attname = 'cliente_id')]::smallint[] loop
+    execute format('alter table public.pedidos drop constraint %I', r.conname);
+  end loop;
+  alter table public.pedidos add constraint pedidos_cliente_id_fkey foreign key (cliente_id) references auth.users(id) on delete set null;
+end $$;
+
+create or replace function public.excluir_cliente(p_id uuid, p_apagar_pedidos boolean default false)
+returns void language plpgsql security definer set search_path = public as $$
+declare v_email text; v_cli public.clientes;
+begin
+  if not public.eh_admin() then raise exception 'Só administradores podem excluir clientes.'; end if;
+  if p_id is null then raise exception 'Cliente não encontrado.'; end if;
+  if p_id = auth.uid() then raise exception 'Você não pode excluir a sua própria conta por aqui.'; end if;
+  select lower(email) into v_email from auth.users where id = p_id;
+  if v_email is null then raise exception 'Cliente não encontrado.'; end if;
+  if exists (select 1 from public.admins where lower(email) = v_email) then
+    raise exception 'Essa pessoa é da equipe. Tire da equipe antes de excluir.';
+  end if;
+  select * into v_cli from public.clientes where id = p_id;
+  if p_apagar_pedidos then
+    delete from public.pedidos where cliente_id = p_id;
+  else
+    -- guarda no pedido só o necessário para o registro da venda
+    update public.pedidos set cliente_dados = jsonb_strip_nulls(jsonb_build_object(
+        'excluido', true, 'email', v_email, 'tipo', v_cli.tipo, 'nome', v_cli.nome, 'cpf', v_cli.cpf,
+        'razao_social', v_cli.razao_social, 'nome_fantasia', v_cli.nome_fantasia, 'cnpj', v_cli.cnpj,
+        'cidade', v_cli.cidade, 'uf', v_cli.uf))
+     where cliente_id = p_id;
+  end if;
+  delete from auth.users where id = p_id;   -- o cadastro (clientes) sai junto
+end $$;
+revoke all on function public.excluir_cliente(uuid, boolean) from public, anon;
+grant execute on function public.excluir_cliente(uuid, boolean) to authenticated;
+
+notify pgrst, 'reload schema';

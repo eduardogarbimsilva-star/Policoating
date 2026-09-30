@@ -640,10 +640,38 @@
             ${tel ? `<a class="btn btn-whats" target="_blank" rel="noopener" href="https://wa.me/${tel.length <= 11 ? "55" + tel : tel}?text=${encodeURIComponent(msg)}">WhatsApp</a>` : ""}
             ${!ehAdmin ? "" : bs.length ? `<button type="button" class="btn-bloquear" data-desbloquear="${esc(c.email || "")}">Desbloquear</button>`
               : `<button type="button" class="btn-bloquear" data-bloquear="${esc(c.email || "")}">Suspender / bloquear</button>`}
+            ${ehAdmin ? `<button type="button" class="btn-excluir-cli" data-excluir-cli="${esc(c.email || "")}">Excluir</button>` : ""}
           </div>
         </article>`;
       }).join("") : `<p class="dica">${!clientesCarregados ? "Carregando..." : clientes.length ? "Nenhum cliente encontrado com essa busca." : "Nenhum cliente cadastrado ainda."}</p>`;
     }
+    /* ---------- Excluir cliente (só administradores) ---------- */
+    let clienteExcluir = null;
+    const dlgExcluir = $("#dlg-excluir-cli");
+    const fecharExcluir = () => { if (dlgExcluir.close) dlgExcluir.close(); else dlgExcluir.removeAttribute("open"); clienteExcluir = null; };
+    $("#admin-clientes").addEventListener("click", (e) => {
+      const b = e.target.closest("[data-excluir-cli]"); if (!b) return;
+      const c = clientes.find((x) => String(x.email || "") === b.dataset.excluirCli); if (!c) return;
+      clienteExcluir = c;
+      $("#excluir-cli-quem").textContent = `${nomeCliente(c)}${docCliente(c) ? " · " + docCliente(c) : ""} · ${c.email || ""} · ${c.pedidos} ${c.pedidos === 1 ? "pedido" : "pedidos"}`;
+      $("#excluir-cli-pedidos").checked = false; $("#excluir-cli-confirma").value = ""; $("#excluir-cli-erro").textContent = "";
+      $("#excluir-cli-pedidos").closest("label").hidden = $("#excluir-cli-dica-pedidos").hidden = !c.pedidos;
+      if (dlgExcluir.showModal) dlgExcluir.showModal(); else dlgExcluir.setAttribute("open", "");
+      $("#excluir-cli-confirma").focus();
+    });
+    $("#excluir-cli-cancelar").addEventListener("click", fecharExcluir);
+    $("#form-excluir-cli").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const c = clienteExcluir; if (!c) return;
+      if ($("#excluir-cli-confirma").value.trim().toUpperCase() !== "EXCLUIR") { $("#excluir-cli-erro").textContent = 'Digite EXCLUIR para confirmar.'; return; }
+      const bt = $("#form-excluir-cli .confirmar"); bt.disabled = true;
+      try {
+        await A.excluirCliente(c, $("#excluir-cli-pedidos").checked);
+        fecharExcluir(); CW.mostrarToast(`${esc(nomeCliente(c))} foi excluído.`); await carregarClientes();
+      } catch (err) { $("#excluir-cli-erro").textContent = err.message; }
+      bt.disabled = false;
+    });
+
     /* ---------- Suspender / bloquear cliente (só administradores) ---------- */
     let clienteBloqueio = null;
     const dlgBloqueio = $("#dlg-bloqueio");

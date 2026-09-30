@@ -445,9 +445,16 @@ Para funcionar de verdade no servidor:
   **imprimir ou salvar em PDF**. Os pedidos cancelados aparecem, mas não entram nos totais.
 - **Relatório do mês:** resumo de vendas, **produtos mais vendidos** (kg, valor, pedidos e clientes) e as
   **notas de entrada** do mês, em planilha ou PDF.
-- **Cópia de segurança** (só administradores): baixa todos os dados do site num arquivo `.json`. O
-  plano grátis do Supabase não guarda cópias, então faça **uma vez por semana** e guarde o arquivo em
-  local seguro (tem dados pessoais). O painel lembra a data da última cópia.
+- **Cópia de segurança** (só administradores): **Baixar cópia (Excel)** gera uma planilha com um índice
+  clicável e uma aba organizada para cada parte do site (produtos, pedidos e itens, clientes, notas, equipe,
+  configurações...). **Arquivo técnico (.json)** é a mesma cópia no formato que o desenvolvedor usa para
+  restaurar o sistema. O plano grátis do Supabase não guarda cópias, então faça **uma vez por semana** e
+  guarde os arquivos em local seguro (têm dados pessoais). O painel lembra a data da última cópia.
+- **Como as planilhas saem:** todas (relatórios, pedidos, clientes e cópia) são `.xlsx` geradas no próprio
+  navegador por `assets/js/planilha.js`, sem biblioteca externa: faixa com o nome da empresa e o período,
+  cabeçalho azul fixo com filtro, linhas zebradas, situação colorida, valores em R$, kg e datas como números
+  de verdade (dá para somar, filtrar e ordenar), linha **TOTAL** que acompanha o filtro e já configuradas
+  para imprimir (cabe na largura da folha, cabeçalho repetido, "Página X de Y").
 
 ## Trocar de conta
 

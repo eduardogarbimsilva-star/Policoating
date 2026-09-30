@@ -551,18 +551,23 @@
       (navigator.clipboard ? navigator.clipboard.writeText(b.dataset.copiar) : Promise.reject()).then(() => CW.mostrarToast("Código copiado."), () => {});
     });
     $("#pedidos-csv").addEventListener("click", () => {
-      const cel = (x) => `"${String(x == null ? "" : x).replace(/"/g, '""')}"`, n = (x) => (x == null || x === "" ? "" : String(Math.round(+x * 100) / 100).replace(".", ","));
-      const linhas = [["Pedido", "Data", "Cliente", "Documento", "E-mail", "Telefone", "Cidade", "UF", "Código", "Produto", "Quantidade", "Kg", "Preço/kg", "Subtotal", "Observações"]];
-      pedidosFiltrados().forEach((p) => (p.itens || []).forEach((i) => {
+      const lista = pedidosFiltrados();
+      const itens = [];
+      lista.forEach((p) => (p.itens || []).forEach((i) => {
         const c = p.cliente || {};
-        linhas.push([p.numero, dataBR(p.criado_em), nomeCliente(c), c.cnpj || c.cpf || "", c.email || "", c.telefone || "", c.cidade || "", c.uf || "",
-          i.codigo || i.id, i.nome, CW.descreverQtd({ embalagem: i.embalagem, qtd: +i.qtd || 0 }), n(kgItem(i)), n(i.preco_kg), i.preco_kg != null ? n((+i.preco_kg) * kgItem(i)) : "a combinar", p.observacoes || ""]);
+        itens.push([String(p.numero), p.criado_em, SITUACAO[p.status] || p.status || "", nomeCliente(c), i.codigo || i.id || "", i.nome || "",
+          CW.descreverQtd({ embalagem: i.embalagem, qtd: +i.qtd || 0 }), r2(kgItem(i)), i.preco_kg != null ? r2(i.preco_kg) : "a combinar", i.preco_kg != null ? r2((+i.preco_kg) * kgItem(i)) : null]);
       }));
-      const csv = "\ufeff" + linhas.map((l) => l.map(cel).join(";")).join("\r\n");
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
-      a.download = `pedidos-policoating-${new Date().toISOString().slice(0, 10)}.csv`;
-      document.body.appendChild(a); a.click(); a.remove();
+      const r = resumo(lista);
+      Planilha.baixar(`pedidos-policoating-${diaISO(new Date())}`, {
+        titulo: "Pedidos", subtitulo: `${lista.length} ${lista.length === 1 ? "pedido" : "pedidos"} (filtro atual do painel)`, autor: AUTOR,
+        abas: [
+          { nome: "Resumo", resumo: resumoPlanilha(r) },
+          { nome: "Pedidos", colunas: COLS_PEDIDOS, linhas: lista.map(linhaPedidoX) },
+          { nome: "Itens", titulo: "Itens dos pedidos", colunas: COLS_ITENS_PED, linhas: itens },
+        ],
+      });
+      CW.mostrarToast("Planilha baixada.");
     });
 
     /* ---------- Clientes (administradores e vendedores) ---------- */
@@ -720,16 +725,20 @@
     });
     $("#clientes-csv").addEventListener("click", () => {
       if (!podeExportar) return;
-      const cel = (v) => `"${String(v == null ? "" : v).replace(/"/g, '""')}"`;
-      const linhas = [["Cliente", "Tipo", "Razão social", "CPF/CNPJ", "Inscrição estadual", "Responsável", "E-mail", "Telefone", "CEP", "Endereço", "Bairro", "Cidade", "UF", "Pedidos", "Total kg", "Último pedido", "Cliente desde"]];
-      clientesFiltrados().forEach((c) => linhas.push([nomeCliente(c), c.tipo === "pj" ? "Empresa" : "Pessoa física", c.razao_social || "", c.cnpj || c.cpf || "", c.inscricao_estadual || "",
-        c.responsavel || "", c.email || "", c.telefone || "", c.cep || "", [c.logradouro, c.numero, c.complemento].filter(Boolean).join(", "), c.bairro || "", c.cidade || "", c.uf || "",
-        c.pedidos, Math.round(c.kg), dataCurta(c.ultimo_pedido), dataCurta(c.criado_em)]));
-      const csv = "\ufeff" + linhas.map((l) => l.map(cel).join(";")).join("\r\n");
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
-      a.download = `clientes-policoating-${new Date().toISOString().slice(0, 10)}.csv`;
-      document.body.appendChild(a); a.click(); a.remove();
+      const lista = clientesFiltrados();
+      Planilha.baixar(`clientes-policoating-${diaISO(new Date())}`, {
+        titulo: "Clientes", subtitulo: `${lista.length} ${lista.length === 1 ? "cliente" : "clientes"} (filtro atual do painel)`, autor: AUTOR,
+        abas: [{
+          nome: "Clientes",
+          colunas: [{ t: "Cliente" }, { t: "Tipo", tipo: "status", cores: { empresa: "1558D6", "pessoa física": "5A6775" } }, { t: "Razão social" }, { t: "CPF/CNPJ" }, { t: "Inscrição estadual" },
+            { t: "Responsável" }, { t: "E-mail" }, { t: "Telefone" }, { t: "CEP" }, { t: "Endereço", quebra: true }, { t: "Bairro" }, { t: "Cidade" }, { t: "UF", centro: true },
+            { t: "Pedidos", tipo: "int", soma: true }, { t: "Total (kg)", tipo: "kg", soma: true }, { t: "Último pedido", tipo: "data" }, { t: "Cliente desde", tipo: "data" }],
+          linhas: lista.map((c) => [nomeCliente(c), c.tipo === "pj" ? "Empresa" : "Pessoa física", c.razao_social || "", c.cnpj || c.cpf || "", c.inscricao_estadual || "",
+            c.responsavel || "", c.email || "", c.telefone || "", c.cep || "", [c.logradouro, c.numero, c.complemento].filter(Boolean).join(", "), c.bairro || "", c.cidade || "", c.uf || "",
+            +c.pedidos || 0, r2(c.kg), c.ultimo_pedido || null, c.criado_em || null]),
+        }],
+      });
+      CW.mostrarToast("Planilha baixada.");
     });
 
     /* ---------- Contato e links ---------- */
@@ -1048,9 +1057,6 @@
         .sort((a, b) => b.kg - a.kg || b.valor - a.valor);
     }
     const linhaPedido = (p) => { const c = p.cliente || {}; return [p.numero, hBR(p.criado_em), SITUACAO[p.status] || p.status || "", nomeCliente(c), docRel(c), c.email || "", c.telefone || "", [c.cidade, c.uf].filter(Boolean).join("/"), r2(kgPedido(p)), vendido(p) ? r2(valorPedido(p)) : 0, (p.itens || []).some((i) => i.preco_kg == null) ? "sim" : "", p.observacoes || ""]; };
-    const CAB_PEDIDOS = ["Pedido", "Data", "Situação", "Cliente", "CPF/CNPJ", "E-mail", "Telefone", "Cidade/UF", "Kg", "Valor (R$)", "Tem item a combinar", "Observações"];
-    const linhasItens = (pedidos) => pedidos.flatMap((p) => (p.itens || []).map((i) => [p.numero, dBR(p.criado_em), SITUACAO[p.status] || p.status || "", nomeCliente(p.cliente || {}), i.codigo || "", i.nome || "", i.embalagem || "", +i.qtd || 0, r2(kgItem(i)), i.preco_kg != null ? r2(i.preco_kg) : "a combinar", i.preco_kg != null ? r2((+i.preco_kg) * kgItem(i)) : ""]));
-    const CAB_ITENS = ["Pedido", "Data", "Situação", "Cliente", "Código", "Produto", "Embalagem", "Qtd", "Kg", "R$/kg", "Valor (R$)"];
     const notasDoPeriodo = (lista, de, ate) => lista.filter((n) => { const d = n.data_nf || diaISO(new Date(n.criado_em)); return d >= de && d <= ate; })
       .sort((a, b) => String(a.data_nf || a.criado_em).localeCompare(String(b.data_nf || b.criado_em)));
 
@@ -1070,33 +1076,7 @@
       } catch (e) { el.textContent = e.message; }
     }
 
-    // Planilha do Excel (.xlsx) com várias abas; se a biblioteca não carregar, baixa CSV da primeira aba de dados
-    let xlsxPromessa = null;
-    const carregarXlsx = () => (xlsxPromessa = xlsxPromessa || new Promise((ok, falha) => {
-      if (window.XLSX) return ok(window.XLSX);
-      const sc = document.createElement("script"); sc.src = "https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js";
-      sc.onload = () => (window.XLSX ? ok(window.XLSX) : falha(new Error("x"))); sc.onerror = () => { xlsxPromessa = null; falha(new Error("x")); };
-      document.head.appendChild(sc);
-    }));
-    function baixarArquivo(blob, nome) {
-      const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = nome;
-      document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
-    }
-    async function baixarPlanilha(nome, abas) {
-      try {
-        const X = await carregarXlsx(), wb = X.utils.book_new();
-        abas.forEach(([titulo, linhas]) => {
-          const ws = X.utils.aoa_to_sheet(linhas);
-          ws["!cols"] = (linhas[0] || []).map((_, j) => ({ wch: Math.min(48, Math.max(8, ...linhas.map((l) => String(l[j] == null ? "" : l[j]).length + 2))) }));
-          X.utils.book_append_sheet(wb, ws, titulo.slice(0, 31));
-        });
-        X.writeFile(wb, nome + ".xlsx");
-      } catch (e) {
-        const cel = (v) => (typeof v === "number" ? String(v).replace(".", ",") : `"${String(v == null ? "" : v).replace(/"/g, '""')}"`);
-        const csv = "\ufeff" + abas.map(([t, l]) => [[t]].concat(l).map((x) => x.map(cel).join(";")).join("\r\n")).join("\r\n\r\n");
-        baixarArquivo(new Blob([csv], { type: "text/csv;charset=utf-8" }), nome + ".csv");
-      }
-    }
+    const baixarArquivo = (blob, nome) => Planilha.baixarBlob(blob, nome);
     // Versão para imprimir / salvar em PDF (abre numa janela nova)
     function abrirImpressao(janela, titulo, subtitulo, blocos) {
       const tabela = (cab, linhas, direita) => `<table><thead><tr>${cab.map((c, j) => `<th${direita.includes(j) ? ' class="n"' : ""}>${esc(c)}</th>`).join("")}</tr></thead><tbody>${linhas.length ? linhas.map((l) => `<tr>${l.map((v, j) => `<td${direita.includes(j) ? ' class="n"' : ""}>${esc(typeof v === "number" ? v.toLocaleString("pt-BR", { maximumFractionDigits: 2 }) : v)}</td>`).join("")}</tr>`).join("") : `<tr><td colspan="${cab.length}" class="vazio">Nada no período.</td></tr>`}</tbody></table>`;
@@ -1131,16 +1111,41 @@
     const linhasTop = (top) => top.map((x, i) => [i + 1, x.codigo, x.nome, x.kg, x.valor, x.pedidos, x.clientes]);
     const CAB_TOP = ["#", "Código", "Produto", "Kg", "Valor (R$)", "Pedidos", "Clientes"];
     const linhasNotas = (ns) => ns.map((n) => [dBR(n.data_nf) || dBR(n.criado_em), n.nf, n.lote, n.fornecedor, n.fornecedor_codigo || "", (n.arquivos || []).map((a) => a.nome).join(", "), n.criado_por || "", n.obs || ""]);
-    const CAB_NOTAS = ["Data da NF", "NF", "Lote (cor/código)", "Fornecedor", "Cód. fornecedor", "Arquivos", "Guardada por", "Observação"];
+
+    // Colunas das planilhas do Excel (tipos certos: dá para somar, filtrar e ordenar)
+    const AUTOR = window.Conta.usuario.email || "";
+    const COR_SIT = { recebido: "1558D6", confirmado: "0D3FA6", enviado: "B26A00", entregue: "2E7D32", cancelado: "C62828", reembolsado: "C62828" };
+    const COLS_PEDIDOS = [{ t: "Pedido", centro: true, negrito: true }, { t: "Data", tipo: "datahora" }, { t: "Situação", tipo: "status", cores: COR_SIT }, { t: "Cliente" }, { t: "CPF/CNPJ" },
+      { t: "E-mail" }, { t: "Telefone" }, { t: "Cidade/UF" }, { t: "Kg", tipo: "kg", soma: true }, { t: "Valor", tipo: "brl", soma: true },
+      { t: "Item a combinar", tipo: "status", cores: { sim: "B26A00" }, centro: true }, { t: "Observações", quebra: true }];
+    const linhaPedidoX = (p) => { const c = p.cliente || {}; return [String(p.numero), p.criado_em, SITUACAO[p.status] || p.status || "", nomeCliente(c), docRel(c), c.email || "", c.telefone || "",
+      [c.cidade, c.uf].filter(Boolean).join("/"), r2(kgPedido(p)), vendido(p) ? r2(valorPedido(p)) : 0, (p.itens || []).some((i) => i.preco_kg == null) ? "Sim" : "", p.observacoes || ""]; };
+    const COLS_ITENS = [{ t: "Pedido", centro: true }, { t: "Data", tipo: "data" }, { t: "Situação", tipo: "status", cores: COR_SIT }, { t: "Cliente" }, { t: "Código" }, { t: "Produto" },
+      { t: "Embalagem" }, { t: "Qtd", tipo: "dec", soma: true }, { t: "Kg", tipo: "kg", soma: true }, { t: "R$/kg", tipo: "brl" }, { t: "Valor", tipo: "brl", soma: true }];
+    const COLS_ITENS_PED = [{ t: "Pedido", centro: true }, { t: "Data", tipo: "datahora" }, { t: "Situação", tipo: "status", cores: COR_SIT }, { t: "Cliente" }, { t: "Código" }, { t: "Produto" },
+      { t: "Quantidade" }, { t: "Kg", tipo: "kg", soma: true }, { t: "R$/kg", tipo: "brl" }, { t: "Valor", tipo: "brl", soma: true }];
+    const linhasItensX = (pedidos) => pedidos.flatMap((p) => (p.itens || []).map((i) => [String(p.numero), p.criado_em, SITUACAO[p.status] || p.status || "", nomeCliente(p.cliente || {}),
+      i.codigo || "", i.nome || "", i.embalagem || "", +i.qtd || 0, r2(kgItem(i)), i.preco_kg != null ? r2(i.preco_kg) : "a combinar", i.preco_kg != null && vendido(p) ? r2((+i.preco_kg) * kgItem(i)) : null]));
+    const COLS_TOP = [{ t: "#", tipo: "int", centro: true, w: 6 }, { t: "Código" }, { t: "Produto" }, { t: "Kg", tipo: "kg", soma: true }, { t: "% dos kg", tipo: "pct" },
+      { t: "Valor", tipo: "brl", soma: true }, { t: "Pedidos", tipo: "int" }, { t: "Clientes", tipo: "int" }];
+    const linhasTopX = (top) => { const tk = top.reduce((s, x) => s + x.kg, 0) || 1; return top.map((x, i) => [i + 1, x.codigo, x.nome, x.kg, x.kg / tk, x.valor, x.pedidos, x.clientes]); };
+    const COLS_NOTAS = [{ t: "Data da NF", tipo: "data" }, { t: "NF", centro: true }, { t: "Lote (cor/código)" }, { t: "Fornecedor" }, { t: "Cód. fornecedor" },
+      { t: "Arquivos", quebra: true }, { t: "Guardada por" }, { t: "Observação", quebra: true }];
+    const linhasNotasX = (ns) => ns.map((n) => [n.data_nf || n.criado_em, n.nf, n.lote, n.fornecedor, n.fornecedor_codigo || "", (n.arquivos || []).map((a) => a.nome).join(", "), n.criado_por || "", n.obs || ""]);
+    const resumoPlanilha = (r, top) => [["Pedidos", r.pedidos, "int"], ["Vendido", r.total, "brl"], ["Quilos", r.kg, "kg"], ["Clientes", r.clientes, "int"], ["Ticket médio", r.ticket, "brl"],
+      ["Cancelados", r.cancelados, "int"]].concat(top && top[0] ? [["Mais vendido", `${top[0].nome} (${top[0].kg.toLocaleString("pt-BR")} kg)`, "texto"]] : []);
 
     $("#rel-sem-xlsx").addEventListener("click", (e) => gerar(e.currentTarget, async () => {
       const { per, ped, r, top } = await dadosSemana();
-      await baixarPlanilha(`vendas-policoating-${per.de}-a-${per.ate}`, [
-        ["Resumo", [["Período", `${dBR(per.de)} a ${dBR(per.ate)}`], ...cartoesResumo(r).map(([a, b]) => [a, b])]],
-        ["Pedidos", [CAB_PEDIDOS, ...ped.map(linhaPedido)]],
-        ["Itens", [CAB_ITENS, ...linhasItens(ped)]],
-        ["Mais vendidos", [CAB_TOP, ...linhasTop(top)]],
-      ]);
+      Planilha.baixar(`vendas-policoating-${per.de}-a-${per.ate}`, {
+        titulo: "Vendas da semana", subtitulo: `${dBR(per.de)} a ${dBR(per.ate)}`, autor: AUTOR,
+        abas: [
+          { nome: "Resumo", resumo: resumoPlanilha(r, top), nota: "Pedidos cancelados ou reembolsados aparecem na aba Pedidos, mas não entram nos totais. A linha TOTAL de cada aba soma só o que estiver visível no filtro." },
+          { nome: "Pedidos", colunas: COLS_PEDIDOS, linhas: ped.map(linhaPedidoX) },
+          { nome: "Itens", titulo: "Itens vendidos", colunas: COLS_ITENS, linhas: linhasItensX(ped) },
+          { nome: "Mais vendidos", titulo: "Produtos mais vendidos", colunas: COLS_TOP, linhas: linhasTopX(top) },
+        ],
+      });
     }));
     $("#rel-sem-pdf").addEventListener("click", (e) => { const j = window.open("", "_blank"); if (j) j.document.write("Gerando relatório..."); gerar(e.currentTarget, async () => {
       if (!j) throw new Error("O navegador bloqueou a janela. Permita pop-ups para este site.");
@@ -1153,13 +1158,17 @@
     }); });
     $("#rel-mes-xlsx").addEventListener("click", (e) => gerar(e.currentTarget, async () => {
       const { per, ped, r, top, notas: ns } = await dadosMes();
-      await baixarPlanilha(`relatorio-policoating-${per.de.slice(0, 7)}`, [
-        ["Resumo", [["Mês", per.nome], ...cartoesResumo(r).map(([a, b]) => [a, b]), ["Notas de entrada", String(ns.length)]]],
-        ["Mais vendidos", [CAB_TOP, ...linhasTop(top)]],
-        ["Notas de entrada", [CAB_NOTAS, ...linhasNotas(ns)]],
-        ["Pedidos", [CAB_PEDIDOS, ...ped.map(linhaPedido)]],
-        ["Itens", [CAB_ITENS, ...linhasItens(ped)]],
-      ]);
+      const mes = per.nome.charAt(0).toUpperCase() + per.nome.slice(1);
+      Planilha.baixar(`relatorio-policoating-${per.de.slice(0, 7)}`, {
+        titulo: "Relatório do mês", subtitulo: mes, autor: AUTOR,
+        abas: [
+          { nome: "Resumo", resumo: resumoPlanilha(r, top).concat([["Notas de entrada", ns.length, "int"]]), nota: "Pedidos cancelados ou reembolsados aparecem na aba Pedidos, mas não entram nos totais. A linha TOTAL de cada aba soma só o que estiver visível no filtro." },
+          { nome: "Mais vendidos", titulo: "Produtos mais vendidos", colunas: COLS_TOP, linhas: linhasTopX(top) },
+          { nome: "Notas de entrada", colunas: COLS_NOTAS, linhas: linhasNotasX(ns), vazio: "Nenhuma nota de entrada guardada neste mês." },
+          { nome: "Pedidos", colunas: COLS_PEDIDOS, linhas: ped.map(linhaPedidoX) },
+          { nome: "Itens", titulo: "Itens vendidos", colunas: COLS_ITENS, linhas: linhasItensX(ped) },
+        ],
+      });
     }));
     $("#rel-mes-pdf").addEventListener("click", (e) => { const j = window.open("", "_blank"); if (j) j.document.write("Gerando relatório..."); gerar(e.currentTarget, async () => {
       if (!j) throw new Error("O navegador bloqueou a janela. Permita pop-ups para este site.");
@@ -1170,12 +1179,54 @@
         { titulo: "Notas de entrada do mês", cab: ["Data da NF", "NF", "Lote (cor/código)", "Fornecedor", "Cód.", "Arquivos"], linhas: linhasNotas(ns).map((l) => l.slice(0, 6)) },
       ]);
     }); });
-    $("#rel-backup-baixar").addEventListener("click", (e) => gerar(e.currentTarget, async () => {
-      const copia = await A.backupCompleto();
-      const n = Object.values(copia.tabelas).reduce((s, t) => s + (Array.isArray(t) ? t.length : 0), 0);
-      baixarArquivo(new Blob([JSON.stringify(copia, null, 1)], { type: "application/json" }), `backup-policoating-${diaISO(new Date())}.json`);
-      $("#rel-backup-info").textContent = `Cópia baixada: ${n.toLocaleString("pt-BR")} registros. Guarde o arquivo em local seguro.`;
+    // Cópia de segurança: planilha legível (uma aba por tabela) + arquivo técnico .json para restaurar
+    const TABELAS_BACKUP = {
+      produtos: ["Produtos", "Catálogo do site: preços, cores e fichas"], pedidos: ["Pedidos", "Todos os pedidos recebidos"], clientes: ["Clientes", "Cadastro de clientes"],
+      configuracoes: ["Configurações", "Contato, links e ajustes do site"], admins: ["Equipe", "Administradores e vendedores"], notas_entrada: ["Notas de entrada", "Notas fiscais de compra guardadas"],
+      bloqueios: ["Bloqueios", "Acessos bloqueados"], newsletter: ["Newsletter", "Inscritos para receber novidades"], pedido_mensagens: ["Mensagens", "Conversas dos pedidos"],
+      pedido_solicitacoes: ["Solicitações", "Pedidos de alteração/cancelamento"], vendas: ["Vendas", "Vendas registradas"], estoque_movimentos: ["Estoque · movimentos", "Entradas e saídas de estoque"],
+      estoque_minimos: ["Estoque · mínimos", "Estoque mínimo por produto"],
+    };
+    const paraLinhas = (v) => {
+      if (Array.isArray(v)) return v.map((x) => (x && typeof x === "object" && !Array.isArray(x) ? x : { valor: x }));
+      if (v && typeof v === "object") {
+        const vals = Object.values(v);
+        if (vals.length && vals.every(Array.isArray)) return Object.entries(v).flatMap(([k, l]) => l.map((x) => Object.assign({ grupo: k }, x)));
+        return Object.entries(v).map(([k, x]) => Object.assign({ chave: k }, x && typeof x === "object" && !Array.isArray(x) ? x : { valor: x }));
+      }
+      return v == null ? [] : [{ valor: v }];
+    };
+    let ultimaCopia = null;
+    async function copiaAtual() {
+      if (ultimaCopia && Date.now() - ultimaCopia.t < 5 * 60e3) return ultimaCopia.c;
+      const c = await A.backupCompleto(); ultimaCopia = { t: Date.now(), c }; return c;
+    }
+    function marcarBackup(n) {
+      $("#rel-backup-info").textContent = `Cópia baixada agora: ${n.toLocaleString("pt-BR")} ${n === 1 ? "registro" : "registros"}. Guarde o arquivo em local seguro (Google Drive, pen drive).`;
       try { localStorage.setItem("policoating_ultimo_backup", new Date().toISOString()); } catch (err) { /* sem problema */ }
+    }
+    $("#rel-backup-baixar").addEventListener("click", (e) => gerar(e.currentTarget, async () => {
+      const copia = await copiaAtual(), abas = [], indice = [];
+      let total = 0;
+      Object.entries(copia.tabelas).forEach(([t, v]) => {
+        const chave = t.replace(/^policoating_demo_/, ""), [titulo, descricao] = TABELAS_BACKUP[chave] || [Planilha.humano(chave), ""];
+        if (v && !Array.isArray(v) && v.erro) { indice.push([titulo, v.erro === "tabela não existe" ? "não usada" : "sem acesso", "texto"]); return; }
+        const linhas = paraLinhas(v); total += linhas.length;
+        indice.push([titulo, linhas.length, "int"]);
+        Planilha.abasDeRegistros(chave, linhas, { titulo, descricao }).forEach((a) => abas.push(a));
+      });
+      Planilha.baixar(`copia-de-seguranca-policoating-${diaISO(new Date())}`, {
+        titulo: "Cópia de segurança", subtitulo: `${total.toLocaleString("pt-BR")} registros · ${new Date(copia.gerado_em).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}`, autor: AUTOR,
+        abas: [{ nome: "Índice", secao: "Registros por tabela", resumo: [["Total de registros", total, "int"]].concat(indice),
+          nota: "Contém dados pessoais de clientes (LGPD): não compartilhe. Clique no nome de uma aba abaixo para ir direto a ela. Para restaurar o sistema use o arquivo técnico (.json)." }].concat(abas),
+      });
+      marcarBackup(total);
+    }));
+    $("#rel-backup-json").addEventListener("click", (e) => gerar(e.currentTarget, async () => {
+      const copia = await copiaAtual();
+      const n = Object.values(copia.tabelas).reduce((s, t) => s + (t && !Array.isArray(t) && t.erro ? 0 : paraLinhas(t).length), 0);
+      baixarArquivo(new Blob([JSON.stringify(copia, null, 1)], { type: "application/json" }), `copia-de-seguranca-policoating-${diaISO(new Date())}-tecnico.json`);
+      marcarBackup(n);
     }));
     try {
       const ult = localStorage.getItem("policoating_ultimo_backup");

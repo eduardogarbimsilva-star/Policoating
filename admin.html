@@ -207,7 +207,7 @@
               <div class="pedidos-resumo" id="pedidos-resumo"></div>
               <div class="admin-acoes">
                 <button type="button" class="btn btn-contorno-azul" id="pedidos-atualizar">Atualizar</button>
-                <button type="button" class="btn btn-primario" id="pedidos-csv"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg> Exportar planilha</button>
+                <button type="button" class="btn btn-primario" id="pedidos-csv"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg> Baixar Excel</button>
               </div>
             </div>
             <div class="admin-pedidos" id="admin-pedidos"></div>
@@ -242,7 +242,7 @@
               <div class="pedidos-resumo" id="clientes-resumo"></div>
               <div class="admin-acoes">
                 <button type="button" class="btn btn-contorno-azul" id="clientes-atualizar">Atualizar</button>
-                <button type="button" class="btn btn-primario" id="clientes-csv" hidden><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg> Exportar planilha</button>
+                <button type="button" class="btn btn-primario" id="clientes-csv" hidden><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg> Baixar Excel</button>
               </div>
             </div>
             <div class="admin-clientes" id="admin-clientes"></div>
@@ -352,7 +352,7 @@
                 <div class="rel-atalhos"><button type="button" class="btn-mini" data-semana="0">Esta semana</button><button type="button" class="btn-mini" data-semana="-1">Semana passada</button></div>
                 <p class="rel-previa" id="rel-sem-previa" aria-live="polite"></p>
                 <div class="rel-acoes">
-                  <button type="button" class="btn btn-primario" id="rel-sem-xlsx"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg> Baixar planilha</button>
+                  <button type="button" class="btn btn-primario" id="rel-sem-xlsx"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg> Baixar Excel</button>
                   <button type="button" class="btn btn-contorno-azul" id="rel-sem-pdf"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h6"/></svg> Imprimir / PDF</button>
                 </div>
               </section>
@@ -362,15 +362,15 @@
                 <div class="rel-campos"><label>Mês<input type="month" id="rel-mes"></label></div>
                 <p class="rel-previa" id="rel-mes-previa" aria-live="polite"></p>
                 <div class="rel-acoes">
-                  <button type="button" class="btn btn-primario" id="rel-mes-xlsx"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg> Baixar planilha</button>
+                  <button type="button" class="btn btn-primario" id="rel-mes-xlsx"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg> Baixar Excel</button>
                   <button type="button" class="btn btn-contorno-azul" id="rel-mes-pdf"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h6"/></svg> Imprimir / PDF</button>
                 </div>
               </section>
               <section class="rel-cartao so-admin" id="rel-backup">
                 <h3><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg> Cópia de segurança</h3>
-                <p>Baixa <strong>todos os dados do site</strong> (produtos, pedidos, clientes, notas, equipe e configurações) num arquivo. Faça <strong>uma vez por semana</strong> e guarde no Google Drive ou num pen drive. O arquivo tem dados pessoais: não compartilhe.</p>
+                <p>Uma planilha do Excel com <strong>todos os dados do site</strong>: índice clicável e uma aba organizada para cada parte (produtos, pedidos e seus itens, clientes, notas, equipe, configurações). Faça <strong>uma vez por semana</strong> e guarde no Google Drive ou num pen drive. Tem dados pessoais: não compartilhe.</p>
                 <p class="rel-previa" id="rel-backup-info"></p>
-                <div class="rel-acoes"><button type="button" class="btn btn-primario" id="rel-backup-baixar"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg> Baixar cópia de segurança</button></div>
+                <div class="rel-acoes"><button type="button" class="btn btn-primario" id="rel-backup-baixar"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg> Baixar cópia (Excel)</button><button type="button" class="btn btn-contorno-azul" id="rel-backup-json" title="Arquivo para o desenvolvedor restaurar o sistema, se precisar"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg> Arquivo técnico (.json)</button></div>
               </section>
             </div>
             <p class="form-erro" id="rel-erro" role="alert"></p>
@@ -602,6 +602,7 @@
   <script src="assets/js/animacoes.js?v=d458c529"></script>
   <script src="assets/js/secoes.js?v=b03394b5"></script>
   <script src="assets/js/assistente.js?v=22edb703"></script>
-  <script src="assets/js/admin.js?v=b61a3a9a"></script>
+  <script src="assets/js/planilha.js?v=bab15b4a"></script>
+  <script src="assets/js/admin.js?v=51bf1167"></script>
 </body>
 </html>

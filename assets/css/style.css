@@ -2522,3 +2522,24 @@ video.video-produto { object-fit: contain; }
 .adm-cli-acoes .btn-excluir-cli:hover { background: #fdecea; }
 #dlg-excluir-cli .check { display: flex; gap: 8px; align-items: center; font-weight: 600; }
 #dlg-excluir-cli input[type=text] { letter-spacing: .1em; text-transform: uppercase; }
+
+/* ---------- Trocar de conta ---------- */
+.mc-trocar { display: grid; gap: 2px; padding: 8px 0 4px; margin-top: 4px; border-top: 1px solid var(--borda); }
+.mc-trocar > small { padding: 2px 14px 4px; font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--texto-suave); }
+.mc-trocar button { display: flex; align-items: center; gap: 10px; width: 100%; padding: 7px 14px; border: 0; background: none; font: inherit; text-align: left; cursor: pointer; color: var(--texto); }
+.mc-trocar button:hover { background: var(--fundo-alt); }
+.mc-trocar button i, .conta-salva i { flex: 0 0 auto; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: #e8f0fe; color: var(--azul); font-style: normal; font-weight: 800; font-size: .85rem; }
+.mc-trocar button .icone-svg { width: 30px; height: 18px; color: var(--azul); }
+.mc-trocar span { display: grid; min-width: 0; }
+.mc-trocar b { font-size: .86rem; }
+.mc-trocar em { font-style: normal; font-size: .74rem; color: var(--texto-suave); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.contas-salvas { margin-bottom: 16px; }
+.contas-lista { display: grid; gap: 8px; }
+.conta-salva { display: flex; align-items: stretch; border: 1px solid var(--borda); border-radius: 8px; background: #fff; overflow: hidden; }
+.conta-salva:hover { border-color: var(--azul); }
+.conta-salva-entrar { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 0; background: none; font: inherit; text-align: left; cursor: pointer; }
+.conta-salva-entrar span { display: grid; min-width: 0; }
+.conta-salva-entrar b { font-size: .92rem; }
+.conta-salva-entrar small { color: var(--texto-suave); font-size: .78rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.conta-salva-tirar { flex: 0 0 auto; width: 40px; border: 0; border-left: 1px solid var(--borda); background: none; color: var(--texto-suave); font-size: 1.15rem; cursor: pointer; }
+.conta-salva-tirar:hover { color: #b3261e; background: #fdecea; }

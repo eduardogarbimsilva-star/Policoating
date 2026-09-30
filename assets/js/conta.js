@@ -58,6 +58,7 @@
     $("#form-email").hidden = false;
     $("#form-codigo").hidden = true;
     $(".abas", $("#view-acesso")).hidden = false;
+    desenharContasSalvas();
   }
 
   function iniciarReenvio() {
@@ -102,6 +103,7 @@
       + '<strong id="email-enviado"></strong>. Confira também a caixa de spam.';
     $("#email-enviado").textContent = emailAtual;
     $("#form-email").hidden = true;
+    $("#contas-salvas").hidden = true;
     $(".abas", $("#view-acesso")).hidden = true;
     $("#form-codigo").hidden = false;
     const demo = $("#codigo-demo");
@@ -573,6 +575,26 @@
     if (!$("#painel-favoritos").hidden) renderFavoritos();
   });
 
+  /* ---------- Contas usadas neste computador ---------- */
+  function desenharContasSalvas() {
+    const lista = Conta.contasSalvas ? Conta.contasSalvas() : [], caixa = $("#contas-salvas");
+    if (!caixa) return;
+    caixa.hidden = !lista.length || modo !== "entrar" || $("#form-email").hidden;
+    const papel = { admin: "Administrador", vendedor: "Vendedor" };
+    $("#contas-lista").innerHTML = lista.map((c) => `<div class="conta-salva">
+        <button type="button" class="conta-salva-entrar" data-entrar-como="${CW.esc(c.email)}"><i>${CW.esc((c.nome || c.email).charAt(0).toUpperCase())}</i>
+          <span><b>${CW.esc(c.nome || c.email.split("@")[0])}</b><small>${CW.esc(c.email)}${c.papel ? " · " + papel[c.papel] : ""}</small></span></button>
+        <button type="button" class="conta-salva-tirar" data-esquecer="${CW.esc(c.email)}" aria-label="Tirar ${CW.esc(c.email)} deste computador" title="Tirar deste computador">×</button>
+      </div>`).join("");
+  }
+  $("#contas-lista").addEventListener("click", (e) => {
+    const t = e.target.closest("[data-esquecer]");
+    if (t) { Conta.esquecerConta(t.dataset.esquecer); desenharContasSalvas(); return; }
+    const b = e.target.closest("[data-entrar-como]"); if (!b) return;
+    $("#acesso-email").value = b.dataset.entrarComo;
+    $("#form-email").requestSubmit();
+  });
+
   /* ---------- Início ---------- */
   document.addEventListener("DOMContentLoaded", async () => {
     $("#aviso-demo").hidden = !Conta.modoDemo;
@@ -581,6 +603,13 @@
     mostrar("acesso");
     trocarAba(params.get("criar") ? "criar" : "entrar");
     try { const ultimo = localStorage.getItem(CHAVE_EMAIL); if (ultimo && !$("#acesso-email").value) $("#acesso-email").value = ultimo; } catch (e) { /* ignora */ }
+    desenharContasSalvas();
+    // veio do "Trocar de conta": já pede o código para a conta escolhida ("" = usar outra conta)
+    let como = null; try { como = sessionStorage.getItem("policoating_entrar_como"); sessionStorage.removeItem("policoating_entrar_como"); } catch (e) { /* ignora */ }
+    if (como !== null) {
+      $("#acesso-email").value = como;
+      if (como) $("#form-email").requestSubmit(); else $("#acesso-email").focus();
+    }
     // Link do e-mail expirado ou já usado (o Supabase devolve o erro no endereço)
     const erroLink = new URLSearchParams(location.hash.slice(1)).get("error_description");
     if (erroLink) {

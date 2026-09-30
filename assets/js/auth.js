@@ -116,6 +116,17 @@
     return new Error(msg || "Ocorreu um erro. Tente novamente.");
   }
 
+  /* ---------- Contas usadas neste computador (para trocar de conta rápido) ----------
+     Guarda só e-mail, nome e cargo; nunca senha, código ou sessão. Para entrar em outra conta, o código é pedido de novo. */
+  const K_CONTAS = "policoating_contas";
+  function lembrarConta(email, nome, papel) {
+    email = normalizarEmail(email); if (!email) return;
+    const lista = (ler(K_CONTAS, []) || []).filter((c) => c && c.email !== email);
+    const antes = (ler(K_CONTAS, []) || []).find((c) => c && c.email === email) || {};
+    lista.unshift({ email, nome: nome || antes.nome || "", papel: papel === undefined ? antes.papel || "" : papel || "", em: new Date().toISOString() });
+    gravar(K_CONTAS, lista.slice(0, 6));
+  }
+
   /* ---------- Estado em memória ---------- */
   let usuarioAtual = null;   // { id, email }
   let perfilAtual = null;    // dados do cadastro
@@ -206,6 +217,7 @@
         usuarioAtual = { id: email, email };
       }
       await this.carregarPerfil();
+      lembrarConta(usuarioAtual.email, this.nomeExibicao());
       avisar();
       return usuarioAtual;
     },
@@ -229,6 +241,19 @@
       }
       avisar();
       return usuarioAtual;
+    },
+
+    /** Contas que já entraram neste computador (mais recente primeiro) */
+    contasSalvas() { return (ler(K_CONTAS, []) || []).filter((c) => c && c.email); },
+    /** Tira uma conta da lista deste computador */
+    esquecerConta(email) { gravar(K_CONTAS, this.contasSalvas().filter((c) => c.email !== normalizarEmail(email))); },
+    /** Atualiza nome/cargo mostrados na lista (o site chama depois de saber o cargo) */
+    lembrarConta(email, nome, papel) { lembrarConta(email, nome, papel); },
+    /** Sai e vai para a tela de entrar já com o e-mail escolhido (o código é enviado na hora) */
+    async trocarPara(email) {
+      try { sessionStorage.setItem("policoating_entrar_como", normalizarEmail(email || "")); sessionStorage.removeItem("policoating_2fa_sessao"); } catch (e) { /* segue */ }
+      await this.sair();
+      location.href = "conta.html";
     },
 
     async sair() {

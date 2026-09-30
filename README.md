@@ -449,7 +449,17 @@ Para funcionar de verdade no servidor:
   plano grátis do Supabase não guarda cópias, então faça **uma vez por semana** e guarde o arquivo em
   local seguro (tem dados pessoais). O painel lembra a data da última cópia.
 
-## Captcha anti-robô no login (opcional)
+## Trocar de conta
+
+No menu da conta (canto de cima), a opção **Trocar de conta** lista as contas que já entraram neste
+computador. Também dá para escolher **Usar outra conta**. Na tela de entrar aparecem as mesmas contas: um
+clique já envia o código. O computador guarda **só o e-mail, o nome e o cargo**, nunca o código ou a sessão.
+Por isso, para entrar em outra conta sempre é preciso o código (e o código de 2 etapas, no painel). O **×**
+tira a conta da lista.
+
+## Captcha anti-robô no login (opcional, pendência futura)
+
+Só é necessário se aparecerem contas falsas ou muitos e-mails para endereços inexistentes (bounced no Resend).
 
 1. Em **dash.cloudflare.com** (conta grátis), abra **Turnstile → Add widget**. Coloque o domínio
    `policoatingtintas.com.br` e escolha o modo **Managed**. O Cloudflare mostra a **Site Key** e a

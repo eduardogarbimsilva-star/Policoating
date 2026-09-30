@@ -915,6 +915,8 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
       document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !menu.hidden) { menu.hidden = true; link.focus(); } });
       menu.addEventListener("click", async (e) => {
         if (e.target.closest("[data-sair]")) { e.preventDefault(); await Conta.sair(); location.href = "index.html"; }
+        const tc = e.target.closest("[data-trocar-conta]");
+        if (tc) { e.preventDefault(); await Conta.trocarPara(tc.dataset.trocarConta); }
       });
     }
     const u = Conta.usuario || {};
@@ -925,13 +927,24 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
       <a href="conta.html#favoritos">${ic("coracao")}Favoritos</a>
       <a href="conta.html#dados">${ic("usuario")}Meus dados</a>
       <a href="admin.html" class="mc-admin" hidden>${ic("industria")}<span>Painel da empresa</span></a>
+      ${htmlTrocarConta(u.email)}
       <button type="button" data-sair>${ic("sair")}Sair</button>`;
     if (window.Catalogo) window.Catalogo.Admin.meuPapel().then((papel) => {
+      if (Conta.lembrarConta && u.email) Conta.lembrarConta(u.email, Conta.nomeExibicao(), papel || "");
       const x = $(".mc-admin", menu); if (!x) return;
       x.hidden = !papel;
       if (papel === "vendedor") $("span", x).textContent = "Área do vendedor";
       mostrarLinkPainel(papel);
     }).catch(() => {});
+  }
+
+  /* ---------- Trocar de conta (contas já usadas neste computador) ---------- */
+  function htmlTrocarConta(atual) {
+    const outras = (Conta.contasSalvas ? Conta.contasSalvas() : []).filter((c) => c.email !== String(atual || "").toLowerCase()).slice(0, 4);
+    const papel = { admin: "Administrador", vendedor: "Vendedor" };
+    return `<div class="mc-trocar"><small>Trocar de conta</small>
+      ${outras.map((c) => `<button type="button" data-trocar-conta="${esc(c.email)}"><i>${esc((c.nome || c.email).charAt(0).toUpperCase())}</i><span><b>${esc(c.nome || c.email.split("@")[0])}</b><em>${esc(c.email)}${c.papel ? " · " + papel[c.papel] : ""}</em></span></button>`).join("")}
+      <button type="button" data-trocar-conta="">${ic("usuario")}<span><b>Usar outra conta</b></span></button></div>`;
   }
 
   /* ---------- Atalho do painel no menu (vendedores e administradores) ---------- */

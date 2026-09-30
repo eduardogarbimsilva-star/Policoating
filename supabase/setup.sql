@@ -1211,3 +1211,97 @@ create trigger clientes_documento_bloqueado before insert or update of cpf, cnpj
   for each row execute function public.documento_bloqueado();
 
 notify pgrst, 'reload schema';
+
+-- ===========================================================
+-- PARTE N — Notas de entrada e vídeo nos produtos (rode depois das outras; pode rodar de novo)
+--   • Notas de entrada: lote (cor ou código), nº da NF, fornecedor (e código) e os arquivos
+--     (PDF, planilha, XML da NF-e ou foto). Pasta PRIVADA: só a equipe abre, por link temporário.
+--   • Toda a equipe guarda e consulta; só administradores corrigem ou excluem.
+--   • Vídeo do produto: a pasta "produtos" passa a aceitar MP4/WEBM/MOV até 50 MB.
+-- ===========================================================
+
+do $$ begin
+  if to_regprocedure('public.eh_equipe()') is null then raise exception 'Rode antes a PARTE F (cargos da equipe).'; end if;
+end $$;
+
+create table if not exists public.notas_entrada (
+  id                bigint generated always as identity primary key,
+  lote              text not null check (length(btrim(lote)) between 1 and 80),
+  nf                text not null check (length(btrim(nf)) between 1 and 40),
+  fornecedor        text not null check (length(btrim(fornecedor)) between 2 and 120),
+  fornecedor_codigo text check (length(fornecedor_codigo) <= 40),
+  data_nf           date,
+  obs               text check (length(obs) <= 500),
+  arquivos          jsonb not null check (jsonb_typeof(arquivos) = 'array' and jsonb_array_length(arquivos) between 1 and 10),
+  criado_por        text,
+  criado_em         timestamptz not null default now()
+);
+create index if not exists notas_entrada_data_idx on public.notas_entrada (criado_em desc);
+create index if not exists notas_entrada_nf_idx on public.notas_entrada (lower(fornecedor), nf);
+
+-- Quem guardou e quando: definido pelo servidor. Os arquivos precisam estar na pasta das notas.
+create or replace function public.notas_entrada_antes_de_gravar()
+returns trigger language plpgsql as $$
+declare a jsonb;
+begin
+  if tg_op = 'INSERT' then
+    new.criado_por := lower(auth.jwt() ->> 'email');
+    new.criado_em := now();
+  else
+    new.criado_por := old.criado_por; new.criado_em := old.criado_em;
+  end if;
+  new.lote := btrim(new.lote); new.nf := btrim(new.nf); new.fornecedor := btrim(new.fornecedor);
+  new.fornecedor_codigo := nullif(btrim(new.fornecedor_codigo), '');
+  new.obs := nullif(btrim(new.obs), '');
+  for a in select * from jsonb_array_elements(new.arquivos) loop
+    if jsonb_typeof(a) <> 'object' or coalesce(a ->> 'caminho', '') !~ '^[0-9]{4}/[0-9]{2}/[A-Za-z0-9._-]{1,120}$'
+       or length(coalesce(a ->> 'nome', '')) not between 1 and 120 then
+      raise exception 'Arquivo da nota inválido.' using errcode = 'P0001';
+    end if;
+  end loop;
+  return new;
+end $$;
+drop trigger if exists notas_entrada_antes_de_gravar on public.notas_entrada;
+create trigger notas_entrada_antes_de_gravar before insert or update on public.notas_entrada
+  for each row execute function public.notas_entrada_antes_de_gravar();
+
+alter table public.notas_entrada enable row level security;
+drop policy if exists "equipe ve notas" on public.notas_entrada;
+create policy "equipe ve notas" on public.notas_entrada
+  for select to authenticated using (public.eh_equipe());
+drop policy if exists "equipe guarda notas" on public.notas_entrada;
+create policy "equipe guarda notas" on public.notas_entrada
+  for insert to authenticated with check (public.eh_equipe());
+drop policy if exists "admin corrige notas" on public.notas_entrada;
+create policy "admin corrige notas" on public.notas_entrada
+  for update to authenticated using (public.eh_admin()) with check (public.eh_admin());
+drop policy if exists "admin exclui notas" on public.notas_entrada;
+create policy "admin exclui notas" on public.notas_entrada
+  for delete to authenticated using (public.eh_admin());
+revoke all on public.notas_entrada from anon;
+grant select, insert, update, delete on public.notas_entrada to authenticated;
+
+-- Pasta PRIVADA dos arquivos das notas (15 MB por arquivo)
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('notas', 'notas', false, 15728640, array[
+  'application/pdf', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.ms-excel',
+  'text/csv', 'text/xml', 'application/xml', 'image/jpeg', 'image/png'])
+on conflict (id) do update set public = false, file_size_limit = excluded.file_size_limit, allowed_mime_types = excluded.allowed_mime_types;
+
+drop policy if exists "equipe ve arquivos das notas" on storage.objects;
+create policy "equipe ve arquivos das notas" on storage.objects
+  for select to authenticated using (bucket_id = 'notas' and public.eh_equipe());
+drop policy if exists "equipe envia arquivos das notas" on storage.objects;
+create policy "equipe envia arquivos das notas" on storage.objects
+  for insert to authenticated with check (bucket_id = 'notas' and public.eh_equipe());
+drop policy if exists "admin apaga arquivos das notas" on storage.objects;
+create policy "admin apaga arquivos das notas" on storage.objects
+  for delete to authenticated using (bucket_id = 'notas' and public.eh_admin());
+
+-- Vídeo do produto: a pasta "produtos" aceita vídeos (até 50 MB)
+update storage.buckets
+   set allowed_mime_types = array['image/jpeg', 'image/png', 'image/webp', 'application/pdf', 'video/mp4', 'video/webm', 'video/quicktime'],
+       file_size_limit = 52428800
+ where id = 'produtos';
+
+notify pgrst, 'reload schema';

@@ -21,6 +21,25 @@
     return Fotos ? Fotos.fotoProduto(p, cor, tam) : "";
   }
   const fotosDe = (p) => (Array.isArray(p.fotos) ? p.fotos.filter((u) => typeof u === "string" && u) : []);
+  /** Vídeo do produto: link do YouTube/Vimeo ou arquivo enviado (mp4/webm/mov). Devolve null se não for aceito. */
+  function videoInfo(url) {
+    const u = String(url || "").trim();
+    if (!/^https:\/\//i.test(u) || u.length > 500) return null;
+    let m = u.match(/^https:\/\/(?:www\.|m\.)?(?:youtube\.com\/(?:watch\?(?:.*&)?v=|shorts\/|embed\/|live\/)|youtu\.be\/)([\w-]{11})(?:[?&#/].*)?$/i);
+    if (m) return { tipo: "youtube", url: u, embed: `https://www.youtube-nocookie.com/embed/${m[1]}?rel=0&playsinline=1`, capa: `https://i.ytimg.com/vi/${m[1]}/hqdefault.jpg` };
+    m = u.match(/^https:\/\/(?:www\.)?(?:player\.)?vimeo\.com\/(?:video\/)?(\d{5,12})(?:[?#/].*)?$/i);
+    if (m) return { tipo: "vimeo", url: u, embed: `https://player.vimeo.com/video/${m[1]}`, capa: "" };
+    if (/\.(mp4|webm|mov|m4v)(\?.*)?$/i.test(u)) return { tipo: "arquivo", url: u, embed: "", capa: "" };
+    return null;
+  }
+  const videoDe = (p) => videoInfo(p && p.video);
+  function htmlVideo(v, cls) {
+    if (v.tipo === "arquivo") return `<video class="video-produto ${cls || ""}" src="${esc(v.url)}" controls playsinline preload="metadata"></video>`;
+    return `<iframe class="video-produto ${cls || ""}" src="${esc(v.embed)}" title="Vídeo do produto" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowfullscreen loading="lazy" referrerpolicy="strict-origin-when-cross-origin"></iframe>`;
+  }
+  const miniVideo = (v) => v.capa
+    ? `<span class="mini-video"><img class="mini-foto" src="${esc(v.capa)}" alt="" loading="lazy"><i>${ic("play")}</i></span>`
+    : `<span class="mini-video sem-capa"><i>${ic("play")}</i><small>Vídeo</small></span>`;
   const imgFoto = (u, alt, classe) => `<img class="${classe || "foto-real"}" src="${esc(u)}" alt="${esc(alt || "")}" decoding="async" loading="lazy">`;
   function imgProduto(p, cor, tam, classe) {
     cor = cor || p.cores[0];
@@ -520,6 +539,7 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
       ${fotosDe(p).length
         ? fotosDe(p).map((u, i) => `<button type="button" class="${i ? "" : "ativo"}" data-vista="f${i}" aria-label="Foto ${i + 1}">${imgFoto(u, "", "mini-foto")}</button>`).join("")
         : `<button type="button" class="ativo" data-vista="foto" aria-label="Foto da cor">${imgProduto(p, corSel, FOTO_CARTAO, "mini-foto")}</button>`}
+      ${videoDe(p) ? `<button type="button" data-vista="video" aria-label="Vídeo do produto">${miniVideo(videoDe(p))}</button>` : ""}
       <button type="button" data-vista="caixa" aria-label="Embalagem">${caixaFoto("mini-foto")}</button>
     </div>
     <p class="modal-legenda" id="modal-legenda">${esc(corSel.nome)} · ${esc(p.acabamento || "")}</p>
@@ -575,7 +595,7 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
     /* ---------- Galeria: setas, contador, arrastar, zoom e tela cheia ---------- */
     let vista = fotosDe(p).length ? "f0" : "foto";
     const vistas = () => $$(".modal-miniaturas button", modal).map((m) => m.dataset.vista);
-    const htmlVista = (v, cls) => v === "caixa" ? caixaFoto(cls) : /^f\d+$/.test(v) ? imgFoto(fotosDe(p)[+v.slice(1)], p.nome, cls || "") : imgProduto(p, corSel, FOTO_MODAL, cls);
+    const htmlVista = (v, cls) => v === "video" ? htmlVideo(videoDe(p), cls) : v === "caixa" ? caixaFoto(cls) : /^f\d+$/.test(v) ? imgFoto(fotosDe(p)[+v.slice(1)], p.nome, cls || "") : imgProduto(p, corSel, FOTO_MODAL, cls);
     const urlVista = (v) => v === "caixa" ? FOTO_CAIXA : /^f\d+$/.test(v) ? fotosDe(p)[+v.slice(1)] : "";
     const desenharVitrine = () => {
       const alvo = $("#modal-vitrine"), lista = vistas(), i = lista.indexOf(vista), url = urlVista(vista);
@@ -584,13 +604,15 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
       alvo.classList.add("trocando");
       alvo.style.setProperty("--fundo-foto", url ? `url("${url.replace(/"/g, "%22")}")` : "none");
       alvo.innerHTML = htmlVista(vista);
+      $("#galeria-palco").classList.toggle("eh-video", vista === "video");
+      alvo.setAttribute("aria-label", vista === "video" ? "Vídeo do produto" : "Ampliar foto");
       const minis = $$(".modal-miniaturas button", modal);
       minis.forEach((m) => m.classList.toggle("ativo", m.dataset.vista === vista));
       const ativa = minis.find((m) => m.dataset.vista === vista);
       if (ativa && ativa.parentNode.scrollWidth > ativa.parentNode.clientWidth) ativa.parentNode.scrollLeft = ativa.offsetLeft - ativa.parentNode.clientWidth / 2 + ativa.offsetWidth / 2;
       $("#galeria-contador").textContent = `${i + 1} / ${lista.length}`;
       $$(".galeria-seta", modal).forEach((b) => (b.hidden = lista.length < 2));
-      $("#modal-legenda").textContent = vista === "caixa" ? "Embalagem: caixa de papelão Policoating" : `${corSel.nome} · ${p.acabamento || ""}`;
+      $("#modal-legenda").textContent = vista === "video" ? `Vídeo · ${p.nome}` : vista === "caixa" ? "Embalagem: caixa de papelão Policoating" : `${corSel.nome} · ${p.acabamento || ""}`;
     };
     const mudarFoto = (d) => { const lista = vistas(); vista = lista[(lista.indexOf(vista) + d + lista.length) % lista.length]; desenharVitrine(); };
     $$(".modal-miniaturas button", modal).forEach((b) => b.addEventListener("click", () => { vista = b.dataset.vista; desenharVitrine(); }));
@@ -598,7 +620,7 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
     const palco = $("#modal-vitrine");
     // zoom ao passar o mouse (computador)
     palco.addEventListener("mousemove", (e) => {
-      if (!matchMedia("(hover: hover)").matches) return;
+      if (!matchMedia("(hover: hover)").matches || vista === "video") return;
       const r = palco.getBoundingClientRect(), img = palco.querySelector("img"); if (!img) return;
       img.style.transformOrigin = `${((e.clientX - r.left) / r.width) * 100}% ${((e.clientY - r.top) / r.height) * 100}%`;
       palco.classList.add("zoom");
@@ -610,6 +632,7 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
     palco.addEventListener("touchend", (e) => {
       if (x0 == null) return;
       const dx = e.changedTouches[0].clientX - x0; x0 = null;
+      if (vista === "video" && Math.abs(dx) <= 40) return;   // toque no vídeo: play/pausa do próprio player
       e.preventDefault();
       if (Math.abs(dx) > 40) mudarFoto(dx < 0 ? 1 : -1); else abrirTelaCheia();
     });
@@ -621,7 +644,7 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
       if (e.key === "ArrowRight") mudarFoto(1); else if (e.key === "ArrowLeft") mudarFoto(-1);
     });
     function abrirTelaCheia() {
-      if (document.getElementById("tela-cheia")) return;
+      if (document.getElementById("tela-cheia") || vista === "video") return;
       palco.classList.remove("zoom");
       const tela = document.createElement("div");
       tela.id = "tela-cheia"; tela.className = "tela-cheia"; tela.setAttribute("role", "dialog"); tela.setAttribute("aria-label", "Foto ampliada");
@@ -633,7 +656,7 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
       document.body.appendChild(tela);
       const mostrar = () => {
         const lista = vistas();
-        $("#tela-foto").innerHTML = htmlVista(vista, "tela-img");
+        $("#tela-foto").innerHTML = htmlVista(vista, vista === "video" ? "tela-video" : "tela-img");
         $("#tela-contador").innerHTML = `${lista.indexOf(vista) + 1} / ${lista.length}<span class="dica-zoom"> · clique na foto para aproximar</span>`;
         $$("[data-tela]", tela).forEach((b) => (b.hidden = lista.length < 2));
       };
@@ -752,6 +775,7 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
     ${pi.tipo === "promo" ? `<span class="etiqueta-promo">-${pi.desconto}%</span>` : ""}
     ${botaoFav(p.id)}
     ${imgProduto(p, c, FOTO_CARTAO)}
+    ${videoDe(p) ? `<span class="selo-video">${ic("play")}Vídeo</span>` : ""}
     <span class="ver-detalhes">Ver detalhes</span>
   </div>
   <div class="info">
@@ -942,5 +966,5 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
   });
 
   /* API pública usada pelas páginas */
-  window.ColorWeg = { acharProduto, precoInfo, htmlPreco, formatarPreco, descreverQtd, kgDoItem, embalagemPadrao, lerVistos, iconeWhats, totalItens: () => totalItens(), itensCarrinho: () => carrinho.slice(), fotoProduto, imgProduto, lerFavoritos, alternarFavorito, gravarStorage, lerStorage, buscarProduto, $, $$, caixaSVG, renderProdutos, abrirProduto, adicionarAoCarrinho, linkWhatsApp, ehEscura, esc, observarRevelar, mostrarToast, abrirCarrinho };
+  window.ColorWeg = { videoInfo, videoDe, acharProduto, precoInfo, htmlPreco, formatarPreco, descreverQtd, kgDoItem, embalagemPadrao, lerVistos, iconeWhats, totalItens: () => totalItens(), itensCarrinho: () => carrinho.slice(), fotoProduto, imgProduto, lerFavoritos, alternarFavorito, gravarStorage, lerStorage, buscarProduto, $, $$, caixaSVG, renderProdutos, abrirProduto, adicionarAoCarrinho, linkWhatsApp, ehEscura, esc, observarRevelar, mostrarToast, abrirCarrinho };
 })();

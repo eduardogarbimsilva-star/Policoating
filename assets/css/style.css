@@ -2399,3 +2399,78 @@ main { overflow-x: clip; }
 .tela-fechar:hover { background: rgba(255,255,255,.26); }
 .tela-cheia .galeria-contador { left: 50%; bottom: 18px; transform: translateX(-50%); }
 @media (max-width: 700px) { .tela-cheia .dica-zoom { display: none; } .tela-foto { padding: 60px 10px; } .tela-foto img, .tela-foto svg { max-width: calc(100vw - 20px); max-height: calc(100vh - 150px); } .tela-cheia .galeria-seta { top: auto; bottom: 14px; margin-top: 0; } }
+
+/* ---------- Vídeo do produto (galeria do produto) ---------- */
+.galeria-palco.eh-video .modal-foto { cursor: default; background: #0b1424; }
+.galeria-palco.eh-video .modal-foto::before { display: none; }
+.galeria-palco.eh-video .galeria-dica { display: none; }
+.video-produto { width: 100%; height: 100%; border: 0; display: block; background: #000; }
+video.video-produto { object-fit: contain; }
+.mini-video { position: relative; display: grid; place-items: center; width: 100%; height: 100%; background: #0b1424; color: #fff; }
+.mini-video img { width: 100%; height: 100%; object-fit: cover; opacity: .75; }
+.mini-video i { position: absolute; inset: 0; display: grid; place-items: center; font-style: normal; }
+.mini-video .icone-svg { width: 28px; height: 28px; filter: drop-shadow(0 1px 3px rgba(0,0,0,.6)); }
+.mini-video.sem-capa { background: linear-gradient(135deg, #1558d6, #0b1424); }
+.mini-video.sem-capa i { bottom: 14px; }
+.mini-video small { position: absolute; bottom: 5px; font-size: .62rem; font-weight: 700; letter-spacing: .03em; }
+.tela-foto .tela-video { width: min(92vw, 1100px); height: auto; aspect-ratio: 16 / 9; max-height: calc(100vh - 112px); }
+.selo-video { position: absolute; left: 10px; bottom: 10px; z-index: 2; display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 999px; background: rgba(11,20,36,.82); color: #fff; font-size: .7rem; font-weight: 700; pointer-events: none; }
+.selo-video .icone-svg { width: 13px; height: 13px; }
+.cartao-produto:hover .selo-video { opacity: 0; }
+
+/* ---------- Painel: vídeo do produto ---------- */
+.campo-video { display: grid; gap: 6px; font-size: .85rem; font-weight: 600; }
+.campo-video-linha { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; font-weight: 400; }
+.campo-video-linha input { flex: 1 1 240px; min-width: 0; }
+.campo-video label.btn { cursor: pointer; }
+.campo-video label.btn.desativado { pointer-events: none; opacity: .55; }
+.campo-video small { font-weight: 400; color: var(--texto-suave); font-size: .78rem; }
+.video-status { margin: 0; font-size: .8rem; font-weight: 500; color: #1a7f45; min-height: 1em; }
+.video-status:empty { display: none; }
+.video-status.falta { color: #c0392b; }
+
+/* ---------- Painel: notas de entrada ---------- */
+.nota-form { margin-bottom: 18px; padding: 18px; border: 1px solid var(--borda); border-radius: 8px; background: #fff; }
+.nota-form h3 { display: flex; align-items: center; gap: 8px; margin: 0 0 14px; font-size: 1.02rem; }
+.nota-form h3 .icone-svg { width: 20px; height: 20px; color: var(--azul); }
+.nota-campos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 14px; }
+.nota-campos label { display: grid; gap: 5px; font-size: .82rem; font-weight: 600; }
+.nota-campos input { width: 100%; min-width: 0; }
+.nota-envio { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-start; margin-top: 14px; }
+.nota-envio label.btn { cursor: pointer; }
+.nota-escolhidos, .nota-arqs { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; flex: 1 1 260px; min-width: 0; }
+.nota-escolhidos li, .nota-arqs li { display: flex; align-items: center; gap: 8px; min-width: 0; padding: 6px 8px; border: 1px solid var(--borda); border-radius: 6px; background: var(--fundo-alt); font-size: .84rem; }
+.nota-escolhidos li span, .nota-arqs li span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nota-escolhidos li small, .nota-arqs li small { color: var(--texto-suave); white-space: nowrap; }
+.nota-escolhidos li button { border: 0; background: none; font-size: 1.1rem; line-height: 1; color: #b3261e; cursor: pointer; padding: 0 4px; }
+.nota-dica { display: block; margin-top: 8px; color: var(--texto-suave); font-size: .78rem; }
+.nota-acoes { display: flex; justify-content: flex-end; }
+.ext { flex: 0 0 auto; min-width: 38px; padding: 2px 5px; border-radius: 4px; background: #5a6775; color: #fff; font-size: .66rem; letter-spacing: .03em; text-align: center; }
+.ext-pdf { background: #c62828; }
+.ext-xlsx, .ext-xls, .ext-csv { background: #1a7f45; }
+.ext-xml { background: #6a3fb5; }
+.ext-jpg, .ext-jpeg, .ext-png { background: #1558d6; }
+.notas-lista { display: grid; gap: 10px; }
+.nota-cartao { padding: 14px 16px; border: 1px solid var(--borda); border-radius: 8px; background: #fff; }
+.nota-topo { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, .7fr) minmax(0, 1.4fr) minmax(0, .8fr); gap: 10px 16px; }
+.nota-topo > div { min-width: 0; overflow-wrap: anywhere; }
+.nota-rotulo { display: block; font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--texto-suave); }
+.nota-topo strong { font-size: .95rem; }
+.nota-topo small { color: var(--texto-suave); }
+.nota-lote { color: var(--azul); }
+.nota-obs { margin: 8px 0 0; font-size: .85rem; color: var(--texto-suave); }
+.nota-arqs { margin-top: 10px; }
+.btn-mini { flex: 0 0 auto; padding: 4px 10px; border: 1px solid var(--azul); border-radius: 999px; background: #fff; color: var(--azul); font-size: .76rem; font-weight: 600; cursor: pointer; }
+.btn-mini:hover { background: var(--azul); color: #fff; }
+.nota-rodape { margin: 10px 0 0; font-size: .76rem; color: var(--texto-suave); }
+.link-perigo { border: 0; background: none; padding: 0; color: #b3261e; font: inherit; font-weight: 600; text-decoration: underline; cursor: pointer; }
+@media (max-width: 900px) {
+  .nota-campos { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .nota-topo { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 560px) {
+  .nota-campos, .nota-topo { grid-template-columns: 1fr; }
+  .nota-acoes .btn { width: 100%; }
+}
+.nota-campos input { padding: 10px 12px; border: 1px solid var(--borda); border-radius: 6px; font: inherit; font-weight: 400; background: #fff; }
+.nota-campos input:focus { outline: 2px solid var(--azul); outline-offset: 1px; border-color: var(--azul); }

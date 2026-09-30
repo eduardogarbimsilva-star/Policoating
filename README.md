@@ -392,6 +392,28 @@ Supabase (SQL Editor, do `-- PARTE M` até o fim) uma vez.
 - A suspensão acaba sozinha no fim do prazo. Para liberar antes, use **Desbloquear**.
 - Filtro **Suspensos ou bloqueados** na aba Clientes. Vendedores veem o selo, mas não podem bloquear.
 
+## Notas de entrada e vídeo nos produtos (PARTE N do `setup.sql`)
+
+Rode a **PARTE N** no Supabase (SQL Editor, do `-- PARTE N` até o fim) uma vez.
+
+**Notas de entrada** (Painel → **Notas de entrada**):
+
+- Para guardar as NFs de compra: **lote** (cor ou código), **nº da NF**, **fornecedor** e o **código do
+  fornecedor**, a data da NF, uma observação e os **arquivos** (PDF, planilha XLSX/XLS/CSV, XML da NF-e
+  ou foto). São até 5 arquivos de 15 MB por nota.
+- A busca encontra por lote, cor, código, número da NF ou fornecedor, e dá para filtrar pelo período.
+  Um fornecedor que já foi usado aparece como sugestão e preenche o código sozinho. O site avisa se a
+  mesma NF do mesmo fornecedor já foi guardada.
+- Os arquivos ficam numa **pasta privada**: só a equipe abre, por um link que vale 5 minutos. Toda a
+  equipe guarda e consulta, e **só administradores excluem**. O sistema registra quem guardou e quando.
+
+**Vídeo do produto** (Painel → Produtos → Editar → **Vídeo do produto**):
+
+- Cole um link do **YouTube** (recomendado, porque não tem limite de tamanho e carrega mais rápido) ou
+  do **Vimeo**, ou envie um arquivo **MP4** de até 50 MB.
+- O vídeo aparece na galeria do produto, junto com as fotos (miniatura com ▶), e o cartão do catálogo
+  ganha o selo **Vídeo**. Links que não são do YouTube, do Vimeo ou de arquivo de vídeo são recusados.
+
 ## E-mail da empresa para a equipe (joao@policoatingtintas.com.br)
 
 A equipe entra no site com e-mails da empresa, e o código de acesso chega na caixa pessoal de cada

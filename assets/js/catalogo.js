@@ -43,7 +43,8 @@
         (!c.foto || /^(https:\/\/|data:image\/(jpeg|png|webp);base64,|assets\/)/.test(c.foto))) &&
       Array.isArray(p.embalagens) && p.embalagens.length && (!p.ficha || /^https:\/\//.test(p.ficha)) &&
       (p.preco == null || num(p.preco) >= 0) && (p.precoPromo == null || num(p.precoPromo) >= 0) &&
-      (p.fotos == null || (Array.isArray(p.fotos) && p.fotos.every(fotoOk))));
+      (p.fotos == null || (Array.isArray(p.fotos) && p.fotos.every(fotoOk))) &&
+      (!p.video || (typeof p.video === "string" && /^https:\/\//.test(p.video))));
   }
 
   /** Embalagem única: caixa de 25 kg (o cliente também pode pedir "Sob medida", em kg) */
@@ -717,8 +718,127 @@
       return sb.storage.from("produtos").getPublicUrl(caminho).data.publicUrl;
     },
 
+    /* ---------- Notas de entrada (arquivos das NFs de compra) ---------- */
+    async listarNotas() {
+      if (!ONLINE) return ler("policoating_demo_notas") || [];
+      const sb = await cliente();
+      const { data, error } = await sb.from("notas_entrada").select("*").order("criado_em", { ascending: false }).limit(3000);
+      if (error) {
+        if (/notas_entrada|schema cache|does not exist/i.test(error.message || "")) throw new Error("Para guardar notas de entrada, rode a PARTE N do setup.sql no Supabase.");
+        throw erro(error);
+      }
+      return data || [];
+    },
+    /** Guarda a nota: envia os arquivos (pasta privada) e grava lote, NF e fornecedor */
+    async salvarNota(campos, arquivos) {
+      const limpo = (v, max) => String(v == null ? "" : v).replace(/\s+/g, " ").trim().slice(0, max);
+      const reg = {
+        lote: limpo(campos.lote, 80), nf: limpo(campos.nf, 40), fornecedor: limpo(campos.fornecedor, 120),
+        fornecedor_codigo: limpo(campos.fornecedor_codigo, 40) || null, obs: limpo(campos.obs, 500) || null,
+        data_nf: /^\d{4}-\d{2}-\d{2}$/.test(campos.data_nf || "") ? campos.data_nf : null,
+      };
+      if (!reg.lote) throw new Error("Informe o lote (cor ou código).");
+      if (!reg.nf) throw new Error("Informe o número da NF.");
+      if (reg.fornecedor.length < 2) throw new Error("Informe o fornecedor.");
+      const lista = Array.from(arquivos || []);
+      if (!lista.length) throw new Error("Escolha pelo menos um arquivo da nota (PDF, planilha, XML ou foto).");
+      if (lista.length > 5) throw new Error("No máximo 5 arquivos por nota.");
+      const info = lista.map((f) => {
+        const t = tipoNota(f);
+        if (!t) throw new Error(`"${f.name}" não é aceito. Use PDF, XLSX, XLS, CSV, XML, JPG ou PNG.`);
+        if (f.size > 15 * 1024 * 1024) throw new Error(`"${f.name}" passa de 15 MB.`);
+        if (!f.size) throw new Error(`"${f.name}" está vazio.`);
+        return { arq: f, tipo: t.mime, nome: nomeSeguro(f.name, t.ext) };
+      });
+      if (!ONLINE) {
+        const lidos = [];
+        for (const x of info) {
+          if (x.arq.size > 2 * 1024 * 1024) throw new Error("No modo demonstração, só arquivos de até 2 MB.");
+          lidos.push({ caminho: "demo/" + x.nome, nome: x.nome, tipo: x.tipo, tamanho: x.arq.size, dados: await new Promise((ok) => { const fr = new FileReader(); fr.onload = () => ok(fr.result); fr.readAsDataURL(x.arq); }) });
+        }
+        const t = ler("policoating_demo_notas") || [];
+        const nota = Object.assign({ id: Date.now(), criado_em: new Date().toISOString(), criado_por: String(window.Conta.usuario.email).toLowerCase(), arquivos: lidos }, reg);
+        t.unshift(nota); gravar("policoating_demo_notas", t); return nota;
+      }
+      const sb = await cliente(), agora = new Date();
+      const pasta = `${agora.getFullYear()}/${String(agora.getMonth() + 1).padStart(2, "0")}`;
+      const enviados = [];
+      try {
+        for (const x of info) {
+          const caminho = `${pasta}/${Date.now()}-${Math.random().toString(36).slice(2, 7)}-${x.nome}`;
+          const { error } = await sb.storage.from("notas").upload(caminho, x.arq, { contentType: x.tipo, upsert: false });
+          if (error) {
+            const m = String(error.message || "");
+            if (/bucket not found|row-level security|unauthorized|403/i.test(m)) throw new Error("A pasta das notas não está pronta: rode a PARTE N do setup.sql no Supabase.");
+            if (/exceeded|too large|413/i.test(m)) throw new Error(`"${x.nome}" é grande demais para o armazenamento.`);
+            throw erro(error);
+          }
+          enviados.push({ caminho, nome: x.nome, tipo: x.tipo, tamanho: x.arq.size });
+        }
+        const { data, error } = await sb.from("notas_entrada").insert(Object.assign({ arquivos: enviados }, reg)).select().single();
+        if (error) throw /notas_entrada|schema cache/i.test(error.message || "") ? new Error("Rode a PARTE N do setup.sql no Supabase.") : erro(error);
+        return data;
+      } catch (e) {
+        if (enviados.length) await sb.storage.from("notas").remove(enviados.map((x) => x.caminho)).catch(() => {});
+        throw e;
+      }
+    },
+    /** Link temporário (5 min) para abrir ou baixar um arquivo da nota (a pasta é privada) */
+    async linkArquivoNota(arq, baixar) {
+      if (!ONLINE) return arq.dados || "";
+      const sb = await cliente();
+      const { data, error } = await sb.storage.from("notas").createSignedUrl(arq.caminho, 300, baixar ? { download: arq.nome } : undefined);
+      if (error) throw erro(error);
+      return data.signedUrl;
+    },
+    /** Exclui a nota e os arquivos dela (só administradores) */
+    async excluirNota(nota) {
+      if (!ONLINE) { gravar("policoating_demo_notas", (ler("policoating_demo_notas") || []).filter((n) => n.id !== nota.id)); return; }
+      const sb = await cliente();
+      const { data, error } = await sb.from("notas_entrada").delete().eq("id", nota.id).select("id");
+      if (error) throw erro(error);
+      if (!data || !data.length) throw new Error("Só administradores podem excluir notas.");
+      const caminhos = (nota.arquivos || []).map((a) => a.caminho).filter(Boolean);
+      if (caminhos.length) await sb.storage.from("notas").remove(caminhos).catch(() => {});
+    },
+
+    /** Envia o vídeo do produto (MP4/WEBM/MOV até 50 MB) e retorna o endereço público */
+    async enviarVideo(arquivo, pasta) {
+      const nome = String(arquivo.name || "").toLowerCase(), ext = (nome.match(/\.(mp4|webm|mov|m4v)$/) || [])[1];
+      const tipos = { mp4: "video/mp4", m4v: "video/mp4", webm: "video/webm", mov: "video/quicktime" };
+      const tipo = /^video\/(mp4|webm|quicktime)$/.test(arquivo.type) ? arquivo.type : tipos[ext];
+      if (!tipo) throw new Error(`"${arquivo.name}" não é um vídeo aceito. Use MP4 (ou WEBM/MOV).`);
+      if (arquivo.size > 50 * 1024 * 1024) throw new Error("Vídeo grande demais (máx. 50 MB). Envie pelo YouTube e cole o link.");
+      if (!ONLINE) throw new Error("No modo demonstração não dá para enviar vídeo. Cole um link do YouTube.");
+      const sb = await cliente();
+      const caminho = `${String(pasta || "novo").toLowerCase()}/video-${Date.now()}.${tipo === "video/webm" ? "webm" : tipo === "video/quicktime" ? "mov" : "mp4"}`;
+      const { error } = await sb.storage.from("produtos").upload(caminho, arquivo, { contentType: tipo, upsert: false });
+      if (error) {
+        const m = String(error.message || "");
+        if (/mime|not supported|invalid/i.test(m)) throw new Error("O armazenamento ainda não aceita vídeos: rode a PARTE N do setup.sql no Supabase.");
+        if (/exceeded|too large|413/i.test(m)) throw new Error("Vídeo grande demais para o armazenamento (máx. 50 MB). Use um link do YouTube.");
+        throw erro(error);
+      }
+      return sb.storage.from("produtos").getPublicUrl(caminho).data.publicUrl;
+    },
+
     valido,
   };
+
+  /** Tipos aceitos nas notas de entrada (pela extensão, que é mais confiável que o tipo informado pelo navegador) */
+  const TIPOS_NOTA = {
+    pdf: "application/pdf", xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", xls: "application/vnd.ms-excel",
+    csv: "text/csv", xml: "text/xml", jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png",
+  };
+  function tipoNota(f) {
+    const ext = (String(f.name || "").toLowerCase().match(/\.([a-z0-9]+)$/) || [])[1];
+    return ext && TIPOS_NOTA[ext] ? { ext: ext === "jpeg" ? "jpg" : ext, mime: TIPOS_NOTA[ext] } : null;
+  }
+  function nomeSeguro(nome, ext) {
+    const base = String(nome || "arquivo").replace(/\.[^.]*$/, "").normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^A-Za-z0-9._-]+/g, "-").replace(/^[-.]+|[-.]+$/g, "").slice(0, 60) || "arquivo";
+    return `${base}.${ext}`;
+  }
 
   function reduzir(arquivo, max) {
     return new Promise((ok, falha) => {

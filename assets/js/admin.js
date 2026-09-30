@@ -23,8 +23,8 @@
     if (!ehAdmin) {
       document.title = "Área do vendedor | Policoating";
       $(".cabecalho-pagina h1").textContent = "Área do vendedor";
-      $(".cabecalho-pagina p").textContent = "Pedidos feitos pelo site, promoções e carteira de clientes.";
-      $$(".admin-abas [data-aba]").forEach((b) => { if (!["produtos", "pedidos", "clientes"].includes(b.dataset.aba)) b.remove(); });
+      $(".cabecalho-pagina p").textContent = "Pedidos feitos pelo site, promoções, carteira de clientes e notas de entrada.";
+      $$(".admin-abas [data-aba]").forEach((b) => { if (!["produtos", "pedidos", "clientes", "notas"].includes(b.dataset.aba)) b.remove(); });
       document.body.classList.add("so-vendedor");
     }
     const [podeExcluir, podeExportar] = await Promise.all([A.podeExcluirPedidos(), A.podeExportarClientes()]);
@@ -235,6 +235,31 @@
       if (mv) { const j = i + +mv.dataset.fotoMover; [fotos[i], fotos[j]] = [fotos[j], fotos[i]]; desenharFotos(); }
       if (e.target.closest("[data-foto-remover]")) { fotos.splice(i, 1); desenharFotos(); }
     });
+    // vídeo: link do YouTube/Vimeo ou arquivo enviado
+    let videoAtual = "", enviandoVideo = false;
+    function mostrarVideo(url) {
+      videoAtual = String(url || "").trim();
+      $("#video-url").value = videoAtual;
+      conferirVideo();
+    }
+    function conferirVideo() {
+      const txt = $("#video-url").value.trim(), v = CW.videoInfo(txt), st = $("#video-status");
+      videoAtual = v ? v.url : "";
+      $("#video-remover").hidden = !txt;
+      st.className = "video-status" + (txt && !v ? " falta" : "");
+      st.innerHTML = enviandoVideo ? "Enviando vídeo... (pode levar alguns minutos)"
+        : !txt ? "" : !v ? "Link não reconhecido. Use um link do YouTube (youtube.com ou youtu.be), do Vimeo ou envie um arquivo MP4."
+        : `✓ ${v.tipo === "youtube" ? "Vídeo do YouTube" : v.tipo === "vimeo" ? "Vídeo do Vimeo" : "Arquivo de vídeo"} · <a href="${esc(v.url)}" target="_blank" rel="noopener">abrir</a>`;
+    }
+    $("#video-url").addEventListener("input", conferirVideo);
+    $("#video-remover").addEventListener("click", () => mostrarVideo(""));
+    $("#video-arquivo").addEventListener("change", async (e) => {
+      const arq = e.target.files[0]; e.target.value = ""; if (!arq) return;
+      enviandoVideo = true; $("#video-enviar").classList.add("desativado"); conferirVideo();
+      try { const url = await A.enviarVideo(arq, pastaFotos()); enviandoVideo = false; mostrarVideo(url); erro(""); }
+      catch (err) { enviandoVideo = false; conferirVideo(); erro(err.message); }
+      $("#video-enviar").classList.remove("desativado");
+    });
     $("#ficha-remover").addEventListener("click", () => mostrarFicha(""));
     $("#ficha-arquivo").addEventListener("change", async (e) => {
       const arq = e.target.files[0]; if (!arq) return;
@@ -295,6 +320,7 @@
       form.destaque.checked = !!p.destaque && !duplicar;
       form.ativo.checked = r ? r.ativo : true;
       mostrarFicha(p.ficha);
+      enviandoVideo = false; mostrarVideo(p.video);
       erro("");
       modal.hidden = false;
       document.body.style.overflow = "hidden";
@@ -311,6 +337,8 @@
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
       if (enviando) return erro("Aguarde terminar o envio das fotos.");
+      if (enviandoVideo) return erro("Aguarde terminar o envio do vídeo.");
+      if ($("#video-url").value.trim() && !videoAtual) return erro("O link do vídeo não foi reconhecido. Corrija ou clique em Remover.");
       const cor = { nome: $("#cor-nome").value.replace(/\s+/g, " ").trim(), hex: hex.value.trim() };
       if (fotos[0]) cor.foto = fotos[0];
       const combinar = modoPreco() === "combinar";
@@ -333,6 +361,7 @@
       if (antigo && antigo.dados.familia) dados.familia = antigo.dados.familia;
       if (form.densidade.value) dados.densidade = Number(form.densidade.value);
       if (fichaAtual) dados.ficha = fichaAtual;
+      if (videoAtual) dados.video = videoAtual;
       if (!combinar) {
         dados.preco = Math.round(Number(form.preco.value) * 100) / 100;
         if (form.precoPromo.value) dados.precoPromo = Math.round(Number(form.precoPromo.value) * 100) / 100;
@@ -361,6 +390,7 @@
       if (nome === "pedidos") carregarPedidos();
       if (nome === "galeria") carregarGaleria();
       if (nome === "equipe") carregarEquipe();
+      if (nome === "notas") carregarNotas();
     };
     abas.forEach((b) => b.addEventListener("click", () => abrirAba(b.dataset.aba)));
 
@@ -795,6 +825,99 @@
       if (!confirm(`Remover o acesso de ${email}?${email.toLowerCase().endsWith("@" + A.dominioEquipe()) ? "\n\nO e-mail da empresa também é apagado (para de redirecionar)." : ""}`)) return;
       try { const r = await A.removerMembro(email) || {}; carregarEquipe(); CW.mostrarToast(r.apelido === "apagado" ? "Acesso removido e e-mail da empresa apagado." : "Acesso removido."); }
       catch (err) { $("#equipe-erro").textContent = err.message; }
+    });
+
+    /* ---------- Notas de entrada (NFs de compra: lote, NF, fornecedor e arquivos) ---------- */
+    let notas = [], notaArquivos = [];
+    const diaBR = (d) => (d ? new Date(d.length === 10 ? d + "T12:00:00" : d).toLocaleDateString("pt-BR") : "");
+    const tamanho = (b) => (b >= 1048576 ? (b / 1048576).toFixed(1).replace(".", ",") + " MB" : Math.max(1, Math.round(b / 1024)) + " KB");
+    const extDe = (n) => (String(n).toLowerCase().match(/\.([a-z0-9]+)$/) || [, "arq"])[1];
+    const podeVer = (a) => /^(pdf|jpg|jpeg|png)$/.test(extDe(a.nome));
+    function desenharEscolhidos() {
+      $("#nota-escolhidos").innerHTML = notaArquivos.map((f, i) => `<li><b class="ext ext-${esc(extDe(f.name))}">${esc(extDe(f.name).toUpperCase())}</b>
+        <span>${esc(f.name)}</span><small>${tamanho(f.size)}</small><button type="button" data-tirar="${i}" aria-label="Tirar ${esc(f.name)}">×</button></li>`).join("");
+    }
+    $("#nota-arquivos").addEventListener("change", (e) => {
+      notaArquivos = notaArquivos.concat(Array.from(e.target.files)).slice(0, 5); e.target.value = "";
+      $("#nota-erro").textContent = ""; desenharEscolhidos();
+    });
+    $("#nota-escolhidos").addEventListener("click", (e) => {
+      const b = e.target.closest("[data-tirar]"); if (!b) return;
+      notaArquivos.splice(+b.dataset.tirar, 1); desenharEscolhidos();
+    });
+    // fornecedor já usado: preenche o código sozinho
+    $("#nota-form").fornecedor.addEventListener("change", (e) => {
+      const f = e.target.value.trim().toLowerCase(), cod = $("#nota-form").fornecedor_codigo;
+      const achou = notas.find((n) => n.fornecedor.toLowerCase() === f && n.fornecedor_codigo);
+      if (achou && !cod.value) cod.value = achou.fornecedor_codigo;
+    });
+    $("#nota-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const f = e.target, btn = $("#nota-salvar");
+      const campos = { lote: f.lote.value, nf: f.nf.value, fornecedor: f.fornecedor.value, fornecedor_codigo: f.fornecedor_codigo.value, data_nf: f.data_nf.value, obs: f.obs.value };
+      const repetida = notas.find((n) => n.nf.replace(/\D/g, "") && n.nf.replace(/\D/g, "") === campos.nf.replace(/\D/g, "") && n.fornecedor.toLowerCase() === campos.fornecedor.trim().toLowerCase());
+      if (repetida && !confirm(`Já existe a NF ${repetida.nf} de ${repetida.fornecedor} (lote ${repetida.lote}). Guardar mesmo assim?`)) return;
+      btn.disabled = true; btn.textContent = "Enviando..."; $("#nota-erro").textContent = "";
+      try {
+        await A.salvarNota(campos, notaArquivos);
+        f.reset(); notaArquivos = []; desenharEscolhidos();
+        CW.mostrarToast("Nota guardada.");
+        await carregarNotas();
+      } catch (err) { $("#nota-erro").textContent = err.message; }
+      btn.disabled = false; btn.textContent = "Salvar nota";
+    });
+    async function carregarNotas() {
+      $("#notas-erro").textContent = "";
+      try { notas = await A.listarNotas(); }
+      catch (e) { notas = []; $("#notas-erro").textContent = e.message; }
+      const fornecedores = [...new Set(notas.map((n) => n.fornecedor))].sort((a, b) => a.localeCompare(b, "pt-BR"));
+      $("#notas-fornecedores").innerHTML = fornecedores.map((x) => `<option value="${esc(x)}">`).join("");
+      desenharNotas();
+    }
+    function desenharNotas() {
+      const termo = slug($("#notas-busca").value || "").replace(/-/g, " ").trim(), dias = +$("#notas-periodo").value || 0;
+      const lista = notas.filter((n) => {
+        if (dias && diasDesde(n.data_nf || n.criado_em) > dias) return false;
+        if (!termo) return true;
+        const alvo = slug([n.lote, n.nf, n.fornecedor, n.fornecedor_codigo, n.obs].join(" ")).replace(/-/g, " ");
+        return termo.split(" ").every((t) => alvo.includes(t));
+      });
+      $("#notas-resumo").innerHTML = `<b>${lista.length}</b> ${lista.length === 1 ? "nota" : "notas"}${lista.length !== notas.length ? ` de ${notas.length}` : ""}`;
+      $("#notas-lista").innerHTML = lista.length ? lista.map((n) => `<article class="nota-cartao" data-nota="${esc(String(n.id))}">
+          <div class="nota-topo">
+            <div><span class="nota-rotulo">Lote</span><strong class="nota-lote">${esc(n.lote)}</strong></div>
+            <div><span class="nota-rotulo">NF</span><strong>${esc(n.nf)}</strong></div>
+            <div><span class="nota-rotulo">Fornecedor</span><strong>${esc(n.fornecedor)}</strong>${n.fornecedor_codigo ? ` <small>cód. ${esc(n.fornecedor_codigo)}</small>` : ""}</div>
+            ${n.data_nf ? `<div><span class="nota-rotulo">Data da NF</span><strong>${diaBR(n.data_nf)}</strong></div>` : ""}
+          </div>
+          ${n.obs ? `<p class="nota-obs">${esc(n.obs)}</p>` : ""}
+          <ul class="nota-arqs">${(n.arquivos || []).map((a, i) => `<li><b class="ext ext-${esc(extDe(a.nome))}">${esc(extDe(a.nome).toUpperCase())}</b><span>${esc(a.nome)}</span>${a.tamanho ? `<small>${tamanho(a.tamanho)}</small>` : ""}
+              ${podeVer(a) ? `<button type="button" class="btn-mini" data-ver="${i}">Abrir</button>` : ""}<button type="button" class="btn-mini" data-baixar="${i}">Baixar</button></li>`).join("")}</ul>
+          <p class="nota-rodape">Guardada ${diaBR(n.criado_em)}${n.criado_por ? ` por ${esc(n.criado_por)}` : ""}${ehAdmin ? ` · <button type="button" class="link-perigo" data-excluir-nota>Excluir</button>` : ""}</p>
+        </article>`).join("") : `<p class="dica">${notas.length ? "Nenhuma nota encontrada com essa busca." : "Nenhuma nota guardada ainda. Preencha o lote, a NF e o fornecedor acima e escolha o arquivo."}</p>`;
+    }
+    $("#notas-busca").addEventListener("input", desenharNotas);
+    $("#notas-periodo").addEventListener("change", desenharNotas);
+    $("#notas-atualizar").addEventListener("click", carregarNotas);
+    $("#notas-lista").addEventListener("click", async (e) => {
+      const card = e.target.closest("[data-nota]"); if (!card) return;
+      const n = notas.find((x) => String(x.id) === card.dataset.nota); if (!n) return;
+      const bv = e.target.closest("[data-ver]"), bb = e.target.closest("[data-baixar]");
+      if (bv || bb) {
+        const arq = n.arquivos[+(bv || bb).dataset[bv ? "ver" : "baixar"]];
+        const janela = bv ? window.open("", "_blank") : null;   // abre já (o navegador bloqueia janela aberta depois de esperar)
+        try {
+          const url = await A.linkArquivoNota(arq, !!bb);
+          if (janela) { janela.opener = null; janela.location.href = url; }
+          else { const a = document.createElement("a"); a.href = url; a.download = arq.nome; a.rel = "noopener"; document.body.appendChild(a); a.click(); a.remove(); }
+        } catch (err) { if (janela) janela.close(); $("#notas-erro").textContent = err.message; }
+        return;
+      }
+      if (e.target.closest("[data-excluir-nota]")) {
+        if (!confirm(`Excluir a NF ${n.nf} (${n.fornecedor}, lote ${n.lote}) e os arquivos dela?\n\nNão dá para desfazer.`)) return;
+        try { await A.excluirNota(n); CW.mostrarToast("Nota excluída."); await carregarNotas(); }
+        catch (err) { $("#notas-erro").textContent = err.message; }
+      }
     });
 
     // vendedor abre direto nos pedidos

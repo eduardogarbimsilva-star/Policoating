@@ -1418,3 +1418,66 @@ revoke all on function public.excluir_cliente(uuid, boolean) from public, anon;
 grant execute on function public.excluir_cliente(uuid, boolean) to authenticated;
 
 notify pgrst, 'reload schema';
+
+-- ===========================================================
+-- PARTE Q — Central IA: conversas salvas e consumo da IA (rode depois das outras; pode rodar de novo)
+--   • ia_conversas: cada pessoa da equipe vê só as próprias conversas da Central IA (ia.html).
+--   • ia_uso: cada resposta da IA (Central IA e programas ATLAS) com tokens e custo em dólar.
+--     Quem grava é só o servidor (funções motor-ia e motor-atlas). Administradores veem tudo;
+--     vendedores veem só o próprio consumo.
+-- ===========================================================
+
+create table if not exists public.ia_conversas (
+  id            uuid primary key default gen_random_uuid(),
+  dono          uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  ferramenta    text not null default 'geral' check (ferramenta ~ '^[a-z0-9_-]{2,30}$'),
+  titulo        text not null default 'Nova conversa' check (char_length(titulo) <= 120),
+  mensagens     jsonb not null default '[]' check (jsonb_typeof(mensagens) = 'array' and pg_column_size(mensagens) < 1500000),
+  fixada        boolean not null default false,
+  criado_em     timestamptz not null default now(),
+  atualizado_em timestamptz not null default now()
+);
+create index if not exists ia_conversas_dono_idx on public.ia_conversas (dono, atualizado_em desc);
+alter table public.ia_conversas enable row level security;
+
+drop policy if exists "equipe usa as proprias conversas" on public.ia_conversas;
+create policy "equipe usa as proprias conversas" on public.ia_conversas
+  for all to authenticated
+  using (dono = auth.uid() and public.eh_equipe())
+  with check (dono = auth.uid() and public.eh_equipe());
+grant select, insert, update, delete on public.ia_conversas to authenticated;
+
+create or replace function public.ia_conversas_antes_de_gravar()
+returns trigger language plpgsql as $$
+begin
+  new.atualizado_em := now();
+  if tg_op = 'UPDATE' then new.dono := old.dono; new.criado_em := old.criado_em; end if;
+  return new;
+end $$;
+drop trigger if exists ia_conversas_antes_de_gravar on public.ia_conversas;
+create trigger ia_conversas_antes_de_gravar before insert or update on public.ia_conversas
+  for each row execute function public.ia_conversas_antes_de_gravar();
+
+create table if not exists public.ia_uso (
+  id         bigint generated always as identity primary key,
+  criado_em  timestamptz not null default now(),
+  email      text not null,
+  origem     text not null default 'central',   -- central | atlas
+  ferramenta text,
+  modelo     text,
+  entrada    integer not null default 0,         -- tokens lidos
+  saida      integer not null default 0,         -- tokens escritos
+  buscas     integer not null default 0,         -- pesquisas na web
+  custo_usd  numeric(12, 5) not null default 0,
+  erro       text
+);
+create index if not exists ia_uso_data_idx on public.ia_uso (criado_em desc);
+alter table public.ia_uso enable row level security;
+
+drop policy if exists "equipe ve consumo da ia" on public.ia_uso;
+create policy "equipe ve consumo da ia" on public.ia_uso
+  for select to authenticated
+  using (public.eh_admin() or (public.eh_equipe() and lower(email) = lower(auth.jwt() ->> 'email')));
+grant select on public.ia_uso to authenticated;
+
+notify pgrst, 'reload schema';

@@ -37,6 +37,10 @@ window.SITE_CONFIG = {
   assistente: {
     endpoint: ""
   },
+  // Central IA da equipe (ia.html). Vazio = usa a função "motor-ia" do Supabase acima. Veja o README.
+  centralIA: {
+    endpoint: ""
+  },
 
   // Redes sociais e lojas. Deixe vazio ("") para esconder. Também dá para editar tudo
   // pelo Painel da empresa → "Contato e links" (o que for salvo lá vale mais que este arquivo).

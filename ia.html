@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Central IA | Policoating</title>
+  <meta name="description" content="Ferramentas de inteligência artificial da equipe Policoating.">
+  <meta name="theme-color" content="#0b1424">
+  <meta name="robots" content="noindex">
+  <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="assets/img/icone-180.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Barlow:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/ia.css?v=4dea82af">
+</head>
+<body class="ia">
+  <header class="ia-topo">
+    <button type="button" class="ia-btn-icone ia-so-celular" id="ia-abrir-menu" aria-label="Abrir menu" aria-expanded="false">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+    </button>
+    <a href="index.html" class="ia-marca" aria-label="Policoating - início">
+      <span class="ia-logo"><svg viewBox="0 0 64 64" aria-hidden="true"><path fill="#fff" fill-rule="evenodd" d="M22 6h24c11 0 17 7 15 17-2 11-11 18-23 18h-8l-4 17H12L22 6zm10 11-3.5 13H37c5 0 8-2.6 9-6.5 1-4-1-6.5-5.5-6.5H32z"/><path fill="#5b9bff" d="M4 58 14 20h11l-4 14c8 0 14-2 18-7-3 9-10 14-21 14h-2l-4 17z"/></svg></span>
+      <span><strong>Central IA</strong><small>Policoating</small></span>
+    </a>
+    <div class="ia-topo-acoes">
+      <button type="button" class="ia-consumo" id="ia-consumo" hidden title="Consumo de IA neste mês"></button>
+      <a href="admin.html" class="ia-link">Painel</a>
+      <span class="ia-usuario" id="ia-usuario"></span>
+    </div>
+  </header>
+
+  <div class="ia-estado" id="ia-carregando"><span class="ia-girando"></span> Verificando acesso...</div>
+  <div class="ia-estado" id="ia-entrar" hidden>
+    <h1>Entre com a conta da empresa</h1>
+    <p>A Central IA é exclusiva da equipe Policoating (administradores e vendedores).</p>
+    <a href="conta.html" class="ia-btn ia-btn-primario">Entrar</a>
+  </div>
+  <div class="ia-estado" id="ia-negado" hidden>
+    <h1>Sem acesso</h1>
+    <p>A conta <strong id="ia-email-negado"></strong> não está na equipe. Peça a um administrador para liberar este e-mail na aba Equipe do painel.</p>
+  </div>
+  <div class="ia-estado" id="ia-2fa" hidden>
+    <h1>Confirme a verificação em 2 etapas</h1>
+    <p>Por segurança, a Central IA usa a mesma proteção do painel. Abra o Painel da empresa, digite o código do aplicativo autenticador e volte.</p>
+    <a href="admin.html" class="ia-btn ia-btn-primario">Abrir o painel</a>
+  </div>
+
+  <div class="ia-app" id="ia-app" hidden>
+    <!-- ===== Lateral: ferramentas e histórico ===== -->
+    <aside class="ia-lateral" id="ia-lateral" aria-label="Ferramentas e conversas">
+      <button type="button" class="ia-btn ia-btn-primario ia-nova" id="ia-nova">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> Nova conversa
+      </button>
+      <h2 class="ia-rotulo">Ferramentas</h2>
+      <nav class="ia-ferramentas" id="ia-ferramentas"></nav>
+      <h2 class="ia-rotulo">Conversas <button type="button" class="ia-limpar-busca" id="ia-busca-limpar" hidden>limpar</button></h2>
+      <input type="search" class="ia-busca" id="ia-busca" placeholder="Buscar nas conversas" aria-label="Buscar nas conversas">
+      <ul class="ia-historico" id="ia-historico"></ul>
+    </aside>
+    <div class="ia-veu" id="ia-veu" hidden></div>
+
+    <!-- ===== Conversa ===== -->
+    <main class="ia-principal" id="conteudo">
+      <div class="ia-aviso" id="ia-aviso" hidden></div>
+      <div class="ia-conversa" id="ia-conversa" aria-live="polite"></div>
+
+      <form class="ia-escrever" id="ia-form" autocomplete="off">
+        <div class="ia-anexos" id="ia-anexos"></div>
+        <div class="ia-caixa">
+          <button type="button" class="ia-btn-icone" id="ia-anexar" aria-label="Anexar arquivo" title="Anexar foto, PDF ou planilha">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m21 11-8.5 8.5a5 5 0 0 1-7-7L14 4a3.5 3.5 0 0 1 5 5l-8.5 8.5a2 2 0 0 1-3-3L15 7"/></svg>
+          </button>
+          <input type="file" id="ia-arquivo" multiple hidden>
+          <textarea id="ia-texto" rows="1" placeholder="Pergunte o que quiser..." aria-label="Sua mensagem"></textarea>
+          <button type="submit" class="ia-enviar" id="ia-enviar" aria-label="Enviar">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </button>
+          <button type="button" class="ia-parar" id="ia-parar" aria-label="Parar a resposta" hidden>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="7" width="10" height="10" rx="1.5"/></svg>
+          </button>
+        </div>
+        <p class="ia-rodape">A IA pode errar. Confira números e dados importantes antes de enviar a clientes.</p>
+      </form>
+    </main>
+  </div>
+
+  <dialog class="ia-dialogo" id="ia-dialogo-consumo">
+    <form method="dialog"><button class="ia-fechar" aria-label="Fechar">×</button></form>
+    <h2>Consumo de IA neste mês</h2>
+    <div id="ia-consumo-detalhe"></div>
+  </dialog>
+
+  <div class="ia-toast" id="ia-toast" role="status" hidden></div>
+
+  <script src="assets/js/config.js?v=22cf7308"></script>
+  <script src="assets/js/auth.js?v=84685be3"></script>
+  <script src="assets/js/ia.js?v=03aee256"></script>
+</body>
+</html>

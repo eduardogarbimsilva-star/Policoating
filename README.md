@@ -19,6 +19,7 @@ e na aba Pedidos do painel.
 | `privacidade.html` | Política de Privacidade (LGPD) |
 | `404.html` | Página de "não encontrado" (usada automaticamente pelo GitHub Pages) |
 | `recursos.html` | Guia "Qual pó usar?", calculadora de consumo (kg e caixas), simulador de cores, documentos, FAQ |
+| `ia.html` | **Central IA** da equipe: 8 ferramentas de inteligência artificial (veja a seção Central IA) |
 
 Em todas as páginas: carrinho lateral, assistente de compras e modal de produto (cor RAL, caixa, quantidade).
 O layout é responsivo (celular, tablet e computador).
@@ -507,6 +508,68 @@ Um e-mail completo de fora (ex.: `fulano@outlook.com`) também pode ser adiciona
 tentar entrar com um e-mail da empresa que ainda não existe, o Resend bloqueia o endereço ("Suprimido"):
 remova em **Resend → Supressões**. Se a empresa contratar caixas de verdade (Microsoft 365 / Outlook), os
 registros MX do ImprovMX são trocados pelos da Microsoft.
+
+## Central IA — ferramentas de inteligência artificial da equipe (ia.html)
+
+Uma página só da equipe (administradores e vendedores, com a verificação em 2 etapas) com **8 ferramentas de IA**
+que rodam num **motor na web** (função `supabase/functions/motor-ia` do Supabase). Abre pelo link
+**✦ Central IA** no topo do Painel da empresa, ou direto em `policoatingtintas.com.br/ia.html`.
+
+| Ferramenta | O que faz |
+|---|---|
+| **Assistente geral** | Responde qualquer pergunta usando vendas, clientes, catálogo e pesquisa na web |
+| **Analista de vendas** | Faturamento, kg, ticket médio, produtos/cores/estados campeões, clientes parados — sempre com os números reais do banco |
+| **Pesquisa na web** | Normas, concorrentes, preços de mercado, fornecedores e tendências, com as fontes |
+| **Marketing e conteúdo** | Posts, mensagens de WhatsApp, e-mails de campanha e descrições de produto com os dados do catálogo |
+| **Proposta comercial** | Orçamento pronto com produtos, preços vigentes, conversão m² → kg e condições; imprime em PDF |
+| **Leitor de documentos** | Lê notas fiscais, fichas técnicas, laudos e pedidos (PDF ou foto), extrai os dados e aponta erros |
+| **Identificar cor por foto** | Indica o RAL mais provável, o acabamento e os produtos da Policoating nessa cor |
+| **Planilhas e ATLAS** | Lê planilhas inteiras (inclusive o backup .xlsx do ATLAS CONTROL/DAILY), calcula com Python e devolve gráficos e planilhas |
+
+Também tem: respostas em tempo real, anexos (arrastar e soltar ou colar), **histórico de conversas** salvo no
+banco (buscar, fixar, apagar), **Copiar**, **Imprimir / PDF** e **WhatsApp** em cada resposta, e o **consumo do mês**
+no topo (administradores veem o de toda a equipe e dos programas ATLAS; vendedores, o próprio).
+
+**Segurança:** a IA só **lê** dados (não altera nada no banco). A função confere o login, o cargo e a verificação em
+2 etapas a cada pergunta. A chave da Anthropic fica só nos Secrets do Supabase, nunca no site.
+
+### Ativar (uma vez)
+
+1. **Banco:** no Supabase → SQL Editor, rode a **PARTE Q** do [`supabase/setup.sql`](supabase/setup.sql) (conversas e consumo).
+2. **Motor:** **Edge Functions → Deploy a new function → Via Editor**, nome `motor-ia`, cole o conteúdo de
+   [`supabase/functions/motor-ia/index.ts`](supabase/functions/motor-ia/index.ts) e publique. Em *Details*,
+   **desligue "Verify JWT"** (a função confere o acesso sozinha).
+3. **Secrets** (Edge Functions → Secrets):
+   - `ANTHROPIC_API_KEY`: a chave da Anthropic (a mesma do assistente de compras, se já tiver);
+   - `IA_LIMITE_MES_USD` *(opcional)*: limite de gasto do mês em dólar, somando Central IA e ATLAS (padrão `50`).
+     Ao chegar no limite, a IA para até o mês seguinte ou até o limite ser aumentado.
+4. Na Anthropic (console.anthropic.com → Billing → Limits), defina também um limite mensal da conta.
+
+O endereço do motor é montado sozinho a partir do `supabase.url` do `config.js`. Para usar outro endereço, preencha
+`centralIA: { endpoint: "https://.../functions/v1/motor-ia" }` no `config.js`.
+
+**Custos (referência):** uma pergunta comum custa de US$ 0,01 a 0,05; análises de planilhas grandes, pesquisas na web
+e propostas longas, de US$ 0,05 a 0,50. Cada resposta mostra o custo no rodapé.
+
+### Criar uma ferramenta nova
+
+1. Em `supabase/functions/motor-ia/index.ts`, acrescente uma entrada em `FERRAMENTAS` (nome, instruções, nível de
+   esforço e recursos: `dados`, `catalogo`, `web` e/ou `codigo`) e publique a função de novo.
+2. Em `assets/js/ia.js`, acrescente a mesma `id` na lista `FERRAMENTAS` (nome, descrição, ícone, exemplos e anexos aceitos).
+
+### Motor na web para os programas ATLAS (`supabase/functions/motor-atlas`)
+
+Os programas ATLAS CONTROL e ATLAS DAILY podem usar a IA sem guardar a chave da Anthropic em cada computador:
+
+1. Publique a função `motor-atlas` (mesmo jeito do `motor-ia`, com **Verify JWT desligado**), colando
+   [`supabase/functions/motor-atlas/index.ts`](supabase/functions/motor-atlas/index.ts).
+2. Em **Secrets**, crie `ATLAS_CODIGOS` com um código por computador ou setor, no formato `nome:codigo`, separados
+   por vírgula (ex.: `escritorio:Kq83-hT2a-99xP-Lm20,estoque:Zp10-aa7B-c4Lm-7Hq1`). Use códigos longos (12+ caracteres).
+   Para cancelar um computador, tire o código dele da lista.
+3. No ATLAS, entre como administrador → botão da IA → **Chave** → **Motor na web** e informe o endereço
+   `https://SEU-PROJETO.supabase.co/functions/v1/motor-atlas` e o código daquele computador.
+
+O consumo de cada código aparece na Central IA (consumo do mês → "Programas ATLAS" e `atlas:nome`).
 
 ## Publicar
 

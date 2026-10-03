@@ -41,10 +41,19 @@
     ? `<span class="mini-video"><img class="mini-foto" src="${esc(v.capa)}" alt="" loading="lazy"><i>${ic("play")}</i></span>`
     : `<span class="mini-video sem-capa"><i>${ic("play")}</i><small>Vídeo</small></span>`;
   const imgFoto = (u, alt, classe) => `<img class="${classe || "foto-real"}" src="${esc(u)}" alt="${esc(alt || "")}" decoding="async" loading="lazy">`;
+  /** Enquadramento da foto no quadro do cartão (definido no painel): posição e "mostrar inteira" */
+  function cssEnq(p, url) {
+    const e = (p && p.enquadramento && p.enquadramento[url]) || null;
+    if (!e) return "";
+    const pos = /^\d{1,3}(\.\d+)?% \d{1,3}(\.\d+)?%$/.test(e.pos || "") ? e.pos : "50% 50%";
+    return `object-position:${pos}${e.inteira ? ";object-fit:contain" : ""}`;
+  }
+  const estiloEnq = (p, url) => { const c = cssEnq(p, url); return c ? ` style="${c}"` : ""; };
   function imgProduto(p, cor, tam, classe) {
     cor = cor || p.cores[0];
     if (!Fotos) return caixaSVG(cor.hex);
-    return `<img class="${classe || "foto-produto"}" src="${esc(fotoProduto(p, cor, tam))}" alt="${esc(p.nome)} — ${esc(cor.nome)}" width="${tam.largura}" height="${tam.altura}" decoding="async" data-produto="${esc(p.id)}" data-cor="${esc(cor.nome)}">`;
+    const url = fotoProduto(p, cor, tam);
+    return `<img class="${classe || "foto-produto"}" src="${esc(url)}"${tam === FOTO_CARTAO ? estiloEnq(p, url) : ""} alt="${esc(p.nome)} — ${esc(cor.nome)}" width="${tam.largura}" height="${tam.altura}" decoding="async" data-produto="${esc(p.id)}" data-cor="${esc(cor.nome)}">`;
   }
 
   /* ---------- Utilidades ---------- */
@@ -69,8 +78,8 @@
   const dataCurtaBR = (iso) => (iso ? iso.split("-").reverse().join("/") : "");
   function htmlPreco(p, detalhado) {
     const pi = precoInfo(p);
-    if (pi.tipo === "combinar") return `<span class="preco preco-combinar"><small>Preço</small>Sob consulta</span>`;
-    const caixa = detalhado ? (() => { const kg = kgDaEmbalagem(embalagemPadrao(p)); return kg ? `<small class="preco-caixa">Caixa ${kg} kg: ${formatarPreco(pi.efetivo * kg)}</small>` : ""; })() : "";
+    if (pi.tipo === "combinar") return `<span class="preco preco-combinar"><small>Preço</small>Consulte no WhatsApp</span>`;
+    const caixa = detalhado ? `<small class="preco-caixa">${CAIXAS.map((c) => `${c}: ${formatarPreco(pi.efetivo * kgDaEmbalagem(c))}`).join(" · ")}</small>` : "";
     if (pi.tipo === "promo") return `<span class="preco preco-promo"><small><s>${formatarPreco(pi.preco)}</s> <b class="selo-off">-${pi.desconto}%</b></small>${formatarPreco(pi.promo)}<em>/kg</em>${pi.ate && detalhado ? `<small>Promoção até ${dataCurtaBR(pi.ate)}</small>` : ""}${caixa}</span>`;
     return `<span class="preco"><small>Preço</small>${formatarPreco(pi.preco)}<em>/kg</em>${caixa}</span>`;
   }
@@ -287,7 +296,7 @@
       <div id="carrinho-cliente"></div>
       <textarea id="cliente-obs" rows="2" maxlength="500" placeholder="Observações (opcional)"></textarea>
     </div>
-    <button class="btn btn-whats btn-bloco" id="btn-finalizar">${iconeWhats()} Enviar pedido pelo WhatsApp</button>
+    <button class="btn btn-whats btn-bloco" id="btn-finalizar">${iconeWhats()} Enviar pedido</button>
     <p class="aviso">O pedido é registrado e chega ao vendedor na hora, mesmo que a mensagem do WhatsApp não seja enviada. O WhatsApp abre com todos os dados para agilizar. Frete e pagamento você combina com o vendedor.
       <button class="limpar" id="btn-limpar">Esvaziar carrinho</button></p>
   </div>
@@ -341,7 +350,7 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
     if (val) {
       const tv = totalValor();
       val.innerHTML = !carrinho.length ? "" : `<span>Total estimado</span><strong>${tv.valor ? formatarPreco(tv.valor) : "—"}</strong>` +
-        (tv.combinar ? `<small>${tv.valor ? "+ " : ""}${tv.combinar} ${tv.combinar === 1 ? "item" : "itens"} com preço sob consulta</small>` : `<small>Valores dos produtos. Condições são combinadas com o vendedor.</small>`);
+        (tv.combinar ? `<small>${tv.valor ? "+ " : ""}${tv.combinar} ${tv.combinar === 1 ? "item" : "itens"} com o valor consultado no WhatsApp com o vendedor</small>` : `<small>Valores dos produtos. Condições são combinadas com o vendedor.</small>`);
     }
     $("#btn-finalizar").disabled = carrinho.length === 0;
     renderClienteCarrinho();
@@ -355,7 +364,7 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
       .map((item, idx) => {
         const p = buscarProduto(item.id);
         const cor = p.cores[0], pi = precoInfo(p);
-        const sub = pi.tipo === "combinar" ? `<span class="sub-combinar">Preço sob consulta</span>` : `<span class="sub-valor">${formatarPreco(pi.efetivo * kgDoItem(item))}${pi.tipo === "promo" ? ` <b class="selo-off">-${pi.desconto}%</b>` : ""}</span>`;
+        const sub = pi.tipo === "combinar" ? `<span class="sub-combinar">Valor: consulte no WhatsApp</span>` : `<span class="sub-valor">${formatarPreco(pi.efetivo * kgDoItem(item))}${pi.tipo === "promo" ? ` <b class="selo-off">-${pi.desconto}%</b>` : ""}</span>`;
         return `
 <div class="item-carrinho" data-idx="${idx}">
   ${imgProduto(p, cor, FOTO_CARTAO, "mini-foto")}
@@ -415,7 +424,7 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
       const titulo = p.tipo === "pj" ? p.razao_social : p.nome;
       box.innerHTML = `<div class="cliente-box"><span>Entrega para</span><strong>${esc(titulo)}</strong>
         <small>${esc(p.cidade)}/${esc(p.uf)} · CEP ${esc(p.cep)}</small><a href="conta.html#dados">Alterar dados</a></div>`;
-      textoBtn("Enviar pedido pelo WhatsApp");
+      textoBtn("Enviar pedido");
       return;
     }
     box.innerHTML = `<div class="cliente-box alerta">Entre ou crie sua conta para finalizar a compra com seus dados de faturamento e entrega.</div>`;
@@ -429,10 +438,10 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
     carrinho.forEach((item, i) => {
       const prod = buscarProduto(item.id), pi = precoInfo(prod);
       L.push(`*${i + 1}. ${prod.nome}*`, `   Código: ${prod.codigo || prod.id} | Cor: ${item.cor}`, `   Quantidade: ${descreverQtd(item)}`,
-        pi.tipo === "combinar" ? "   Valor: sob consulta" : `   Valor: ${formatarPreco(pi.efetivo)}/kg${pi.tipo === "promo" ? " (promoção)" : ""} = ${formatarPreco(pi.efetivo * kgDoItem(item))}`);
+        pi.tipo === "combinar" ? "   Valor: a consultar com o vendedor" : `   Valor: ${formatarPreco(pi.efetivo)}/kg${pi.tipo === "promo" ? " (promoção)" : ""} = ${formatarPreco(pi.efetivo * kgDoItem(item))}`);
     });
     L.push("", `*Total: ${totalKg().toLocaleString("pt-BR")} kg*`);
-    if (tv.valor) L.push(`*Valor estimado: ${formatarPreco(tv.valor)}*${tv.combinar ? " + itens sob consulta" : ""}`);
+    if (tv.valor) L.push(`*Valor estimado: ${formatarPreco(tv.valor)}*${tv.combinar ? " + itens a consultar com o vendedor" : ""}`);
     L.push("", "*Dados do cliente*");
     if (p.tipo === "pj") L.push(`Empresa: ${p.razao_social}${p.nome_fantasia ? " (" + p.nome_fantasia + ")" : ""}`, `CNPJ: ${p.cnpj}${p.inscricao_estadual ? " | IE: " + p.inscricao_estadual : ""}`, `Responsável: ${p.responsavel}`);
     else L.push(`Nome: ${p.nome}`, `CPF: ${p.cpf}`);
@@ -514,8 +523,6 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
     gravarStorage(CHAVE_VISTOS, [id].concat(lerVistos().filter((x) => x !== id)).slice(0, 8));
   }
 
-  const FOTO_CAIXA = "assets/img/marca/caixa-policoating.jpg";
-  const caixaFoto = (classe) => `<img class="${classe || "caixa-foto"}" src="${FOTO_CAIXA}" alt="Caixa de tinta em pó Policoating" width="1072" height="1008">`;
 
   function abrirProduto(id, corNome) {
     const p = acharProduto(id, corNome);
@@ -595,8 +602,8 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
     /* ---------- Galeria: setas, contador, arrastar, zoom e tela cheia ---------- */
     let vista = fotosDe(p).length ? "f0" : "foto";
     const vistas = () => $$(".modal-miniaturas button", modal).map((m) => m.dataset.vista);
-    const htmlVista = (v, cls) => v === "video" ? htmlVideo(videoDe(p), cls) : v === "caixa" ? caixaFoto(cls) : /^f\d+$/.test(v) ? imgFoto(fotosDe(p)[+v.slice(1)], p.nome, cls || "") : imgProduto(p, corSel, FOTO_MODAL, cls);
-    const urlVista = (v) => v === "caixa" ? FOTO_CAIXA : /^f\d+$/.test(v) ? fotosDe(p)[+v.slice(1)] : "";
+    const htmlVista = (v, cls) => v === "video" ? htmlVideo(videoDe(p), cls) : /^f\d+$/.test(v) ? imgFoto(fotosDe(p)[+v.slice(1)], p.nome, cls || "") : imgProduto(p, corSel, FOTO_MODAL, cls);
+    const urlVista = (v) => /^f\d+$/.test(v) ? fotosDe(p)[+v.slice(1)] : "";
     const desenharVitrine = () => {
       const alvo = $("#modal-vitrine"), lista = vistas(), i = lista.indexOf(vista), url = urlVista(vista);
       alvo.classList.remove("trocando");
@@ -612,7 +619,7 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
       if (ativa && ativa.parentNode.scrollWidth > ativa.parentNode.clientWidth) ativa.parentNode.scrollLeft = ativa.offsetLeft - ativa.parentNode.clientWidth / 2 + ativa.offsetWidth / 2;
       $("#galeria-contador").textContent = `${i + 1} / ${lista.length}`;
       $$(".galeria-seta", modal).forEach((b) => (b.hidden = lista.length < 2));
-      $("#modal-legenda").textContent = vista === "video" ? `Vídeo · ${p.nome}` : vista === "caixa" ? "Embalagem: caixa de papelão Policoating" : `${corSel.nome} · ${p.acabamento || ""}`;
+      $("#modal-legenda").textContent = vista === "video" ? `Vídeo · ${p.nome}` : `${corSel.nome} · ${p.acabamento || ""}`;
     };
     const mudarFoto = (d) => { const lista = vistas(); vista = lista[(lista.indexOf(vista) + d + lista.length) % lista.length]; desenharVitrine(); };
     $$(".modal-miniaturas button", modal).forEach((b) => b.addEventListener("click", () => { vista = b.dataset.vista; desenharVitrine(); }));
@@ -684,6 +691,21 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
       $(".tela-fechar", tela).focus();
     }
     desenharVitrine();
+
+    // fotos passam sozinhas; param quando o cliente mexe na galeria (ou com o mouse em cima da foto)
+    const fotosAuto = vistas().filter((v) => v !== "video");
+    let autoFotos = null;
+    const pararAuto = () => { clearInterval(autoFotos); autoFotos = null; };
+    if (fotosAuto.length > 1 && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      autoFotos = setInterval(() => {
+        if (!document.body.contains(palco) || modal.getAttribute("aria-hidden") === "true") return pararAuto();
+        if (document.getElementById("tela-cheia") || palco.matches(":hover") || vista === "video" || document.hidden) return;
+        vista = fotosAuto[(fotosAuto.indexOf(vista) + 1) % fotosAuto.length]; desenharVitrine();
+      }, 3500);
+      $$(".modal-miniaturas button, [data-galeria]", modal).forEach((b) => b.addEventListener("click", pararAuto));
+      palco.addEventListener("touchstart", pararAuto, { passive: true });
+      modal.addEventListener("keydown", (e) => { if (e.key === "ArrowRight" || e.key === "ArrowLeft") pararAuto(); });
+    }
 
     $$("[data-emb]", modal).forEach((b) =>
       b.addEventListener("click", () => $$("[data-emb]", modal).forEach((x) => x.classList.toggle("ativo", x === b)))
@@ -764,6 +786,32 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
       m.setAttribute("aria-hidden", "true");
     }
   }
+
+  /* ---------- Catálogo: com o mouse em cima do produto, as fotos vão passando (a cada 1,5 s) ---------- */
+  let giro = null;
+  function pararGiro() {
+    if (!giro) return;
+    clearTimeout(giro.t); clearInterval(giro.i);
+    giro.img.src = giro.src; giro.img.style.cssText = giro.css;
+    giro = null;
+  }
+  document.addEventListener("mouseover", (e) => {
+    const vit = e.target.closest && e.target.closest(".cartao-produto .vitrine");
+    if (!vit || (giro && giro.vit === vit) || !matchMedia("(hover: hover)").matches) return;
+    pararGiro();
+    const p = buscarProduto(vit.closest(".cartao-produto").dataset.id), img = $("img.foto-produto", vit), fotos = p ? fotosDe(p) : [];
+    if (!img || fotos.length < 2) return;
+    fotos.forEach((u) => { const pre = new Image(); pre.src = u; });   // já carrega as próximas
+    let k = Math.max(0, fotos.indexOf(img.getAttribute("src")));
+    const proxima = () => { k = (k + 1) % fotos.length; img.src = fotos[k]; img.style.cssText = cssEnq(p, fotos[k]); };
+    giro = { vit, img, src: img.getAttribute("src"), css: img.style.cssText, i: null };
+    giro.t = setTimeout(() => { if (!giro || giro.vit !== vit) return; proxima(); giro.i = setInterval(proxima, 1500); }, 1000);
+  });
+  document.addEventListener("mouseout", (e) => {
+    if (!giro || !giro.vit.contains(e.target)) return;
+    if (e.relatedTarget && giro.vit.contains(e.relatedTarget)) return;
+    pararGiro();
+  });
 
   /* ---------- Cartões de produto ---------- */
   function cartaoProduto(p) {

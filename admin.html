@@ -23,7 +23,7 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Barlow:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/style.css?v=eeae8f38">
+  <link rel="stylesheet" href="assets/css/style.css?v=3a416378">
 </head>
 <body>
   <a class="pular" href="#conteudo">Pular para o conteúdo</a>
@@ -421,6 +421,21 @@
       </form>
     </dialog>
 
+    <!-- Enquadrar a foto no quadro do catálogo -->
+    <dialog class="dlg-bloqueio dlg-enq" id="dlg-enq" aria-labelledby="enq-titulo">
+      <form id="form-enq" method="dialog" novalidate>
+        <h3 id="enq-titulo">Ajustar a foto no catálogo</h3>
+        <p class="dica">Arraste a foto para escolher a parte que aparece no quadro do catálogo. Na página do produto, a foto aparece inteira.</p>
+        <div class="enq-quadro" id="enq-quadro"><img id="enq-img" alt="Prévia do enquadramento" draggable="false"></div>
+        <label class="check"><input type="checkbox" id="enq-inteira"> Mostrar a foto inteira, sem cortar (sobram bordas)</label>
+        <div class="dlg-botoes">
+          <button type="button" id="enq-centro">Centralizar</button>
+          <button type="button" id="enq-cancelar">Cancelar</button>
+          <button type="submit" class="confirmar" id="enq-ok">Aplicar</button>
+        </div>
+      </form>
+    </dialog>
+
     <!-- Excluir cliente -->
     <dialog class="dlg-bloqueio" id="dlg-excluir-cli" aria-labelledby="excluir-cli-titulo">
       <form id="form-excluir-cli" novalidate>
@@ -590,15 +605,15 @@
   <script src="assets/js/produtos.js?v=efe7e02f"></script>
   <script src="assets/js/catalogo.js?v=e67f19f7"></script>
   <script src="assets/js/icones.js?v=1858ced1"></script>
-  <script src="assets/js/midia.js?v=781286f8"></script>
+  <script src="assets/js/midia.js?v=6395792a"></script>
   <script src="assets/js/fotos-reais.js?v=cd443528"></script>
   <script src="assets/js/fotos.js?v=48f81340"></script>
   <script src="assets/js/auth.js?v=84685be3"></script>
   <script src="assets/js/loja.js?v=67be2651"></script>
-  <script src="assets/js/main.js?v=8e5502ec"></script>
+  <script src="assets/js/main.js?v=85b5fb8f"></script>
   <script src="assets/js/animacoes.js?v=4efb4d38"></script>
   <script src="assets/js/secoes.js?v=b03394b5"></script>
   <script src="assets/js/assistente.js?v=d38f1adf"></script>
-  <script src="assets/js/admin.js?v=fc28542b"></script>
+  <script src="assets/js/admin.js?v=fb109a99"></script>
 </body>
 </html>

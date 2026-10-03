@@ -34,8 +34,7 @@ window.MIDIA = {
     { src: "assets/img/marca/aplicacao-pistola.jpg", titulo: "Aplicação eletrostática", descricao: "Pistola Policoating em cabine de pintura a pó", categoria: "ambientes" },
     { src: "assets/img/marca/potes-cores.jpg", titulo: "Cartela de cores Policoating", descricao: "Tinta em pó em várias cores e efeitos", categoria: "ambientes" },
     { src: "assets/img/marca/aplicacoes-metalicas.jpg", titulo: "Aplicações em ferragens", descricao: "Portões, grades, pergolados e esquadrias", categoria: "ambientes" },
-    { src: "assets/img/marca/banner-policoating.jpg", titulo: "Policoating", descricao: "Tecnologia que reveste, qualidade que permanece", categoria: "ambientes" },
-    { src: "assets/img/marca/caixa-policoating.jpg", titulo: "Embalagem", descricao: "Caixa de papelão Policoating", categoria: "ambientes" }
+    { src: "assets/img/marca/banner-policoating.jpg", titulo: "Policoating", descricao: "Tecnologia que reveste, qualidade que permanece", categoria: "ambientes" }
   ],
 
   // Vídeos da empresa: YouTube (só o código do vídeo) ou arquivo .mp4 próprio.

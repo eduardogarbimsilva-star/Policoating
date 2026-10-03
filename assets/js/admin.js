@@ -238,7 +238,7 @@
 
     /* ---------- Formulário ---------- */
     const modal = $("#admin-modal"), form = $("#admin-form");
-    let editando = null, fichaAtual = "", fotos = [];
+    let editando = null, fichaAtual = "", fotos = [], enquadramento = {};
     const codigoAtual = () => form.codigo.value.trim().toUpperCase();
     const pastaFotos = () => (codigoAtual() || "novo").toLowerCase();
     function mostrarFicha(url) {
@@ -257,7 +257,8 @@
           <img src="${esc(u)}" alt="Foto ${i + 1}">${i === 0 ? `<b class="capa">Capa</b>` : ""}
           <div><button type="button" data-foto-mover="-1" aria-label="Mover para a esquerda" ${i ? "" : "disabled"}>‹</button>
           <button type="button" data-foto-mover="1" aria-label="Mover para a direita" ${i < n - 1 ? "" : "disabled"}>›</button>
-          <button type="button" data-foto-remover class="perigo" aria-label="Remover foto">×</button></div></figure>`).join("") +
+          <button type="button" data-foto-remover class="perigo" aria-label="Remover foto">×</button></div>
+          <button type="button" class="foto-enq" data-foto-enquadrar title="Escolher a parte da foto que aparece no catálogo">${enquadramento[u] ? "✓ Ajustada" : "Ajustar no catálogo"}</button></figure>`).join("") +
         Array.from({ length: Math.max(0, 3 - n) }, () => `<label class="foto-vaga">+ Foto<input type="file" accept="image/*,.heic,.heif" multiple hidden data-foto-vaga></label>`).join("");
     }
     async function enviarFotos(lista) {
@@ -279,7 +280,53 @@
       const i = +f.dataset.i, mv = e.target.closest("[data-foto-mover]");
       if (mv) { const j = i + +mv.dataset.fotoMover; [fotos[i], fotos[j]] = [fotos[j], fotos[i]]; desenharFotos(); }
       if (e.target.closest("[data-foto-remover]")) { fotos.splice(i, 1); desenharFotos(); }
+      if (e.target.closest("[data-foto-enquadrar]")) abrirEnq(fotos[i]);
     });
+    /* ---------- Enquadrar a foto no quadro do catálogo (arrastar) ---------- */
+    const dlgEnq = $("#dlg-enq"), enqImg = $("#enq-img"), enqQuadro = $("#enq-quadro");
+    let enqUrl = "", enqPos = [50, 50];
+    const enqAplicar = () => {
+      enqImg.style.objectPosition = `${enqPos[0]}% ${enqPos[1]}%`;
+      enqImg.style.objectFit = $("#enq-inteira").checked ? "contain" : "cover";
+      enqQuadro.classList.toggle("inteira", $("#enq-inteira").checked);
+    };
+    function abrirEnq(url) {
+      enqUrl = url;
+      const e = enquadramento[url] || {};
+      const m = String(e.pos || "").match(/^([\d.]+)% ([\d.]+)%$/);
+      enqPos = m ? [+m[1], +m[2]] : [50, 50];
+      $("#enq-inteira").checked = !!e.inteira;
+      enqImg.src = url; enqAplicar();
+      if (dlgEnq.showModal) dlgEnq.showModal(); else dlgEnq.setAttribute("open", "");
+    }
+    let arrasto = null;
+    enqQuadro.addEventListener("pointerdown", (e) => {
+      if ($("#enq-inteira").checked || !enqImg.naturalWidth) return;
+      const fw = enqQuadro.clientWidth, fh = enqQuadro.clientHeight, esc = Math.max(fw / enqImg.naturalWidth, fh / enqImg.naturalHeight);
+      arrasto = { x: e.clientX, y: e.clientY, p0: enqPos.slice(), sobraX: enqImg.naturalWidth * esc - fw, sobraY: enqImg.naturalHeight * esc - fh };
+      enqQuadro.setPointerCapture(e.pointerId); enqQuadro.classList.add("arrastando"); e.preventDefault();
+    });
+    enqQuadro.addEventListener("pointermove", (e) => {
+      if (!arrasto) return;
+      const lim = (v) => Math.round(Math.min(100, Math.max(0, v)) * 10) / 10;
+      if (arrasto.sobraX > 1) enqPos[0] = lim(arrasto.p0[0] - ((e.clientX - arrasto.x) / arrasto.sobraX) * 100);
+      if (arrasto.sobraY > 1) enqPos[1] = lim(arrasto.p0[1] - ((e.clientY - arrasto.y) / arrasto.sobraY) * 100);
+      enqAplicar();
+    });
+    const soltar = () => { arrasto = null; enqQuadro.classList.remove("arrastando"); };
+    enqQuadro.addEventListener("pointerup", soltar); enqQuadro.addEventListener("pointercancel", soltar);
+    $("#enq-inteira").addEventListener("change", enqAplicar);
+    $("#enq-centro").addEventListener("click", () => { enqPos = [50, 50]; $("#enq-inteira").checked = false; enqAplicar(); });
+    const fecharEnq = () => { if (dlgEnq.close) dlgEnq.close(); else dlgEnq.removeAttribute("open"); };
+    $("#enq-cancelar").addEventListener("click", fecharEnq);
+    $("#form-enq").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const inteira = $("#enq-inteira").checked;
+      if (!inteira && enqPos[0] === 50 && enqPos[1] === 50) delete enquadramento[enqUrl];
+      else enquadramento[enqUrl] = { pos: `${enqPos[0]}% ${enqPos[1]}%`, inteira };
+      fecharEnq(); desenharFotos();
+    });
+
     // vídeo: link do YouTube/Vimeo ou arquivo enviado
     let videoAtual = "", enviandoVideo = false;
     function mostrarVideo(url) {
@@ -356,6 +403,7 @@
       const c = (p.cores || [])[0] || { nome: "", hex: "#1558d6" };
       $("#cor-nome").value = duplicar ? "" : c.nome; hex.value = tom.value = c.hex || "#1558d6";
       fotos = duplicar ? [] : (Array.isArray(p.fotos) && p.fotos.length ? p.fotos.slice() : c.foto ? [c.foto] : []);
+      enquadramento = duplicar ? {} : JSON.parse(JSON.stringify(p.enquadramento || {}));
       enviando = 0; desenharFotos();
       form.preco.value = p.preco || ""; form.precoPromo.value = p.precoPromo || ""; form.promoAte.value = p.promoAte || "";
       previaPreco();
@@ -391,6 +439,7 @@
         categoria: form.categoria.value,
         marca: selMarca.value,
         fotos: fotos.slice(),
+        enquadramento: Object.fromEntries(Object.entries(enquadramento).filter(([u]) => fotos.includes(u))),
         linha: form.linha.value.trim(),
         acabamento: form.acabamento.value.trim(),
         descricao: form.descricao.value.trim(),

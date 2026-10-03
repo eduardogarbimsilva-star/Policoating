@@ -541,6 +541,7 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
       <button type="button" class="galeria-seta ant" data-galeria="-1" aria-label="Foto anterior">‹</button>
       <button type="button" class="galeria-seta prox" data-galeria="1" aria-label="Próxima foto">›</button>
       <span class="galeria-contador" id="galeria-contador"></span>
+      <span class="galeria-progresso" id="galeria-progresso" hidden><i></i></span>
       <span class="galeria-dica">${ic("busca")}Clique para ampliar</span>
     </div>
     <div class="modal-miniaturas" role="tablist" aria-label="Fotos do produto">
@@ -606,11 +607,28 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
     const urlVista = (v) => /^f\d+$/.test(v) ? fotosDe(p)[+v.slice(1)] : "";
     const desenharVitrine = () => {
       const alvo = $("#modal-vitrine"), lista = vistas(), i = lista.indexOf(vista), url = urlVista(vista);
-      alvo.classList.remove("trocando");
-      void alvo.offsetWidth;
-      alvo.classList.add("trocando");
+      const ia = lista.indexOf(alvo.dataset.vista || ""), primeira = !alvo.firstElementChild || ia < 0 || ia === i;
       alvo.style.setProperty("--fundo-foto", url ? `url("${url.replace(/"/g, "%22")}")` : "none");
-      alvo.innerHTML = htmlVista(vista);
+      if (primeira) {
+        alvo.classList.remove("trocando"); void alvo.offsetWidth; alvo.classList.add("trocando");
+        alvo.innerHTML = htmlVista(vista);
+      } else {
+        // fade cruzado: a foto anterior fica por cima e some enquanto a nova desliza um pouco para o lugar
+        const dir = (i > ia && !(ia === 0 && i === lista.length - 1)) || (i === 0 && ia === lista.length - 1) ? 1 : -1;
+        alvo.classList.remove("trocando", "zoom");
+        $$(".vitrine-saindo", alvo).forEach((x) => x.remove());
+        const saindo = document.createElement("div");
+        saindo.className = "vitrine-saindo";
+        saindo.append(...Array.from(alvo.childNodes));
+        alvo.innerHTML = htmlVista(vista);
+        const nova = alvo.firstElementChild;
+        if (nova) { nova.style.setProperty("--dir", dir); nova.classList.add("entrando"); }
+        alvo.appendChild(saindo);
+        const trocar = () => { requestAnimationFrame(() => { saindo.classList.add("fora"); if (nova) nova.classList.add("dentro"); }); setTimeout(() => saindo.remove(), 650); };
+        const img = nova && nova.tagName === "IMG" ? nova : null;
+        if (img && img.decode) img.decode().then(trocar, trocar); else trocar();
+      }
+      alvo.dataset.vista = vista;
       $("#galeria-palco").classList.toggle("eh-video", vista === "video");
       alvo.setAttribute("aria-label", vista === "video" ? "Vídeo do produto" : "Ampliar foto");
       const minis = $$(".modal-miniaturas button", modal);
@@ -692,16 +710,19 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
     }
     desenharVitrine();
 
-    // fotos passam sozinhas; param quando o cliente mexe na galeria (ou com o mouse em cima da foto)
+    // fotos passam sozinhas, no ritmo da barrinha (que pausa com o mouse em cima); param quando o cliente mexe na galeria
     const fotosAuto = vistas().filter((v) => v !== "video");
-    let autoFotos = null;
-    const pararAuto = () => { clearInterval(autoFotos); autoFotos = null; };
+    const barra = $("#galeria-progresso");
+    let autoLigado = false;
+    const reiniciarBarra = () => { barra.classList.remove("rodando"); void barra.offsetWidth; barra.classList.add("rodando"); };
+    const pararAuto = () => { autoLigado = false; barra.hidden = true; barra.classList.remove("rodando"); };
     if (fotosAuto.length > 1 && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      autoFotos = setInterval(() => {
-        if (!document.body.contains(palco) || modal.getAttribute("aria-hidden") === "true") return pararAuto();
-        if (document.getElementById("tela-cheia") || palco.matches(":hover") || vista === "video" || document.hidden) return;
-        vista = fotosAuto[(fotosAuto.indexOf(vista) + 1) % fotosAuto.length]; desenharVitrine();
-      }, 3500);
+      autoLigado = true; barra.hidden = false; reiniciarBarra();
+      $("i", barra).addEventListener("animationend", () => {
+        if (!autoLigado || !document.body.contains(palco) || modal.getAttribute("aria-hidden") === "true") return pararAuto();
+        if (document.getElementById("tela-cheia") || vista === "video") return reiniciarBarra();
+        vista = fotosAuto[(fotosAuto.indexOf(vista) + 1) % fotosAuto.length]; desenharVitrine(); reiniciarBarra();
+      });
       $$(".modal-miniaturas button, [data-galeria]", modal).forEach((b) => b.addEventListener("click", pararAuto));
       palco.addEventListener("touchstart", pararAuto, { passive: true });
       modal.addEventListener("keydown", (e) => { if (e.key === "ArrowRight" || e.key === "ArrowLeft") pararAuto(); });
@@ -789,23 +810,50 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
 
   /* ---------- Catálogo: com o mouse em cima do produto, as fotos vão passando (a cada 1,5 s) ---------- */
   let giro = null;
+  // a foto nova entra por cima, em fade com um leve zoom; a de baixo só é trocada depois
+  function mostrarCamada(g, url, css) {
+    const camada = document.createElement("img");
+    camada.className = "foto-produto foto-camada"; camada.alt = ""; camada.setAttribute("aria-hidden", "true");
+    camada.style.cssText = css; camada.src = url;
+    const entrar = () => {
+      if (!camada.isConnected) return;
+      requestAnimationFrame(() => camada.classList.add("visivel"));
+      setTimeout(() => {   // terminou o fade: a foto de baixo vira a nova e a camada sai sem piscar
+        g.img.src = url; g.img.style.cssText = css;
+        $$(".foto-camada", g.vit).forEach((c) => { if (c !== camada) c.remove(); });
+        setTimeout(() => camada.remove(), 60);
+      }, 700);
+    };
+    g.vit.appendChild(camada);
+    (camada.decode ? camada.decode() : Promise.resolve()).then(entrar, entrar);
+  }
+  function marcarPonto(g) { $$(".giro-pontos i", g.vit).forEach((d, n) => d.classList.toggle("ativo", n === g.k)); }
   function pararGiro() {
     if (!giro) return;
-    clearTimeout(giro.t); clearInterval(giro.i);
-    giro.img.src = giro.src; giro.img.style.cssText = giro.css;
-    giro = null;
+    const g = giro; giro = null;
+    clearTimeout(g.t); clearInterval(g.i);
+    $$(".giro-pontos", g.vit).forEach((x) => x.classList.remove("visivel"));
+    if (g.k !== g.k0) mostrarCamada(g, g.src, g.css);   // volta para a capa, também em fade
   }
   document.addEventListener("mouseover", (e) => {
     const vit = e.target.closest && e.target.closest(".cartao-produto .vitrine");
     if (!vit || (giro && giro.vit === vit) || !matchMedia("(hover: hover)").matches) return;
     pararGiro();
-    const p = buscarProduto(vit.closest(".cartao-produto").dataset.id), img = $("img.foto-produto", vit), fotos = p ? fotosDe(p) : [];
+    const p = buscarProduto(vit.closest(".cartao-produto").dataset.id), img = $("img.foto-produto:not(.foto-camada)", vit), fotos = p ? fotosDe(p) : [];
     if (!img || fotos.length < 2) return;
     fotos.forEach((u) => { const pre = new Image(); pre.src = u; });   // já carrega as próximas
-    let k = Math.max(0, fotos.indexOf(img.getAttribute("src")));
-    const proxima = () => { k = (k + 1) % fotos.length; img.src = fotos[k]; img.style.cssText = cssEnq(p, fotos[k]); };
-    giro = { vit, img, src: img.getAttribute("src"), css: img.style.cssText, i: null };
-    giro.t = setTimeout(() => { if (!giro || giro.vit !== vit) return; proxima(); giro.i = setInterval(proxima, 1500); }, 1000);
+    const k0 = Math.max(0, fotos.indexOf(img.getAttribute("src")));
+    const g = giro = { vit, img, src: img.getAttribute("src"), css: img.style.cssText, k: k0, k0, i: null };
+    let pontos = $(".giro-pontos", vit);
+    if (!pontos) { pontos = document.createElement("span"); pontos.className = "giro-pontos"; pontos.setAttribute("aria-hidden", "true"); vit.appendChild(pontos); }
+    pontos.innerHTML = fotos.map(() => "<i></i>").join("");
+    marcarPonto(g); requestAnimationFrame(() => pontos.classList.add("visivel"));
+    const proxima = () => {
+      if (giro !== g) return;
+      g.k = (g.k + 1) % fotos.length; marcarPonto(g);
+      mostrarCamada(g, fotos[g.k], cssEnq(p, fotos[g.k]));
+    };
+    g.t = setTimeout(() => { if (giro !== g) return; proxima(); g.i = setInterval(proxima, 1500); }, 900);
   });
   document.addEventListener("mouseout", (e) => {
     if (!giro || !giro.vit.contains(e.target)) return;

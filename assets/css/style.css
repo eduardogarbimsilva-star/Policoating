@@ -2554,3 +2554,33 @@ video.video-produto { object-fit: contain; }
 .enq-quadro img { width: 100%; height: 100%; object-fit: cover; display: block; user-select: none; pointer-events: none; }
 .dlg-enq .check { display: flex; gap: 8px; align-items: center; font-weight: 600; font-size: .88rem; }
 .dlg-enq .dlg-botoes .confirmar { background: var(--azul); border-color: var(--azul); }
+
+/* ---------- Troca de fotos suave ---------- */
+/* Catálogo: a foto nova entra por cima, em fade com leve zoom; bolinhas mostram a posição */
+.cartao-produto .vitrine > .etiqueta, .cartao-produto .vitrine > .etiqueta-promo, .cartao-produto .vitrine > .btn-fav,
+.cartao-produto .vitrine > .selo-video, .cartao-produto .vitrine > .ver-detalhes { z-index: 3; }
+.cartao-produto .vitrine .foto-camada { position: absolute; inset: 0; z-index: 1; opacity: 0; transform: scale(1.14); pointer-events: none;
+  transition: opacity .7s cubic-bezier(.4, 0, .2, 1), transform .9s cubic-bezier(.2, .7, .2, 1); will-change: opacity, transform; }
+.cartao-produto .vitrine .foto-camada.visivel { opacity: 1; transform: none; }
+.cartao-produto:hover .vitrine .foto-camada.visivel { transform: scale(1.06); }
+.giro-pontos { position: absolute; left: 50%; top: 12px; z-index: 3; display: flex; gap: 5px; padding: 5px 8px; border-radius: 999px; background: rgba(11,20,36,.45); backdrop-filter: blur(4px);
+  transform: translate(-50%, -6px); opacity: 0; transition: opacity .3s, transform .3s; pointer-events: none; }
+.giro-pontos.visivel { opacity: 1; transform: translate(-50%, 0); }
+.giro-pontos i { width: 6px; height: 6px; border-radius: 999px; background: rgba(255,255,255,.55); transition: width .35s cubic-bezier(.2,.7,.2,1), background .35s; }
+.giro-pontos i.ativo { width: 16px; background: #fff; }
+
+/* Página do produto: fade cruzado com leve deslize, e barrinha de tempo até a próxima foto */
+.galeria-palco .modal-foto .vitrine-saindo { position: absolute; inset: 0; z-index: 1; display: grid; place-items: center; transition: opacity .55s cubic-bezier(.4, 0, .2, 1), transform .55s cubic-bezier(.4, 0, .2, 1); }
+.galeria-palco .modal-foto .vitrine-saindo > * { width: 100%; height: 100%; }
+.galeria-palco .modal-foto .vitrine-saindo.fora { opacity: 0; transform: scale(.985); }
+.galeria-palco .modal-foto > .entrando { opacity: 0; transform: translateX(calc(var(--dir, 1) * 18px)) scale(1.01); }
+.galeria-palco .modal-foto > .entrando.dentro { opacity: 1; transform: none; transition: opacity .6s cubic-bezier(.4, 0, .2, 1), transform .7s cubic-bezier(.2, .7, .2, 1); }
+.galeria-palco .modal-foto::before { transition: background-image .6s; }
+.galeria-progresso { position: absolute; left: 14px; right: 14px; bottom: 6px; z-index: 2; height: 3px; border-radius: 3px; background: rgba(255,255,255,.35); overflow: hidden; pointer-events: none; }
+.galeria-progresso i { display: block; width: 100%; height: 100%; background: var(--azul); transform-origin: left; transform: scaleX(0); }
+.galeria-progresso.rodando i { animation: barraFoto 3.6s linear forwards; }
+.galeria-palco:hover .galeria-progresso.rodando i { animation-play-state: paused; }
+@keyframes barraFoto { to { transform: scaleX(1); } }
+@media (prefers-reduced-motion: reduce) {
+  .cartao-produto .vitrine .foto-camada, .galeria-palco .modal-foto > .entrando.dentro, .galeria-palco .modal-foto .vitrine-saindo { transition-duration: .01s; }
+}

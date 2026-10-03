@@ -115,7 +115,7 @@
     }
     function textoPreco(p) {
       const pi = CW.precoInfo(p);
-      if (pi.tipo === "combinar") return `<span class="adm-preco combinar">Sem preço</span>`;
+      if (pi.tipo === "combinar") return `<span class="adm-preco combinar">Sob consulta</span>`;
       if (pi.tipo === "promo") return `<span class="adm-preco"><s>${fmtR(pi.preco)}</s> <strong>${fmtR(pi.promo)}</strong> <b class="selo-off">-${pi.desconto}%</b>${pi.ate ? `<small>até ${pi.ate.split("-").reverse().join("/")}</small>` : ""}</span>`;
       const promoVencida = p.precoPromo && p.promoAte && new Date().toISOString().slice(0, 10) > p.promoAte;
       return `<span class="adm-preco"><strong>${fmtR(pi.preco)}</strong>${promoVencida ? `<small>promoção encerrada</small>` : ""}</span>`;
@@ -186,7 +186,7 @@
         if (a === "promo") {
           const pct = +$("#massa-pct").value, ate = $("#massa-ate").value;
           if (!(pct >= 1 && pct <= 90)) return CW.mostrarToast("Informe o desconto (1 a 90%).");
-          if (!confirm(`Aplicar ${pct}% de desconto em ${n} produto(s)${ate ? ` até ${ate.split("-").reverse().join("/")}` : ""}?\nProdutos com "valor a combinar" ficam de fora.`)) return;
+          if (!confirm(`Aplicar ${pct}% de desconto em ${n} produto(s)${ate ? ` até ${ate.split("-").reverse().join("/")}` : ""}?\nProdutos com "valor sob consulta" ficam de fora.`)) return;
           e.target.disabled = true;
           const q = await A.aplicarPromocao(ids, pct, ate); msg = `Promoção aplicada em ${q} produto(s).`;
         } else if (a === "sem-promo") {
@@ -373,7 +373,7 @@
     tom.addEventListener("input", () => (hex.value = tom.value));
     hex.addEventListener("input", () => { if (/^#[0-9a-f]{6}$/i.test(hex.value)) tom.value = hex.value; });
 
-    const modoPreco = () => "valor";   // todo produto tem preço por kg (sem "a combinar")
+    const modoPreco = () => ($("[name=preco-modo]:checked", form) || {}).value || "valor";   // "combinar" = valor sob consulta
     function previaPreco() {
       const combinar = modoPreco() === "combinar";
       $("#precos-campos").hidden = combinar;
@@ -384,6 +384,7 @@
         ? `No site: <s>${fmtR(pi.preco)}</s> <strong>${fmtR(pi.promo)}/kg</strong> <b class="selo-off">-${pi.desconto}%</b> · caixa 5 kg: ${fmtR(pi.promo * 5)} · caixa 25 kg: ${fmtR(pi.promo * 25)}`
         : `No site: <strong>${fmtR(d.preco)}/kg</strong> · caixa 5 kg: ${fmtR(d.preco * 5)} · caixa 25 kg: ${fmtR(d.preco * 25)}${d.precoPromo ? (d.precoPromo >= d.preco ? " · <span class=\"form-erro\">a promoção precisa ser menor que o preço</span>" : " · promoção encerrada") : ""}`;
     }
+    $$("[name=preco-modo]", form).forEach((r) => r.addEventListener("change", previaPreco));
     ["preco", "precoPromo", "promoAte"].forEach((n) => form[n].addEventListener("input", previaPreco));
 
     async function abrir(r, duplicar) {
@@ -405,6 +406,7 @@
       fotos = duplicar ? [] : (Array.isArray(p.fotos) && p.fotos.length ? p.fotos.slice() : c.foto ? [c.foto] : []);
       enquadramento = duplicar ? {} : JSON.parse(JSON.stringify(p.enquadramento || {}));
       enviando = 0; desenharFotos();
+      $$("[name=preco-modo]", form).forEach((x) => (x.checked = x.value === (r && (p.precoCombinar || !(+p.preco > 0)) ? "combinar" : "valor")));
       form.preco.value = p.preco || ""; form.precoPromo.value = p.precoPromo || ""; form.promoAte.value = p.promoAte || "";
       previaPreco();
       form.ordem.value = r ? r.ordem + (duplicar ? 1 : 0) : (registros.reduce((m, x) => Math.max(m, x.ordem), 0) + 10);
@@ -564,11 +566,11 @@
               ${c.cidade ? `<small>${esc([c.logradouro, c.numero].filter(Boolean).join(", "))} — ${esc(c.cidade)}/${esc(c.uf || "")} · CEP ${esc(c.cep || "")}</small>` : ""}
             </div>
             <ul>${(p.itens || []).map((i) => `<li><strong>${esc(i.nome)}</strong>${i.codigo ? ` <small class="cod">Cód. ${esc(i.codigo)}</small>` : ""}
-              <small>${esc(CW.descreverQtd({ embalagem: i.embalagem, qtd: +i.qtd || 0 }))} · ${i.preco_kg != null ? `${fmtR(i.preco_kg)}/kg = ${fmtR((+i.preco_kg) * kgItem(i))}` : "valor a combinar"}</small></li>`).join("")}</ul>
+              <small>${esc(CW.descreverQtd({ embalagem: i.embalagem, qtd: +i.qtd || 0 }))} · ${i.preco_kg != null ? `${fmtR(i.preco_kg)}/kg = ${fmtR((+i.preco_kg) * kgItem(i))}` : "valor sob consulta"}</small></li>`).join("")}</ul>
             ${p.observacoes ? `<p class="obs">Obs.: ${esc(p.observacoes)}</p>` : ""}
           </div>
           <footer>
-            <span>Total: <strong>${(Math.round(kgPedido(p) * 100) / 100).toLocaleString("pt-BR")} kg</strong>${valor ? ` · <strong>${fmtR(valor)}</strong>${combinar ? " + itens a combinar" : ""}` : combinar ? " · valor a combinar" : ""}</span>
+            <span>Total: <strong>${(Math.round(kgPedido(p) * 100) / 100).toLocaleString("pt-BR")} kg</strong>${valor ? ` · <strong>${fmtR(valor)}</strong>${combinar ? " + itens sob consulta" : ""}` : combinar ? " · valor sob consulta" : ""}</span>
             <span class="adm-pedido-botoes">
               ${podeExcluir ? `<button type="button" class="btn-excluir-pedido" data-excluir-pedido="${esc(p.numero)}">Excluir</button>` : ""}
               ${tel ? `<a class="btn btn-whats" target="_blank" rel="noopener" href="https://wa.me/${tel.length <= 11 ? "55" + tel : tel}?text=${encodeURIComponent(`Olá, ${nomeCliente(c)}! Aqui é da Policoating, sobre o seu pedido ${p.numero}.`)}">Chamar cliente</a>` : ""}
@@ -603,7 +605,7 @@
       pedidosFiltrados().forEach((p) => (p.itens || []).forEach((i) => {
         const c = p.cliente || {};
         linhas.push([p.numero, dataBR(p.criado_em), nomeCliente(c), c.cnpj || c.cpf || "", c.email || "", c.telefone || "", c.cidade || "", c.uf || "",
-          i.codigo || i.id, i.nome, CW.descreverQtd({ embalagem: i.embalagem, qtd: +i.qtd || 0 }), n(kgItem(i)), n(i.preco_kg), i.preco_kg != null ? n((+i.preco_kg) * kgItem(i)) : "a combinar", p.observacoes || ""]);
+          i.codigo || i.id, i.nome, CW.descreverQtd({ embalagem: i.embalagem, qtd: +i.qtd || 0 }), n(kgItem(i)), n(i.preco_kg), i.preco_kg != null ? n((+i.preco_kg) * kgItem(i)) : "sob consulta", p.observacoes || ""]);
       }));
       const csv = "\ufeff" + linhas.map((l) => l.map(cel).join(";")).join("\r\n");
       const a = document.createElement("a");
@@ -1095,8 +1097,8 @@
         .sort((a, b) => b.kg - a.kg || b.valor - a.valor);
     }
     const linhaPedido = (p) => { const c = p.cliente || {}; return [p.numero, hBR(p.criado_em), SITUACAO[p.status] || p.status || "", nomeCliente(c), docRel(c), c.email || "", c.telefone || "", [c.cidade, c.uf].filter(Boolean).join("/"), r2(kgPedido(p)), vendido(p) ? r2(valorPedido(p)) : 0, (p.itens || []).some((i) => i.preco_kg == null) ? "sim" : "", p.observacoes || ""]; };
-    const CAB_PEDIDOS = ["Pedido", "Data", "Situação", "Cliente", "CPF/CNPJ", "E-mail", "Telefone", "Cidade/UF", "Kg", "Valor (R$)", "Tem item a combinar", "Observações"];
-    const linhasItens = (pedidos) => pedidos.flatMap((p) => (p.itens || []).map((i) => [p.numero, dBR(p.criado_em), SITUACAO[p.status] || p.status || "", nomeCliente(p.cliente || {}), i.codigo || "", i.nome || "", i.embalagem || "", +i.qtd || 0, r2(kgItem(i)), i.preco_kg != null ? r2(i.preco_kg) : "a combinar", i.preco_kg != null ? r2((+i.preco_kg) * kgItem(i)) : ""]));
+    const CAB_PEDIDOS = ["Pedido", "Data", "Situação", "Cliente", "CPF/CNPJ", "E-mail", "Telefone", "Cidade/UF", "Kg", "Valor (R$)", "Tem item sob consulta", "Observações"];
+    const linhasItens = (pedidos) => pedidos.flatMap((p) => (p.itens || []).map((i) => [p.numero, dBR(p.criado_em), SITUACAO[p.status] || p.status || "", nomeCliente(p.cliente || {}), i.codigo || "", i.nome || "", i.embalagem || "", +i.qtd || 0, r2(kgItem(i)), i.preco_kg != null ? r2(i.preco_kg) : "sob consulta", i.preco_kg != null ? r2((+i.preco_kg) * kgItem(i)) : ""]));
     const CAB_ITENS = ["Pedido", "Data", "Situação", "Cliente", "Código", "Produto", "Embalagem", "Qtd", "Kg", "R$/kg", "Valor (R$)"];
     const notasDoPeriodo = (lista, de, ate) => lista.filter((n) => { const d = n.data_nf || diaISO(new Date(n.criado_em)); return d >= de && d <= ate; })
       .sort((a, b) => String(a.data_nf || a.criado_em).localeCompare(String(b.data_nf || b.criado_em)));

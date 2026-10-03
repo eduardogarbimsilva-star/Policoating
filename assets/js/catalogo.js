@@ -310,8 +310,8 @@
       const nFotos = Array.isArray(d.fotos) ? d.fotos.filter(fotoOk).length : 0;
       if (nFotos < 3) erros.push(`fotos (no mínimo 3; ${nFotos === 0 ? "nenhuma enviada" : nFotos + " enviada" + (nFotos > 1 ? "s" : "")})`);
       if (nFotos > 10) erros.push("fotos (no máximo 10)");
-      {
-        if (!(num(d.preco) > 0)) erros.push("preço por kg");
+      if (!d.precoCombinar) {
+        if (!(num(d.preco) > 0)) erros.push("preço por kg (ou marque \"Valor sob consulta\")");
         if (d.precoPromo != null && !(num(d.precoPromo) > 0 && num(d.precoPromo) < num(d.preco))) erros.push("preço promocional (menor que o preço normal)");
         if (d.promoAte && !/^\d{4}-\d{2}-\d{2}$/.test(d.promoAte)) erros.push("data do fim da promoção");
       }

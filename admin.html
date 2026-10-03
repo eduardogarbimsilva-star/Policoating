@@ -495,7 +495,10 @@
 
           <fieldset class="campo-preco">
             <legend>Preço</legend>
-            <input type="hidden" name="preco-modo" value="valor">
+            <div class="preco-modos" role="radiogroup" aria-label="Tipo de preço">
+              <label><input type="radio" name="preco-modo" value="valor" checked><span><b>Preço por kg</b>Aparece no site</span></label>
+              <label><input type="radio" name="preco-modo" value="combinar"><span><b>Valor sob consulta</b>O cliente consulta o valor no WhatsApp com o vendedor</span></label>
+            </div>
             <div class="grade-campos" id="precos-campos">
               <label>Preço por kg (R$) *<input name="preco" type="number" step="0.01" min="0" inputmode="decimal" placeholder="Ex.: 32,50"></label>
               <label>Preço promocional por kg (R$)<input name="precoPromo" type="number" step="0.01" min="0" inputmode="decimal" placeholder="Opcional"><small>Deixe em branco se não houver promoção.</small></label>
@@ -603,7 +606,7 @@
 
   <script src="assets/js/config.js?v=1a02af0a"></script>
   <script src="assets/js/produtos.js?v=efe7e02f"></script>
-  <script src="assets/js/catalogo.js?v=e67f19f7"></script>
+  <script src="assets/js/catalogo.js?v=3465b782"></script>
   <script src="assets/js/icones.js?v=1858ced1"></script>
   <script src="assets/js/midia.js?v=6395792a"></script>
   <script src="assets/js/fotos-reais.js?v=cd443528"></script>
@@ -614,6 +617,6 @@
   <script src="assets/js/animacoes.js?v=bfb88151"></script>
   <script src="assets/js/secoes.js?v=b03394b5"></script>
   <script src="assets/js/assistente.js?v=d38f1adf"></script>
-  <script src="assets/js/admin.js?v=fb109a99"></script>
+  <script src="assets/js/admin.js?v=dc35a102"></script>
 </body>
 </html>

@@ -115,7 +115,7 @@
     }
     function textoPreco(p) {
       const pi = CW.precoInfo(p);
-      if (pi.tipo === "combinar") return `<span class="adm-preco combinar">A combinar</span>`;
+      if (pi.tipo === "combinar") return `<span class="adm-preco combinar">Sem preço</span>`;
       if (pi.tipo === "promo") return `<span class="adm-preco"><s>${fmtR(pi.preco)}</s> <strong>${fmtR(pi.promo)}</strong> <b class="selo-off">-${pi.desconto}%</b>${pi.ate ? `<small>até ${pi.ate.split("-").reverse().join("/")}</small>` : ""}</span>`;
       const promoVencida = p.precoPromo && p.promoAte && new Date().toISOString().slice(0, 10) > p.promoAte;
       return `<span class="adm-preco"><strong>${fmtR(pi.preco)}</strong>${promoVencida ? `<small>promoção encerrada</small>` : ""}</span>`;
@@ -326,7 +326,7 @@
     tom.addEventListener("input", () => (hex.value = tom.value));
     hex.addEventListener("input", () => { if (/^#[0-9a-f]{6}$/i.test(hex.value)) tom.value = hex.value; });
 
-    const modoPreco = () => $("[name=preco-modo]:checked", form).value;
+    const modoPreco = () => "valor";   // todo produto tem preço por kg (sem "a combinar")
     function previaPreco() {
       const combinar = modoPreco() === "combinar";
       $("#precos-campos").hidden = combinar;
@@ -334,10 +334,9 @@
       const d = { preco: +form.preco.value || 0, precoPromo: +form.precoPromo.value || 0, promoAte: form.promoAte.value };
       const pi = CW.precoInfo(d);
       $("#preco-previa").innerHTML = !d.preco ? "" : pi.tipo === "promo"
-        ? `No site: <s>${fmtR(pi.preco)}</s> <strong>${fmtR(pi.promo)}/kg</strong> <b class="selo-off">-${pi.desconto}%</b> · caixa 25 kg: ${fmtR(pi.promo * 25)}`
-        : `No site: <strong>${fmtR(d.preco)}/kg</strong> · caixa 25 kg: ${fmtR(d.preco * 25)}${d.precoPromo ? (d.precoPromo >= d.preco ? " · <span class=\"form-erro\">a promoção precisa ser menor que o preço</span>" : " · promoção encerrada") : ""}`;
+        ? `No site: <s>${fmtR(pi.preco)}</s> <strong>${fmtR(pi.promo)}/kg</strong> <b class="selo-off">-${pi.desconto}%</b> · caixa 5 kg: ${fmtR(pi.promo * 5)} · caixa 25 kg: ${fmtR(pi.promo * 25)}`
+        : `No site: <strong>${fmtR(d.preco)}/kg</strong> · caixa 5 kg: ${fmtR(d.preco * 5)} · caixa 25 kg: ${fmtR(d.preco * 25)}${d.precoPromo ? (d.precoPromo >= d.preco ? " · <span class=\"form-erro\">a promoção precisa ser menor que o preço</span>" : " · promoção encerrada") : ""}`;
     }
-    $$("[name=preco-modo]", form).forEach((r) => r.addEventListener("change", previaPreco));
     ["preco", "precoPromo", "promoAte"].forEach((n) => form[n].addEventListener("input", previaPreco));
 
     async function abrir(r, duplicar) {
@@ -358,7 +357,6 @@
       $("#cor-nome").value = duplicar ? "" : c.nome; hex.value = tom.value = c.hex || "#1558d6";
       fotos = duplicar ? [] : (Array.isArray(p.fotos) && p.fotos.length ? p.fotos.slice() : c.foto ? [c.foto] : []);
       enviando = 0; desenharFotos();
-      $$("[name=preco-modo]", form).forEach((x) => (x.checked = x.value === (r && (p.precoCombinar || !(+p.preco > 0)) ? "combinar" : "valor")));
       form.preco.value = p.preco || ""; form.precoPromo.value = p.precoPromo || ""; form.promoAte.value = p.promoAte || "";
       previaPreco();
       form.ordem.value = r ? r.ordem + (duplicar ? 1 : 0) : (registros.reduce((m, x) => Math.max(m, x.ordem), 0) + 10);

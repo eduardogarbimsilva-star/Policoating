@@ -44,7 +44,7 @@
     const F = window.Fotos, I = window.Icone || (() => "");
     const foto = F ? F.fotoCor("#1558d6", "Brilhante", { largura: 520, altura: 620, po: false }) : "";
     const linhas = [["relogio", "Cura", "10 min a 200 °C"], ["camadas", "Espessura", "60–80 µm"], ["alvo", "Rendimento", "≈ 9,5 m²/kg"],
-      ["folha", "Solventes (VOC)", "0%"], ["escudo", "Proteção", "Corrosão e UV"], ["caixa", "Embalagem", "Caixas 20 e 25 kg"]];
+      ["folha", "Solventes (VOC)", "0%"], ["escudo", "Proteção", "Corrosão e UV"], ["caixa", "Embalagem", "Caixas 5 e 25 kg"]];
     return `<div class="ficha-arte">${foto ? `<img src="${foto}" alt="Placa pintada com poliéster azul brilhante">` : ""}
       <div class="ficha-tabela">${linhas.map(([ic, k, v]) => `<div><span>${I(ic)}${k}</span><strong>${v}</strong></div>`).join("")}</div></div>`;
   }

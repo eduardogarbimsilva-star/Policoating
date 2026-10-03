@@ -492,7 +492,7 @@
     const rend = p ? parseFloat(String(p.rendimento || "").replace(",", ".").match(/[\d.]+/)) : NaN;
     const m2kg = rend > 0 ? rend : 9;                       // m² por kg a ~70 µm
     const kg = (q.area / m2kg) * 1.15;                        // +15% de perda na aplicação
-    const caixas = (p ? p.embalagens : ["Caixa 20 kg", "Caixa 25 kg"]).map((e) => {
+    const caixas = (p ? p.embalagens : ["Caixa 5 kg", "Caixa 25 kg"]).map((e) => {
       const tam = parseFloat((e.match(/(\d+(?:[.,]\d+)?)\s*kg/i) || [])[1]);
       return tam ? `${Math.ceil(kg / tam)} × ${e}` : null;
     }).filter(Boolean);

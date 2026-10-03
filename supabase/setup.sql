@@ -1418,3 +1418,11 @@ revoke all on function public.excluir_cliente(uuid, boolean) from public, anon;
 grant execute on function public.excluir_cliente(uuid, boolean) to authenticated;
 
 notify pgrst, 'reload schema';
+
+-- ===========================================================
+-- PARTE Q — Caixas de 5 kg e 25 kg (rode uma vez; pode rodar de novo)
+--   Os produtos já cadastrados passam a aceitar a caixa de 5 kg nos pedidos.
+-- ===========================================================
+update public.produtos
+   set dados = jsonb_set(dados, '{embalagens}', '["Caixa 5 kg", "Caixa 25 kg"]'::jsonb), atualizado_em = now()
+ where not coalesce(dados -> 'embalagens', '[]'::jsonb) @> '["Caixa 5 kg"]'::jsonb;

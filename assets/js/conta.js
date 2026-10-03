@@ -308,11 +308,11 @@
     const combinar = itens.some((it) => it.preco_kg == null);
     const lista = itens.map((it) => {
       const prod = CW.acharProduto(it.id, it.cor), foto = it.foto || (prod && ((prod.fotos || [])[0] || prod.cores[0].foto));
-      return `<li>${foto ? `<img class="mini" src="${esc(foto)}" alt="" width="40" height="32">` : `<i class="bolinha" style="background:${prod ? prod.cores[0].hex : "#ccc"}"></i>`}<span>${esc(it.nome)}<small>${esc(it.codigo ? "Cód. " + it.codigo + " · " : "")}${esc(CW.descreverQtd({ embalagem: it.embalagem, qtd: +it.qtd || 0 }))}${it.preco_kg != null ? " · " + R(it.preco_kg) + "/kg" : " · valor a combinar"}</small></span></li>`;
+      return `<li>${foto ? `<img class="mini" src="${esc(foto)}" alt="" width="40" height="32">` : `<i class="bolinha" style="background:${prod ? prod.cores[0].hex : "#ccc"}"></i>`}<span>${esc(it.nome)}<small>${esc(it.codigo ? "Cód. " + it.codigo + " · " : "")}${esc(CW.descreverQtd({ embalagem: it.embalagem, qtd: +it.qtd || 0 }))}${it.preco_kg != null ? " · " + R(it.preco_kg) + "/kg" : " · preço sob consulta"}</small></span></li>`;
     }).join("");
     return `<article class="pedido">
       <header>
-        <div><strong>Pedido ${esc(p.numero)}</strong><small>${dataHora(p.criado_em)} · ${itens.length} ${itens.length === 1 ? "produto" : "produtos"}${kg ? ` · ${kg.toLocaleString("pt-BR")} kg` : ""}${valor ? ` · ${R(valor)}${combinar ? " + a combinar" : ""}` : ""}</small></div>
+        <div><strong>Pedido ${esc(p.numero)}</strong><small>${dataHora(p.criado_em)} · ${itens.length} ${itens.length === 1 ? "produto" : "produtos"}${kg ? ` · ${kg.toLocaleString("pt-BR")} kg` : ""}${valor ? ` · ${R(valor)}${combinar ? " + itens sob consulta" : ""}` : ""}</small></div>
         <span class="status">Enviado ao vendedor</span>
       </header>
       <ul>${lista}</ul>

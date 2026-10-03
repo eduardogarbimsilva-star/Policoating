@@ -47,8 +47,8 @@
       (!p.video || (typeof p.video === "string" && /^https:\/\//.test(p.video))));
   }
 
-  /** Embalagem única: caixa de 25 kg (o cliente também pode pedir "Sob medida", em kg) */
-  const EMBALAGENS = ["Caixa 25 kg"];
+  /** Embalagens: caixas de 5 kg e de 25 kg (o cliente também pode pedir "Sob medida", em kg) */
+  const EMBALAGENS = ["Caixa 5 kg", "Caixa 25 kg"];
 
   /** Troca o conteúdo de PRODUTOS sem trocar o array (os outros scripts guardam a referência) */
   function aplicar(lista) {
@@ -310,8 +310,8 @@
       const nFotos = Array.isArray(d.fotos) ? d.fotos.filter(fotoOk).length : 0;
       if (nFotos < 3) erros.push(`fotos (no mínimo 3; ${nFotos === 0 ? "nenhuma enviada" : nFotos + " enviada" + (nFotos > 1 ? "s" : "")})`);
       if (nFotos > 10) erros.push("fotos (no máximo 10)");
-      if (!d.precoCombinar) {
-        if (!(num(d.preco) > 0)) erros.push("preço por kg (ou marque \"Valor a combinar\")");
+      {
+        if (!(num(d.preco) > 0)) erros.push("preço por kg");
         if (d.precoPromo != null && !(num(d.precoPromo) > 0 && num(d.precoPromo) < num(d.preco))) erros.push("preço promocional (menor que o preço normal)");
         if (d.promoAte && !/^\d{4}-\d{2}-\d{2}$/.test(d.promoAte)) erros.push("data do fim da promoção");
       }

@@ -69,7 +69,7 @@
   const dataCurtaBR = (iso) => (iso ? iso.split("-").reverse().join("/") : "");
   function htmlPreco(p, detalhado) {
     const pi = precoInfo(p);
-    if (pi.tipo === "combinar") return `<span class="preco preco-combinar"><small>Preço</small>Valor a combinar com o vendedor</span>`;
+    if (pi.tipo === "combinar") return `<span class="preco preco-combinar"><small>Preço</small>Sob consulta</span>`;
     const caixa = detalhado ? (() => { const kg = kgDaEmbalagem(embalagemPadrao(p)); return kg ? `<small class="preco-caixa">Caixa ${kg} kg: ${formatarPreco(pi.efetivo * kg)}</small>` : ""; })() : "";
     if (pi.tipo === "promo") return `<span class="preco preco-promo"><small><s>${formatarPreco(pi.preco)}</s> <b class="selo-off">-${pi.desconto}%</b></small>${formatarPreco(pi.promo)}<em>/kg</em>${pi.ate && detalhado ? `<small>Promoção até ${dataCurtaBR(pi.ate)}</small>` : ""}${caixa}</span>`;
     return `<span class="preco"><small>Preço</small>${formatarPreco(pi.preco)}<em>/kg</em>${caixa}</span>`;
@@ -221,7 +221,8 @@
   const limitarQtd = (emb, n) => Math.min(ehSobMedida(emb) ? QTD_MAX.kg : QTD_MAX.caixas, Math.max(1, parseInt(n, 10) || 1));
   const kgDaEmbalagem = (emb) => { const m = String(emb || "").match(/(\d+(?:[.,]\d+)?)\s*kg/i); return m ? parseFloat(m[1].replace(",", ".")) : 0; };
   const kgDoItem = (i) => (ehSobMedida(i.embalagem) ? i.qtd : i.qtd * kgDaEmbalagem(i.embalagem));
-  // embalagem única: caixa de 25 kg (ou "Sob medida", em kg)
+  // caixas de 5 kg e de 25 kg (ou "Sob medida", em kg); a padrão é a de 25 kg
+  const CAIXAS = ["Caixa 5 kg", "Caixa 25 kg"];
   const CAIXA = "Caixa 25 kg";
   const embalagemPadrao = () => CAIXA;
   const descreverQtd = (i) => (ehSobMedida(i.embalagem)
@@ -247,7 +248,7 @@
   function adicionarAoCarrinho(id, cor, embalagem, qtd) {
     const p = acharProduto(id, cor);
     if (!p) return false;
-    const item = { id: p.id, cor: p.cores[0].nome, embalagem: ehSobMedida(embalagem) ? SOB_MEDIDA : CAIXA, qtd: 1 };
+    const item = { id: p.id, cor: p.cores[0].nome, embalagem: ehSobMedida(embalagem) ? SOB_MEDIDA : CAIXAS.includes(embalagem) ? embalagem : CAIXA, qtd: 1 };
     item.qtd = limitarQtd(item.embalagem, qtd);
     const existente = carrinho.find((i) => chaveItem(i) === chaveItem(item));
     const desejado = (existente ? existente.qtd : 0) + item.qtd;
@@ -340,7 +341,7 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
     if (val) {
       const tv = totalValor();
       val.innerHTML = !carrinho.length ? "" : `<span>Total estimado</span><strong>${tv.valor ? formatarPreco(tv.valor) : "—"}</strong>` +
-        (tv.combinar ? `<small>${tv.valor ? "+ " : ""}${tv.combinar} ${tv.combinar === 1 ? "item" : "itens"} com valor a combinar com o vendedor</small>` : `<small>Valores dos produtos. Condições são combinadas com o vendedor.</small>`);
+        (tv.combinar ? `<small>${tv.valor ? "+ " : ""}${tv.combinar} ${tv.combinar === 1 ? "item" : "itens"} com preço sob consulta</small>` : `<small>Valores dos produtos. Condições são combinadas com o vendedor.</small>`);
     }
     $("#btn-finalizar").disabled = carrinho.length === 0;
     renderClienteCarrinho();
@@ -354,7 +355,7 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
       .map((item, idx) => {
         const p = buscarProduto(item.id);
         const cor = p.cores[0], pi = precoInfo(p);
-        const sub = pi.tipo === "combinar" ? `<span class="sub-combinar">Valor a combinar</span>` : `<span class="sub-valor">${formatarPreco(pi.efetivo * kgDoItem(item))}${pi.tipo === "promo" ? ` <b class="selo-off">-${pi.desconto}%</b>` : ""}</span>`;
+        const sub = pi.tipo === "combinar" ? `<span class="sub-combinar">Preço sob consulta</span>` : `<span class="sub-valor">${formatarPreco(pi.efetivo * kgDoItem(item))}${pi.tipo === "promo" ? ` <b class="selo-off">-${pi.desconto}%</b>` : ""}</span>`;
         return `
 <div class="item-carrinho" data-idx="${idx}">
   ${imgProduto(p, cor, FOTO_CARTAO, "mini-foto")}
@@ -428,10 +429,10 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
     carrinho.forEach((item, i) => {
       const prod = buscarProduto(item.id), pi = precoInfo(prod);
       L.push(`*${i + 1}. ${prod.nome}*`, `   Código: ${prod.codigo || prod.id} | Cor: ${item.cor}`, `   Quantidade: ${descreverQtd(item)}`,
-        pi.tipo === "combinar" ? "   Valor: a combinar" : `   Valor: ${formatarPreco(pi.efetivo)}/kg${pi.tipo === "promo" ? " (promoção)" : ""} = ${formatarPreco(pi.efetivo * kgDoItem(item))}`);
+        pi.tipo === "combinar" ? "   Valor: sob consulta" : `   Valor: ${formatarPreco(pi.efetivo)}/kg${pi.tipo === "promo" ? " (promoção)" : ""} = ${formatarPreco(pi.efetivo * kgDoItem(item))}`);
     });
     L.push("", `*Total: ${totalKg().toLocaleString("pt-BR")} kg*`);
-    if (tv.valor) L.push(`*Valor estimado: ${formatarPreco(tv.valor)}*${tv.combinar ? " + itens a combinar" : ""}`);
+    if (tv.valor) L.push(`*Valor estimado: ${formatarPreco(tv.valor)}*${tv.combinar ? " + itens sob consulta" : ""}`);
     L.push("", "*Dados do cliente*");
     if (p.tipo === "pj") L.push(`Empresa: ${p.razao_social}${p.nome_fantasia ? " (" + p.nome_fantasia + ")" : ""}`, `CNPJ: ${p.cnpj}${p.inscricao_estadual ? " | IE: " + p.inscricao_estadual : ""}`, `Responsável: ${p.responsavel}`);
     else L.push(`Nome: ${p.nome}`, `CPF: ${p.cpf}`);
@@ -540,7 +541,6 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
         ? fotosDe(p).map((u, i) => `<button type="button" class="${i ? "" : "ativo"}" data-vista="f${i}" aria-label="Foto ${i + 1}">${imgFoto(u, "", "mini-foto")}</button>`).join("")
         : `<button type="button" class="ativo" data-vista="foto" aria-label="Foto da cor">${imgProduto(p, corSel, FOTO_CARTAO, "mini-foto")}</button>`}
       ${videoDe(p) ? `<button type="button" data-vista="video" aria-label="Vídeo do produto">${miniVideo(videoDe(p))}</button>` : ""}
-      <button type="button" data-vista="caixa" aria-label="Embalagem">${caixaFoto("mini-foto")}</button>
     </div>
     <p class="modal-legenda" id="modal-legenda">${esc(corSel.nome)} · ${esc(p.acabamento || "")}</p>
     <ul class="modal-garantias">
@@ -564,7 +564,7 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
     </ul>
     <div class="campo-titulo">Embalagem</div>
     <div class="seletor-embalagem">
-      <button class="ativo" data-emb="${CAIXA}">${CAIXA}</button>
+      ${CAIXAS.map((c) => `<button class="${c === CAIXA ? "ativo" : ""}" data-emb="${c}">${c}</button>`).join("")}
       <button data-emb="${SOB_MEDIDA}" title="Informe a quantidade exata em kg">Sob medida (kg)</button>
     </div>
     <p class="nota-sob-medida" id="nota-sob-medida" hidden>Informe o total em quilos. O vendedor confirma a melhor combinação de embalagens.</p>

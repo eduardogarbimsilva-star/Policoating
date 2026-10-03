@@ -453,7 +453,7 @@
             <div class="campo-fotos-topo"><span>Fotos do produto * <small id="fotos-contagem">(no mínimo 3)</small></span>
               <label class="btn btn-contorno-azul">+ Adicionar fotos<input type="file" id="fotos-arquivos" accept="image/*,.heic,.heif" multiple hidden></label></div>
             <div class="fotos-grade" id="fotos-grade"></div>
-            <small>A primeira foto é a capa (aparece no catálogo). Use as setas para mudar a ordem. JPG, PNG, WEBP ou foto do celular.</small>
+            <small>A primeira foto é a capa (aparece no catálogo). Coloque a foto da caixa como 4ª foto. Use as setas para mudar a ordem. JPG, PNG, WEBP ou foto do celular.</small>
           </div>
           <div class="grade-campos">
             <label>Código do produto<input name="codigo" readonly tabindex="-1" class="campo-travado"><small id="codigo-dica">Gerado automaticamente.</small></label>
@@ -480,10 +480,7 @@
 
           <fieldset class="campo-preco">
             <legend>Preço</legend>
-            <div class="preco-modos" role="radiogroup" aria-label="Tipo de preço">
-              <label><input type="radio" name="preco-modo" value="valor" checked><span><b>Preço por kg</b>Aparece no site</span></label>
-              <label><input type="radio" name="preco-modo" value="combinar"><span><b>Valor a combinar</b>O cliente combina com o vendedor</span></label>
-            </div>
+            <input type="hidden" name="preco-modo" value="valor">
             <div class="grade-campos" id="precos-campos">
               <label>Preço por kg (R$) *<input name="preco" type="number" step="0.01" min="0" inputmode="decimal" placeholder="Ex.: 32,50"></label>
               <label>Preço promocional por kg (R$)<input name="precoPromo" type="number" step="0.01" min="0" inputmode="decimal" placeholder="Opcional"><small>Deixe em branco se não houver promoção.</small></label>
@@ -591,17 +588,17 @@
 
   <script src="assets/js/config.js?v=1a02af0a"></script>
   <script src="assets/js/produtos.js?v=efe7e02f"></script>
-  <script src="assets/js/catalogo.js?v=701caee8"></script>
+  <script src="assets/js/catalogo.js?v=e67f19f7"></script>
   <script src="assets/js/icones.js?v=1858ced1"></script>
   <script src="assets/js/midia.js?v=781286f8"></script>
   <script src="assets/js/fotos-reais.js?v=cd443528"></script>
   <script src="assets/js/fotos.js?v=48f81340"></script>
   <script src="assets/js/auth.js?v=84685be3"></script>
   <script src="assets/js/loja.js?v=67be2651"></script>
-  <script src="assets/js/main.js?v=1d7226ad"></script>
-  <script src="assets/js/animacoes.js?v=d458c529"></script>
+  <script src="assets/js/main.js?v=8e5502ec"></script>
+  <script src="assets/js/animacoes.js?v=4efb4d38"></script>
   <script src="assets/js/secoes.js?v=b03394b5"></script>
-  <script src="assets/js/assistente.js?v=22edb703"></script>
-  <script src="assets/js/admin.js?v=b61a3a9a"></script>
+  <script src="assets/js/assistente.js?v=d38f1adf"></script>
+  <script src="assets/js/admin.js?v=fc28542b"></script>
 </body>
 </html>

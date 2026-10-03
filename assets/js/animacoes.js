@@ -463,7 +463,7 @@
         const r = el.getBoundingClientRect();
         if (r.bottom < 0 || r.top > vh) return;
         const p = (r.top + r.height / 2 - vh / 2) / vh;       // -1 … 1
-        el.style.setProperty("--desloc", (p * -80).toFixed(1) + "px");
+        el.style.setProperty("--desloc", (p * -36).toFixed(1) + "px");
       });
     };
     addEventListener("scroll", () => { if (!pedido) pedido = requestAnimationFrame(atualizar); }, { passive: true });

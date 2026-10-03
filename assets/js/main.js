@@ -624,7 +624,7 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
         const nova = alvo.firstElementChild;
         if (nova) { nova.style.setProperty("--dir", dir); nova.classList.add("entrando"); }
         alvo.appendChild(saindo);
-        const trocar = () => { requestAnimationFrame(() => { saindo.classList.add("fora"); if (nova) nova.classList.add("dentro"); }); setTimeout(() => saindo.remove(), 650); };
+        const trocar = () => { requestAnimationFrame(() => { saindo.classList.add("fora"); if (nova) nova.classList.add("dentro"); }); setTimeout(() => saindo.remove(), 1000); };
         const img = nova && nova.tagName === "IMG" ? nova : null;
         if (img && img.decode) img.decode().then(trocar, trocar); else trocar();
       }
@@ -822,7 +822,7 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
         g.img.src = url; g.img.style.cssText = css;
         $$(".foto-camada", g.vit).forEach((c) => { if (c !== camada) c.remove(); });
         setTimeout(() => camada.remove(), 60);
-      }, 700);
+      }, 1050);
     };
     g.vit.appendChild(camada);
     (camada.decode ? camada.decode() : Promise.resolve()).then(entrar, entrar);
@@ -948,7 +948,7 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
           if (!en.target.parentElement) { observador.unobserve(en.target); return; }
           const irmaos = Array.from(en.target.parentElement.children).filter((c) => c.classList.contains("revelar"));
           const i = Math.max(0, irmaos.indexOf(en.target));
-          en.target.style.transitionDelay = Math.min(i, 6) * 70 + "ms";
+          en.target.style.transitionDelay = Math.min(i, 6) * 45 + "ms";
           en.target.classList.add("visivel");
           observador.unobserve(en.target);
           setTimeout(() => (en.target.style.transitionDelay = ""), 1200);

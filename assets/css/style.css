@@ -2584,3 +2584,21 @@ video.video-produto { object-fit: contain; }
 @media (prefers-reduced-motion: reduce) {
   .cartao-produto .vitrine .foto-camada, .galeria-palco .modal-foto > .entrando.dentro, .galeria-palco .modal-foto .vitrine-saindo { transition-duration: .01s; }
 }
+
+/* ---------- Movimento mais fluido (troca de fotos e efeitos ao rolar a página) ---------- */
+:root { --fluido: cubic-bezier(.25, .1, .25, 1); }
+/* catálogo: só um fade calmo, com zoom quase imperceptível */
+.cartao-produto .vitrine .foto-camada { transform: scale(1.025); transition: opacity 1s var(--fluido), transform 1.4s var(--fluido); }
+.cartao-produto .vitrine .foto-camada.visivel, .cartao-produto:hover .vitrine .foto-camada.visivel { transform: scale(1.03); }
+.foto-produto { transition: transform 1.2s var(--fluido), opacity .4s; }
+.cartao-produto:hover .foto-produto { transform: scale(1.03); }
+/* página do produto: fade cruzado puro, sem deslize */
+.galeria-palco .modal-foto .vitrine-saindo { transition: opacity .9s var(--fluido); }
+.galeria-palco .modal-foto .vitrine-saindo.fora { opacity: 0; transform: none; }
+.galeria-palco .modal-foto > .entrando { opacity: 0; transform: none; }
+.galeria-palco .modal-foto > .entrando.dentro { opacity: 1; transform: none; transition: opacity .9s var(--fluido); }
+.galeria-progresso { height: 2px; background: rgba(255,255,255,.25); }
+/* ao rolar a página: os blocos sobem pouco e devagar */
+.revelar { transform: translateY(14px); transition: opacity 1s var(--fluido), transform 1.1s var(--fluido); }
+.revelar-lado { transform: translateX(22px); }
+.revelar.visivel, .revelar-lado.visivel { transform: none; }

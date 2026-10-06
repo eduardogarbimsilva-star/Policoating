@@ -112,8 +112,11 @@
         .filter((t) => t.id && t.nome && !vistos.has(t.id) && vistos.add(t.id)).slice(0, 50);
     }
     if (Array.isArray(d.galeria)) {
-      o.galeria = d.galeria.filter((g) => g && typeof g.src === "string" && /^(https:\/\/|assets\/|data:image\/(jpeg|png|webp);base64,)/.test(g.src))
-        .slice(0, 60).map((g) => ({ src: g.src, titulo: String(g.titulo || "").slice(0, 80), descricao: String(g.descricao || "").slice(0, 140), categoria: "ambientes" }));
+      const fotoOk = (u) => typeof u === "string" && /^(https:\/\/|assets\/|data:image\/(jpeg|png|webp);base64,)/.test(u);
+      const videoOk = (u) => typeof u === "string" && u.length <= 500 && /^https:\/\//.test(u);
+      o.galeria = d.galeria.filter((g) => g && (fotoOk(g.src) || videoOk(g.video)))
+        .slice(0, 60).map((g) => Object.assign({ src: fotoOk(g.src) ? g.src : "", titulo: String(g.titulo || "").slice(0, 80), descricao: String(g.descricao || "").slice(0, 140), categoria: "ambientes" },
+          videoOk(g.video) ? { video: g.video } : {}));
     }
     return o;
   }

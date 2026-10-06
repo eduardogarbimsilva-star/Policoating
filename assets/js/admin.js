@@ -815,8 +815,8 @@
     }
     function desenharGaleria() {
       $("#admin-galeria").innerHTML = fotosGaleria.length ? fotosGaleria.map((g, i) => `
-        <figure class="admin-foto" data-i="${i}">
-          <img src="${esc(g.src)}" alt="">
+        <figure class="admin-foto${g.video ? " eh-video" : ""}" data-i="${i}">
+          ${miniGaleria(g)}
           <input class="g-titulo" value="${esc(g.titulo)}" placeholder="Título" maxlength="80" aria-label="Título">
           <input class="g-desc" value="${esc(g.descricao)}" placeholder="Descrição" maxlength="140" aria-label="Descrição">
           <div class="admin-foto-acoes">
@@ -824,7 +824,14 @@
             <button type="button" data-mover="1" aria-label="Mover para a direita" ${i < fotosGaleria.length - 1 ? "" : "disabled"}>›</button>
             <button type="button" data-remover class="perigo">Remover</button>
           </div>
-        </figure>`).join("") : `<p class="dica">Nenhuma foto. Envie fotos para montar a galeria.</p>`;
+        </figure>`).join("") : `<p class="dica">Nenhuma foto ou vídeo. Envie fotos ou vídeos para montar a galeria.</p>`;
+    }
+    // miniatura: foto, capa do YouTube ou o primeiro quadro do vídeo enviado
+    function miniGaleria(g) {
+      const v = g.video ? CW.videoInfo(g.video) : null;
+      if (!v) return `<img src="${esc(g.src)}" alt="">`;
+      const capa = g.src || v.capa;
+      return `<div class="admin-foto-video">${capa ? `<img src="${esc(capa)}" alt="">` : v.tipo === "arquivo" ? `<video src="${esc(v.url)}#t=0.5" muted playsinline preload="metadata"></video>` : ""}<b>▶ Vídeo${v.tipo === "youtube" ? " do YouTube" : v.tipo === "vimeo" ? " do Vimeo" : ""}</b></div>`;
     }
     const lerCamposGaleria = () => $$(".admin-foto", $("#admin-galeria")).forEach((f) => {
       const g = fotosGaleria[+f.dataset.i]; g.titulo = $(".g-titulo", f).value.trim(); g.descricao = $(".g-desc", f).value.trim();
@@ -844,6 +851,25 @@
         try { fotosGaleria.push({ src: await A.enviarFoto(arq, "galeria"), titulo: arq.name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " "), descricao: "" }); desenharGaleria(); }
         catch (err) { $("#galeria-erro").textContent = err.message; }
       }
+    });
+    $("#galeria-video").addEventListener("change", async (e) => {
+      lerCamposGaleria();
+      const arq = e.target.files[0]; e.target.value = ""; if (!arq) return;
+      const btn = $("#galeria-video-btn"), txt = btn.firstChild.textContent;
+      btn.classList.add("desativado"); btn.firstChild.textContent = "Enviando vídeo...";
+      $("#galeria-erro").textContent = "";
+      try { fotosGaleria.push({ src: "", video: await A.enviarVideo(arq, "galeria"), titulo: arq.name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " "), descricao: "" }); desenharGaleria(); CW.mostrarToast("Vídeo enviado. Clique em Salvar galeria."); }
+      catch (err) { $("#galeria-erro").textContent = err.message; }
+      btn.classList.remove("desativado"); btn.firstChild.textContent = txt;
+    });
+    $("#galeria-youtube").addEventListener("click", () => {
+      lerCamposGaleria();
+      const link = (prompt("Cole o link do vídeo do YouTube (ou do Vimeo):") || "").trim(); if (!link) return;
+      const v = CW.videoInfo(link);
+      if (!v || v.tipo === "arquivo") { $("#galeria-erro").textContent = "Link não reconhecido. Use um link do YouTube (youtube.com ou youtu.be) ou do Vimeo."; return; }
+      $("#galeria-erro").textContent = "";
+      fotosGaleria.push({ src: "", video: v.url, titulo: "", descricao: "" }); desenharGaleria();
+      const ult = $$(".admin-foto .g-titulo", $("#admin-galeria")).pop(); if (ult) ult.focus();
     });
     $("#btn-salvar-galeria").addEventListener("click", async (e) => {
       lerCamposGaleria();

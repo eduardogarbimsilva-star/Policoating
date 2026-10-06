@@ -501,23 +501,34 @@
     atualizar();
   }
 
-  /* Vídeo da marca: toca sem som quando aparece na tela e pausa quando sai */
+  /* Vídeos do site: tocam sozinhos, sem som e em loop, quando aparecem na tela (pausam quando saem).
+     O botão liga/desliga o som; ligar o som de um vídeo desliga o dos outros. */
   function iniciarVideoMarca() {
-    $$("[data-video-marca]").forEach((caixa) => {
-      const v = $("video", caixa), botao = $(".vm-som", caixa);
-      if (!v) return;
-      v.addEventListener("error", () => caixa.classList.add("sem-video"), true);
-      // "Assistir do início": mostra os controles e recomeça o vídeo
-      if (botao) botao.addEventListener("click", () => {
-        botao.hidden = true;
-        v.controls = true;
-        v.currentTime = 0;
-        v.play().catch(() => {});
+    const caixas = $$("[data-video-marca]").filter((c) => $("video", c));
+    const ic = (n) => (window.Icone ? window.Icone(n) : "");
+    const marcar = (caixa) => {
+      const v = $("video", caixa), b = $(".vm-som", caixa); if (!b) return;
+      b.setAttribute("aria-pressed", String(!v.muted));
+      b.innerHTML = `${ic(v.muted ? "mudo" : "som")}<span>${v.muted ? "Ativar som" : "Tirar som"}</span>`;
+    };
+    caixas.forEach((caixa) => {
+      const v = $("video", caixa), botao = $(".vm-som", caixa), fontes = $$("source", v);
+      v.muted = true; v.loop = true; v.playsInline = true;
+      // só esconde se nenhuma fonte funcionar (a primeira pode falhar no Safari e a segunda tocar)
+      (fontes.length ? fontes[fontes.length - 1] : v).addEventListener("error", () => caixa.classList.add("sem-video"));
+      marcar(caixa);
+      if (botao) botao.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const ligar = v.muted;
+        caixas.forEach((c) => { const o = $("video", c); if (o !== v && !o.muted) { o.muted = true; marcar(c); } });
+        v.muted = !ligar; marcar(caixa);
+        if (ligar) { if (v.ended || v.currentTime > v.duration - 0.3) v.currentTime = 0; v.play().catch(() => {}); }
       });
-      if (!("IntersectionObserver" in window)) { v.controls = true; return; }
+      if (!("IntersectionObserver" in window)) { if (!menosMovimento) v.play().catch(() => {}); return; }
       new IntersectionObserver((ents) => ents.forEach((en) => {
-        if (en.isIntersecting) v.play().catch(() => {}); else v.pause();
-      }), { threshold: 0.35 }).observe(caixa);
+        if (en.isIntersecting) { if (!menosMovimento || !v.muted) v.play().catch(() => {}); }
+        else { v.pause(); if (!v.muted) { v.muted = true; marcar(caixa); } }   // saiu da tela: pausa e tira o som
+      }), { threshold: 0.3 }).observe(caixa);
     });
   }
 

@@ -413,9 +413,23 @@
     $(".grade-videos", raiz).innerHTML = lista.map((v) => {
       const midia = v.youtube
         ? `<iframe src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(v.youtube)}" title="${esc(v.titulo || "Vídeo")}" loading="lazy" allow="accelerometer; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`
-        : `<video controls preload="none" playsinline ${v.capa ? `poster="${esc(v.capa)}"` : ""}><source src="${esc(v.arquivo)}"></video>`;
+        : `<video muted loop playsinline preload="none" ${v.capa ? `poster="${esc(v.capa)}"` : ""} aria-label="${esc(v.titulo || "Vídeo")}">${v.webm ? `<source src="${esc(v.webm)}" type="video/webm">` : ""}<source src="${esc(v.arquivo)}" type="video/mp4"></video>
+           <button type="button" class="vc-som">${window.Icone ? window.Icone("play") : "▶"}<span>Assistir com som</span></button>`;
       return `<figure class="video-card"><div class="video-quadro">${midia}</div><figcaption>${esc(v.titulo || "")}</figcaption></figure>`;
     }).join("");
+    // sem som, os vídeos tocam sozinhos quando aparecem na tela (e pausam quando saem)
+    $$(".video-card video", raiz).forEach((v) => {
+      const botao = v.parentElement.querySelector(".vc-som");
+      botao.addEventListener("click", () => {
+        $$(".video-card video", raiz).forEach((outro) => { if (outro !== v && !outro.muted) { outro.muted = true; outro.controls = false; } });
+        botao.hidden = true; v.muted = false; v.loop = false; v.controls = true; v.currentTime = 0; v.play().catch(() => {});
+      });
+      v.addEventListener("ended", () => { v.muted = true; v.loop = true; v.controls = false; botao.hidden = false; v.play().catch(() => {}); });
+      if (menosMovimento || !("IntersectionObserver" in window)) return;
+      new IntersectionObserver((ents) => ents.forEach((en) => {
+        if (en.isIntersecting) { if (v.muted) v.play().catch(() => {}); } else v.pause();
+      }), { threshold: 0.4 }).observe(v);
+    });
   }
 
   /* Imagens institucionais (cena realista da linha de pintura) */

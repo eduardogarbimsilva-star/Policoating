@@ -2616,3 +2616,13 @@ video.video-produto { object-fit: contain; }
 .admin-foto-video b { position: absolute; left: 8px; bottom: 8px; padding: 3px 8px; border-radius: 999px; background: rgba(11,20,36,.8); color: #fff; font-size: .72rem; }
 .admin-enviar.desativado { pointer-events: none; opacity: .6; }
 .galeria-item.eh-video { background: linear-gradient(135deg, #1558d6, #0b1424); cursor: pointer; }
+
+/* ---------- Vídeos da Policoating (página inicial) ---------- */
+.videos-reais { margin-top: 40px; }
+.videos-reais h3 { margin: 0 0 14px; }
+.video-card .video-quadro { box-shadow: 0 14px 40px rgba(11,20,36,.18); transition: transform .5s var(--fluido, ease), box-shadow .5s; }
+.video-card:hover .video-quadro { transform: translateY(-3px); box-shadow: 0 20px 50px rgba(11,20,36,.26); }
+.video-quadro video { object-fit: cover; }
+.vc-som { position: absolute; left: 12px; bottom: 12px; z-index: 2; display: inline-flex; align-items: center; gap: 6px; padding: 7px 13px 7px 9px; border: 0; border-radius: 999px; background: rgba(11,20,36,.72); backdrop-filter: blur(4px); color: #fff; font: inherit; font-size: .8rem; font-weight: 700; cursor: pointer; transition: background .25s, transform .25s; }
+.vc-som:hover { background: var(--azul); transform: translateY(-1px); }
+.vc-som .icone-svg { width: 20px; height: 20px; }

@@ -20,6 +20,12 @@
         : { categoria: "policoating", titulo: f.titulo || "", sub: f.descricao || "", img: f.src, real: true });
     });
 
+    // 1b) Vídeos da Policoating (midia.js)
+    ((window.MIDIA || {}).videos || []).filter((v) => v.arquivo).forEach((v) => {
+      const info = CW.videoInfo(v.arquivo);
+      if (info && !itens.some((it) => it.video && it.video.url === info.url)) itens.push({ categoria: "videos", titulo: v.titulo || "Vídeo", sub: "", video: Object.assign({}, info, { capa: v.capa || "", webm: /^assets\/video\/[\w.-]+\.webm$/.test(v.webm || "") ? v.webm : "" }), img: v.capa || "" });
+    });
+
     // 2) Fotos reais de peças metálicas pintadas a pó (fotos-reais.js), por cor
     const FR = window.FotosReais;
     if (FR) FR.FOTOS.forEach((f) => itens.push({

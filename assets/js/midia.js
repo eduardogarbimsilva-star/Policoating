@@ -40,5 +40,9 @@ window.MIDIA = {
   // Vídeos da empresa: YouTube (só o código do vídeo) ou arquivo .mp4 próprio.
   // Ex.: { titulo: "Conheça nossa fábrica", youtube: "CODIGO_DO_VIDEO" }
   //      { titulo: "Aplicação na prática", arquivo: "assets/video/aplicacao.mp4", capa: "assets/img/capa-video.jpg" }
-  videos: []
+  videos: [
+    { titulo: "Policoating – tinta eletrostática em pó", arquivo: "assets/video/vinheta-policoating.mp4", webm: "assets/video/vinheta-policoating.webm", capa: "assets/video/vinheta-policoating-capa.jpg" },
+    { titulo: "Do pó à peça pintada", arquivo: "assets/video/do-po-a-peca.mp4", webm: "assets/video/do-po-a-peca.webm", capa: "assets/video/do-po-a-peca-capa.jpg" },
+    { titulo: "Poliéster liso brilho em várias cores", arquivo: "assets/video/cores-poliester-brilho.mp4", webm: "assets/video/cores-poliester-brilho.webm", capa: "assets/video/cores-poliester-brilho-capa.jpg" }
+  ]
 };

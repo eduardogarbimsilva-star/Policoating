@@ -24,6 +24,7 @@
   /** Vídeo do produto: link do YouTube/Vimeo ou arquivo enviado (mp4/webm/mov). Devolve null se não for aceito. */
   function videoInfo(url) {
     const u = String(url || "").trim();
+    if (/^assets\/video\/[\w.-]+\.(mp4|webm)$/i.test(u)) return { tipo: "arquivo", url: u, embed: "", capa: "" };
     if (!/^https:\/\//i.test(u) || u.length > 500) return null;
     let m = u.match(/^https:\/\/(?:www\.|m\.)?(?:youtube\.com\/(?:watch\?(?:.*&)?v=|shorts\/|embed\/|live\/)|youtu\.be\/)([\w-]{11})(?:[?&#/].*)?$/i);
     if (m) return { tipo: "youtube", url: u, embed: `https://www.youtube-nocookie.com/embed/${m[1]}?rel=0&playsinline=1`, capa: `https://i.ytimg.com/vi/${m[1]}/hqdefault.jpg` };
@@ -34,7 +35,12 @@
   }
   const videoDe = (p) => videoInfo(p && p.video);
   function htmlVideo(v, cls) {
-    if (v.tipo === "arquivo") return `<video class="video-produto ${cls || ""}" src="${esc(v.url)}" controls playsinline preload="metadata"></video>`;
+    if (v.tipo === "arquivo") {
+      const capa = v.capa ? ` poster="${esc(v.capa)}"` : "";
+      return v.webm
+        ? `<video class="video-produto ${cls || ""}"${capa} controls playsinline preload="metadata"><source src="${esc(v.webm)}" type="video/webm"><source src="${esc(v.url)}" type="video/mp4"></video>`
+        : `<video class="video-produto ${cls || ""}" src="${esc(v.url)}"${capa} controls playsinline preload="metadata"></video>`;
+    }
     return `<iframe class="video-produto ${cls || ""}" src="${esc(v.embed)}" title="Vídeo do produto" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowfullscreen loading="lazy" referrerpolicy="strict-origin-when-cross-origin"></iframe>`;
   }
   const miniVideo = (v) => v.capa

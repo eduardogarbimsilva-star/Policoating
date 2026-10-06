@@ -2654,3 +2654,13 @@ video.video-produto { object-fit: contain; }
   .inst-fundo { min-height: 0; padding: 80px 0 90px; }
   .inst-fundo::before { background: linear-gradient(180deg, rgba(10, 26, 51, .75), rgba(10, 26, 51, .9)); }
 }
+
+/* ---------- Seções com vídeo mais altas: o vídeo aparece quase inteiro (16:9) ---------- */
+.cabecalho-video { min-height: clamp(440px, min(56.25vw, 82vh), 760px); display: flex; align-items: center; }
+.cabecalho-video > .container { width: 100%; }
+.inst-fundo { min-height: clamp(520px, min(56.25vw, 88vh), 820px); }
+.cabecalho-video .cab-video { object-position: center 40%; }
+@media (max-width: 640px) {
+  .cabecalho-video { min-height: 460px; }
+  .inst-fundo { min-height: 560px; }
+}

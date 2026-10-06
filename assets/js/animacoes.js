@@ -524,12 +524,19 @@
         v.muted = !ligar; marcar(caixa);
         if (ligar) { if (v.ended || v.currentTime > v.duration - 0.3) v.currentTime = 0; v.play().catch(() => {}); }
       });
-      if (!("IntersectionObserver" in window)) { if (!menosMovimento) v.play().catch(() => {}); return; }
+      // vídeo da marca sempre roda sem som; se o navegador barrar, tenta de novo no primeiro toque/rolagem
+      let visivel = false;
+      const tocar = () => { const pr = v.play(); if (pr) pr.catch(() => {}); };
+      const insistir = () => { if (visivel && v.paused) tocar(); };
+      ["pointerdown", "keydown", "touchstart", "scroll"].forEach((ev) => addEventListener(ev, insistir, { passive: true }));
+      v.addEventListener("canplay", insistir);
+      if (!("IntersectionObserver" in window)) { visivel = true; tocar(); return; }
       // começa a baixar antes de chegar na tela, para não abrir parado na capa
       const perto = new IntersectionObserver((ents) => { if (ents.some((en) => en.isIntersecting)) { v.preload = "auto"; perto.disconnect(); } }, { rootMargin: "900px 0px" });
       perto.observe(caixa);
       new IntersectionObserver((ents) => ents.forEach((en) => {
-        if (en.isIntersecting) { if (!menosMovimento || !v.muted) v.play().catch(() => {}); }
+        visivel = en.isIntersecting;
+        if (en.isIntersecting) tocar();
         else { v.pause(); if (!v.muted) { v.muted = true; marcar(caixa); } }   // saiu da tela: pausa e tira o som
       }), { threshold: 0.3 }).observe(caixa);
     });

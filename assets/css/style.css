@@ -2643,3 +2643,14 @@ video.video-produto { object-fit: contain; }
   .vm-som-cab { bottom: 14px; }
 }
 .cab-escuro::before { background: linear-gradient(90deg, rgba(10, 26, 51, .95) 0%, rgba(10, 26, 51, .86) 50%, rgba(10, 26, 51, .62) 100%); }
+
+/* ---------- Início: "Isto é Policoating" com o vídeo institucional preenchendo o fundo ---------- */
+.inst-fundo { position: relative; min-height: clamp(520px, 72vh, 720px); display: flex; align-items: center; padding: 110px 0; }
+.inst-fundo .container { width: 100%; }
+.inst-fundo .inst-grade { grid-template-columns: minmax(0, 620px); }
+.inst-fundo::before { background: linear-gradient(90deg, rgba(10, 26, 51, .93) 0%, rgba(10, 26, 51, .8) 40%, rgba(10, 26, 51, .3) 75%, rgba(10, 26, 51, .15) 100%); }
+.inst-fundo .inst-texto h2, .inst-fundo .inst-texto p, .inst-fundo .inst-lista { text-shadow: 0 2px 16px rgba(0, 0, 0, .4); }
+@media (max-width: 640px) {
+  .inst-fundo { min-height: 0; padding: 80px 0 90px; }
+  .inst-fundo::before { background: linear-gradient(180deg, rgba(10, 26, 51, .75), rgba(10, 26, 51, .9)); }
+}

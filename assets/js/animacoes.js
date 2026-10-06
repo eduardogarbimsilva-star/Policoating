@@ -525,6 +525,9 @@
         if (ligar) { if (v.ended || v.currentTime > v.duration - 0.3) v.currentTime = 0; v.play().catch(() => {}); }
       });
       if (!("IntersectionObserver" in window)) { if (!menosMovimento) v.play().catch(() => {}); return; }
+      // começa a baixar antes de chegar na tela, para não abrir parado na capa
+      const perto = new IntersectionObserver((ents) => { if (ents.some((en) => en.isIntersecting)) { v.preload = "auto"; perto.disconnect(); } }, { rootMargin: "900px 0px" });
+      perto.observe(caixa);
       new IntersectionObserver((ents) => ents.forEach((en) => {
         if (en.isIntersecting) { if (!menosMovimento || !v.muted) v.play().catch(() => {}); }
         else { v.pause(); if (!v.muted) { v.muted = true; marcar(caixa); } }   // saiu da tela: pausa e tira o som

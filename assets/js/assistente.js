@@ -102,7 +102,7 @@
     const termosCor = [].concat(...q.cores.map((c) => CORES[c]));
     const avaliar = (p, usarCor) => {
       let pontos = 0;
-      const texto = norm([p.nome, p.linha, p.descricao, p.acabamento, (CATEGORIAS[p.categoria] || {}).nome].join(" "));
+      const texto = norm([p.nome, p.linha, p.descricao, p.acabamento, p.textura, (CATEGORIAS[p.categoria] || {}).nome].join(" "));
       if (q.cats.length) pontos += q.cats.includes(p.categoria) ? 6 - q.cats.indexOf(p.categoria) : -3;
       q.acab.forEach((a) => { if (norm(p.acabamento).includes(a) || norm(p.nome).includes(a)) pontos += 3; });
       tokens.forEach((w) => { if (texto.includes(w)) pontos += 1; });

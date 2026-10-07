@@ -397,7 +397,7 @@
       preencherListas();
       if (p.marca && !marcas.includes(p.marca)) { marcas.push(p.marca); preencherListas(); }
       selMarca.value = p.marca || "";
-      ["nome", "linha", "acabamento", "descricao", "rendimento", "cura"].forEach((k) => (form[k].value = p[k] || ""));
+      ["nome", "linha", "acabamento", "textura", "descricao", "rendimento", "cura"].forEach((k) => (form[k].value = p[k] || ""));
       if (duplicar) form.nome.value = "";
       form.categoria.value = p.categoria;
       form.densidade.value = p.densidade || "";
@@ -444,6 +444,7 @@
         enquadramento: Object.fromEntries(Object.entries(enquadramento).filter(([u]) => fotos.includes(u))),
         linha: form.linha.value.trim(),
         acabamento: form.acabamento.value.trim(),
+        textura: form.textura.value.replace(/\s+/g, " ").trim(),
         descricao: form.descricao.value.trim(),
         rendimento: form.rendimento.value.trim(),
         cura: form.cura.value.trim(),

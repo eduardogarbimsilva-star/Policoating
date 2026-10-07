@@ -2664,3 +2664,10 @@ video.video-produto { object-fit: contain; }
   .cabecalho-video { min-height: 460px; }
   .inst-fundo { min-height: 560px; }
 }
+
+/* ---------- Textura do produto ---------- */
+.textura-cartao { margin-left: auto; padding: 2px 9px; border-radius: 999px; background: var(--fundo-suave, #eef2f8); color: var(--texto, #1d2b44); font-size: .74rem; font-weight: 600; white-space: nowrap; }
+.filtro-textura { display: flex; align-items: center; gap: 10px; flex-basis: 100%; order: 2; }
+.filtro-textura > span { font-size: .82rem; font-weight: 700; color: var(--texto-suave); text-transform: uppercase; letter-spacing: .06em; }
+.filtro-textura .chip { padding-top: 6px; padding-bottom: 6px; font-size: .84rem; }
+@media (max-width: 640px) { .filtro-textura { flex-wrap: wrap; } .filtro-textura .chips { margin: 0; padding: 2px 0 6px; } }

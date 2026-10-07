@@ -22,7 +22,7 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Barlow:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/style.css?v=4d74d5d5">
+  <link rel="stylesheet" href="assets/css/style.css?v=fc405c61">
 </head>
 <body>
   <a class="pular" href="#conteudo">Pular para o conteúdo</a>
@@ -104,6 +104,7 @@
       <div class="container">
         <div class="barra-filtros">
           <div class="chips" id="chips" role="tablist" aria-label="Filtrar por categoria"></div>
+          <div class="filtro-textura" id="filtro-textura" hidden><span>Textura</span><div class="chips" id="chips-textura" role="tablist" aria-label="Filtrar por textura"></div></div>
           <label class="busca"><input type="search" id="busca" placeholder="Buscar produto, linha ou cor..." aria-label="Buscar produtos"></label>
         </div>
         <p id="contagem" style="color:var(--texto-suave);font-size:.9rem;margin-bottom:18px"></p>
@@ -196,10 +197,10 @@
   <script src="assets/js/fotos.js?v=48f81340"></script>
   <script src="assets/js/auth.js?v=84685be3"></script>
   <script src="assets/js/loja.js?v=67be2651"></script>
-  <script src="assets/js/main.js?v=96f5435f"></script>
+  <script src="assets/js/main.js?v=a1decc77"></script>
   <script src="assets/js/animacoes.js?v=75e1f9fd"></script>
   <script src="assets/js/secoes.js?v=b03394b5"></script>
-  <script src="assets/js/assistente.js?v=d38f1adf"></script>
+  <script src="assets/js/assistente.js?v=d8769f6e"></script>
   <script>
     document.addEventListener("DOMContentLoaded", function () {
       var CW = window.ColorWeg;
@@ -208,6 +209,20 @@
       var chips = document.getElementById("chips");
       var busca = document.getElementById("busca");
       busca.value = params.get("busca") || "";
+      var textura = params.get("textura") || "todas";
+      var caixaTextura = document.getElementById("filtro-textura"), chipsTextura = document.getElementById("chips-textura");
+      // texturas que existem no catálogo (aparecem sozinhas quando a equipe cadastra)
+      function desenharTexturas() {
+        var vistas = {};
+        PRODUTOS.forEach(function (p) { var t = String(p.textura || "").trim(); if (t) vistas[normalizar(t)] = vistas[normalizar(t)] || t; });
+        var lista = Object.keys(vistas).sort().map(function (k) { return vistas[k]; });
+        if (textura !== "todas" && !vistas[normalizar(textura)]) textura = "todas";
+        caixaTextura.hidden = !lista.length;
+        chipsTextura.innerHTML = [["todas", "Todas"]].concat(lista.map(function (t) { return [t, t]; })).map(function (o) {
+          var ativo = o[0] === "todas" ? textura === "todas" : normalizar(o[0]) === normalizar(textura);
+          return '<button class="chip' + (ativo ? " ativo" : "") + '" role="tab" aria-selected="' + ativo + '" data-textura="' + CW.esc(o[0]) + '">' + CW.esc(o[1]) + '</button>';
+        }).join("");
+      }
 
       var opcoes = [["todas", "Todas"]].concat(Object.keys(CATEGORIAS).map(function (k) { return [k, CATEGORIAS[k].nome]; }));
       chips.innerHTML = opcoes.map(function (o) {
@@ -217,14 +232,16 @@
       function normalizar(s) { return String(s).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, ""); }
 
       function atualizar() {
+        desenharTexturas();
         var termo = normalizar(busca.value.trim());
         var lista = PRODUTOS.filter(function (p) {
           if (categoria !== "todas" && p.categoria !== categoria) return false;
+          if (textura !== "todas" && normalizar(p.textura || "") !== normalizar(textura)) return false;
           if (!termo) return true;
-          var texto = normalizar([p.nome, p.linha, p.descricao, (CATEGORIAS[p.categoria] || {}).nome, p.cores.map(function (c) { return c.nome; }).join(" ")].join(" "));
+          var texto = normalizar([p.nome, p.linha, p.descricao, p.textura || "", (CATEGORIAS[p.categoria] || {}).nome, p.cores.map(function (c) { return c.nome; }).join(" ")].join(" "));
           return texto.indexOf(termo) !== -1;
         });
-        document.querySelectorAll(".chip").forEach(function (c) {
+        chips.querySelectorAll(".chip").forEach(function (c) {
           var ativo = c.dataset.cat === categoria;
           c.classList.toggle("ativo", ativo);
           c.setAttribute("aria-selected", ativo);
@@ -234,6 +251,7 @@
 
         var url = new URL(location.href);
         if (categoria === "todas") url.searchParams.delete("categoria"); else url.searchParams.set("categoria", categoria);
+        if (textura === "todas") url.searchParams.delete("textura"); else url.searchParams.set("textura", textura);
         if (busca.value.trim()) url.searchParams.set("busca", busca.value.trim()); else url.searchParams.delete("busca");
         history.replaceState(null, "", url);
       }
@@ -242,6 +260,12 @@
         var b = e.target.closest(".chip");
         if (!b) return;
         categoria = b.dataset.cat;
+        atualizar();
+      });
+      chipsTextura.addEventListener("click", function (e) {
+        var b = e.target.closest(".chip");
+        if (!b) return;
+        textura = b.dataset.textura;
         atualizar();
       });
       busca.addEventListener("input", atualizar);

@@ -81,10 +81,13 @@
     let marcas = ["Policoating"];
     function preencherListas() {
       const C = window.CATEGORIAS || {};
-      const opcoes = Object.entries(C).map(([k, c]) => `<option value="${esc(k)}">${esc(c.nome)}</option>`).join("");
+      // Classe = Poliéster, Híbrida, Epóxi + classes novas criadas no painel (+ a atual de um produto antigo)
+      const chaves = (window.CLASSES || []).filter((k) => C[k]).concat(Object.keys(C).filter((k) => C[k].extra));
       const vf = filtro.value, vc = selCat.value, vm = selMarca.value;
-      filtro.innerHTML = `<option value="">Todos os tipos</option>` + opcoes; filtro.value = vf;
-      selCat.innerHTML = opcoes; if (vc) selCat.value = vc;
+      if (vc && C[vc] && !chaves.includes(vc)) chaves.push(vc);
+      const opcoes = chaves.map((k) => `<option value="${esc(k)}">${esc(C[k].nome)}</option>`).join("");
+      filtro.innerHTML = `<option value="">Todas as classes</option>` + Object.entries(C).map(([k, c]) => `<option value="${esc(k)}">${esc(c.nome)}</option>`).join(""); filtro.value = vf;
+      selCat.innerHTML = `<option value="">Escolha a classe</option>` + opcoes; if (vc) selCat.value = vc;
       selMarca.innerHTML = `<option value="">Escolha a marca</option>` + marcas.map((m) => `<option>${esc(m)}</option>`).join(""); if (vm) selMarca.value = vm;
     }
     try { const cfg = await A.lerConfig(); marcas = cfg.marcas; } catch (e) { /* usa a padrão */ }
@@ -133,7 +136,7 @@
         return `<tr data-id="${esc(r.id)}" class="${r.ativo ? "" : "oculto"}${selecionados.has(r.id) ? " selecionado" : ""}">
           <td class="col-sel"><input type="checkbox" data-sel ${selecionados.has(r.id) ? "checked" : ""} aria-label="Selecionar ${esc(p.nome)}"></td>
           <td><div class="admin-prod">${miniatura(p)}<div><strong>${esc(p.nome)}</strong><small>Cód. ${esc(p.codigo || r.id.toUpperCase())}${p.destaque ? " · ★ destaque" : ""}${varias ? ` · <b class="selo-cli inativo">${p.cores.length} cores (converter)</b>` : ""}${p.cores[0] && !p.cores[0].foto ? ` · <span class="sem-foto">sem foto</span>` : ""}</small></div></div></td>
-          <td>${esc(((window.CATEGORIAS || {})[p.categoria] || {}).nome || p.categoria)}${p.marca ? `<small class="marca-lista">${esc(p.marca)}</small>` : ""}</td>
+          <td>${esc(((window.CATEGORIAS || {})[p.categoria] || {}).nome || p.categoria)}${p.marca ? `<small class="marca-lista">${esc(p.marca)}</small>` : ""}${p.textura || p.acabamento ? `<small class="marca-lista">${esc([window.padraoClassificacao(p.textura, window.TEXTURAS) || p.textura, window.padraoClassificacao(p.acabamento, window.ACABAMENTOS) || p.acabamento].filter(Boolean).join(" · "))}</small>` : ""}</td>
           <td>${textoPreco(p)}</td>
           <td>${ehAdmin ? `<button type="button" class="admin-status ${r.ativo ? "on" : ""}" data-acao="alternar">${r.ativo ? "Visível" : "Oculto"}</button>` : (r.ativo ? "Visível" : "Oculto")}</td>
           <td class="admin-botoes">${ehAdmin ? `
@@ -164,7 +167,9 @@
       $("#massa-campos").innerHTML =
         a === "promo" ? `<input type="number" id="massa-pct" min="1" max="90" step="1" placeholder="% de desconto" aria-label="Desconto em %"><label class="massa-ate">até <input type="date" id="massa-ate" aria-label="Promoção até"></label>`
         : a === "marca" ? `<select id="massa-marca" aria-label="Marca">${marcas.map((m) => `<option>${esc(m)}</option>`).join("")}</select>`
-        : a === "tipo" ? `<select id="massa-tipo" aria-label="Tipo">${Object.entries(C).map(([k, c]) => `<option value="${esc(k)}">${esc(c.nome)}</option>`).join("")}</select>`
+        : a === "tipo" ? `<select id="massa-tipo" aria-label="Classe">${(window.CLASSES || []).filter((k) => C[k]).concat(Object.keys(C).filter((k) => C[k].extra)).map((k) => `<option value="${esc(k)}">${esc(C[k].nome)}</option>`).join("")}</select>`
+        : a === "textura" ? `<select id="massa-textura" aria-label="Textura">${window.TEXTURAS.map((o) => `<option>${esc(o)}</option>`).join("")}</select>`
+        : a === "acabamento" ? `<select id="massa-acabamento" aria-label="Acabamento">${window.ACABAMENTOS.map((o) => `<option>${esc(o)}</option>`).join("")}</select>`
         : a === "reajuste" ? `<input type="number" id="massa-reajuste" min="-90" max="500" step="0.5" placeholder="% (ex.: 5 ou -3)" aria-label="Reajuste em %">` : "";
     }
     $("#massa-acao").addEventListener("change", camposMassa);
@@ -195,7 +200,7 @@
           if (!confirm(`Excluir ${n} produto(s) do catálogo? Isso não pode ser desfeito.`)) return;
           e.target.disabled = true; await A.excluirVarios(ids); msg = `${n} produto(s) excluído(s).`;
         } else {
-          const val = a === "marca" ? $("#massa-marca").value : a === "tipo" ? $("#massa-tipo").value : a === "reajuste" ? +$("#massa-reajuste").value : null;
+          const val = a === "marca" ? $("#massa-marca").value : a === "tipo" ? $("#massa-tipo").value : a === "textura" ? $("#massa-textura").value : a === "acabamento" ? $("#massa-acabamento").value : a === "reajuste" ? +$("#massa-reajuste").value : null;
           if (a === "reajuste" && !(val >= -90 && val <= 500 && val !== 0)) return CW.mostrarToast("Informe o reajuste em % (ex.: 5 ou -3).");
           if (!confirm(`Aplicar em ${n} produto(s)?`)) return;
           e.target.disabled = true;
@@ -205,6 +210,8 @@
             if (a === "ocultar") r.ativo = false;
             if (a === "marca") r.dados.marca = val;
             if (a === "tipo") r.dados.categoria = val;
+            if (a === "textura") r.dados.textura = val;
+            if (a === "acabamento") r.dados.acabamento = val;
             if (a === "reajuste" && !r.dados.precoCombinar && +r.dados.preco > 0) { r.dados.preco = arred(r.dados.preco); if (r.dados.precoPromo) r.dados.precoPromo = arred(r.dados.precoPromo); }
           });
           msg = `${res.ok} produto(s) alterado(s).${res.falhas.length ? ` ${res.falhas.length} com erro: ${res.falhas.slice(0, 3).join(" | ")}` : ""}`;
@@ -365,8 +372,8 @@
       catch (err) { erro(err.message); }
     });
     $("#btn-novo-tipo").addEventListener("click", async () => {
-      const nome = prompt("Nome do novo tipo de produto (ex.: Primer, Verniz, Alta temperatura):"); if (!nome) return;
-      try { const id = await A.adicionarTipo(nome); preencherListas(); selCat.value = id; CW.mostrarToast(`Tipo "${(window.CATEGORIAS[id] || {}).nome || nome}" cadastrado.`); }
+      const nome = prompt("Nome da nova classe (resina) de produto (ex.: Poliéster TGIC-free, Primer):"); if (!nome) return;
+      try { const id = await A.adicionarTipo(nome); preencherListas(); selCat.value = id; CW.mostrarToast(`Classe "${(window.CATEGORIAS[id] || {}).nome || nome}" cadastrado.`); }
       catch (err) { erro(err.message); }
     });
     const tom = $("#cor-tom"), hex = $("#cor-hex");
@@ -397,9 +404,12 @@
       preencherListas();
       if (p.marca && !marcas.includes(p.marca)) { marcas.push(p.marca); preencherListas(); }
       selMarca.value = p.marca || "";
-      ["nome", "linha", "acabamento", "textura", "descricao", "rendimento", "cura"].forEach((k) => (form[k].value = p[k] || ""));
+      ["nome", "linha", "descricao", "rendimento", "cura"].forEach((k) => (form[k].value = p[k] || ""));
       if (duplicar) form.nome.value = "";
-      form.categoria.value = p.categoria;
+      if (p.categoria && !$(`option[value="${CSS.escape(p.categoria)}"]`, selCat) && (window.CATEGORIAS || {})[p.categoria]) selCat.insertAdjacentHTML("beforeend", `<option value="${esc(p.categoria)}">${esc(window.CATEGORIAS[p.categoria].nome)}</option>`);
+      form.categoria.value = p.categoria || "";
+      listaClassificacao(form.textura, window.TEXTURAS, "Escolha a textura", p.textura);
+      listaClassificacao(form.acabamento, window.ACABAMENTOS, "Escolha o brilho", p.acabamento);
       form.densidade.value = p.densidade || "";
       const c = (p.cores || [])[0] || { nome: "", hex: "#1558d6" };
       $("#cor-nome").value = duplicar ? "" : c.nome; hex.value = tom.value = c.hex || "#1558d6";
@@ -419,6 +429,13 @@
       document.body.style.overflow = "hidden";
       form.nome.focus();
     }
+    // Lista fixa; valor antigo vira o nome padrão, e o que não encaixa aparece como "(antigo)" para não se perder
+    function listaClassificacao(sel, lista, vazio, atual) {
+      const padrao = window.padraoClassificacao(atual, lista), antigo = atual && !padrao ? String(atual) : "";
+      sel.innerHTML = `<option value="">${vazio}</option>` + lista.map((o) => `<option>${esc(o)}</option>`).join("") +
+        (antigo ? `<option value="${esc(antigo)}">${esc(antigo)} (antigo)</option>` : "");
+      sel.value = padrao || antigo;
+    }
     function fechar() { modal.hidden = true; document.body.style.overflow = ""; }
     function erro(msg) { $("#form-erro").textContent = msg; }
 
@@ -431,6 +448,9 @@
       e.preventDefault();
       if (enviando) return erro("Aguarde terminar o envio das fotos.");
       if (enviandoVideo) return erro("Aguarde terminar o envio do vídeo.");
+      if (!form.categoria.value) return erro("Escolha a classe (Poliéster, Híbrida ou Epóxi).");
+      if (!form.textura.value) return erro("Escolha a textura (Liso, Texturizado, Microtextura ou Craqueado).");
+      if (!form.acabamento.value) return erro("Escolha o acabamento (nível de brilho).");
       if ($("#video-url").value.trim() && !videoAtual) return erro("O link do vídeo não foi reconhecido. Corrija ou clique em Remover.");
       const cor = { nome: $("#cor-nome").value.replace(/\s+/g, " ").trim(), hex: hex.value.trim() };
       if (fotos[0]) cor.foto = fotos[0];
@@ -444,7 +464,7 @@
         enquadramento: Object.fromEntries(Object.entries(enquadramento).filter(([u]) => fotos.includes(u))),
         linha: form.linha.value.trim(),
         acabamento: form.acabamento.value.trim(),
-        textura: form.textura.value.replace(/\s+/g, " ").trim(),
+        textura: form.textura.value.trim(),
         descricao: form.descricao.value.trim(),
         rendimento: form.rendimento.value.trim(),
         cura: form.cura.value.trim(),

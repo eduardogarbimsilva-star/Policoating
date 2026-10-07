@@ -570,9 +570,10 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
     <div class="modal-preco">${htmlPreco(p, true)}</div>
     <p class="desc">${esc(p.descricao)}</p>
     <ul class="ficha">
-      <li><span>Linha</span><span>${esc(p.linha)}</span></li>
-      <li><span>Acabamento</span><span>${esc(p.acabamento)}</span></li>
+      <li><span>Classe</span><span>${esc(cat.nome || "")}</span></li>
       ${p.textura ? `<li><span>Textura</span><span>${esc(p.textura)}</span></li>` : ""}
+      <li><span>Acabamento</span><span>${esc(p.acabamento)}</span></li>
+      ${p.linha ? `<li><span>Linha</span><span>${esc(p.linha)}</span></li>` : ""}
       <li><span>Rendimento</span><span>${esc(p.rendimento)}</span></li>
       <li><span>Cura</span><span>${esc(p.cura)}</span></li>
       <li><span>Cor</span><span class="cor-ficha"><i style="background:${esc(corSel.hex)}"></i>${esc(corSel.nome)}</span></li>
@@ -869,6 +870,12 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
   });
 
   /* ---------- Cartões de produto ---------- */
+  // "Texturizado · Fosco" (textura e brilho no nome padrão)
+  function classificacao(p) {
+    const pad = window.padraoClassificacao || ((v) => v);
+    const tex = pad(p.textura, window.TEXTURAS || []) || p.textura, acab = pad(p.acabamento, window.ACABAMENTOS || []) || p.acabamento;
+    return [tex, acab].filter(Boolean).join(" · ");
+  }
   function cartaoProduto(p) {
     const cat = CATEGORIAS[p.categoria] || {}, c = p.cores[0], pi = precoInfo(p);
     return `
@@ -885,7 +892,7 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
     <div class="linha-codigo"><span class="linha">${esc(p.marca || p.linha || "")}</span><span class="codigo-cartao">Cód. ${esc(p.codigo || p.id)}</span></div>
     <h3>${esc(p.nome)}</h3>
     <p class="desc">${esc(p.descricao)}</p>
-    <div class="cor-cartao"><i style="background:${esc(c.hex)}"></i>${esc(c.nome)}${p.textura ? `<span class="textura-cartao">${esc(p.textura)}</span>` : ""}</div>
+    <div class="cor-cartao"><i style="background:${esc(c.hex)}"></i>${esc(c.nome)}${classificacao(p) ? `<span class="textura-cartao">${esc(classificacao(p))}</span>` : ""}</div>
     <div class="rodape-cartao">
       ${htmlPreco(p)}
       <button class="btn btn-primario btn-add" data-abrir="${esc(p.id)}">+ Carrinho</button>

@@ -22,7 +22,7 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Barlow:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/style.css?v=fc405c61">
+  <link rel="stylesheet" href="assets/css/style.css?v=fb151ffd">
 </head>
 <body>
   <a class="pular" href="#conteudo">Pular para o conteúdo</a>
@@ -103,8 +103,11 @@
     <section class="secao">
       <div class="container">
         <div class="barra-filtros">
-          <div class="chips" id="chips" role="tablist" aria-label="Filtrar por categoria"></div>
-          <div class="filtro-textura" id="filtro-textura" hidden><span>Textura</span><div class="chips" id="chips-textura" role="tablist" aria-label="Filtrar por textura"></div></div>
+          <div class="filtros-classe">
+            <div class="filtro-linha"><span class="filtro-nome">Classe</span><div class="chips" id="chips" role="tablist" aria-label="Filtrar por classe"></div></div>
+            <div class="filtro-linha"><span class="filtro-nome">Textura</span><div class="chips" id="chips-textura" role="tablist" aria-label="Filtrar por textura"></div></div>
+            <div class="filtro-linha"><span class="filtro-nome">Acabamento</span><div class="chips" id="chips-acabamento" role="tablist" aria-label="Filtrar por acabamento (brilho)"></div></div>
+          </div>
           <label class="busca"><input type="search" id="busca" placeholder="Buscar produto, linha ou cor..." aria-label="Buscar produtos"></label>
         </div>
         <p id="contagem" style="color:var(--texto-suave);font-size:.9rem;margin-bottom:18px"></p>
@@ -189,7 +192,7 @@
   </footer>
 
   <script src="assets/js/config.js?v=1a02af0a"></script>
-  <script src="assets/js/produtos.js?v=efe7e02f"></script>
+  <script src="assets/js/produtos.js?v=2d33cea9"></script>
   <script src="assets/js/catalogo.js?v=0f583563"></script>
   <script src="assets/js/icones.js?v=3b2cf7da"></script>
   <script src="assets/js/midia.js?v=89a07a7d"></script>
@@ -197,76 +200,79 @@
   <script src="assets/js/fotos.js?v=48f81340"></script>
   <script src="assets/js/auth.js?v=84685be3"></script>
   <script src="assets/js/loja.js?v=67be2651"></script>
-  <script src="assets/js/main.js?v=a1decc77"></script>
+  <script src="assets/js/main.js?v=4c0dc95b"></script>
   <script src="assets/js/animacoes.js?v=75e1f9fd"></script>
   <script src="assets/js/secoes.js?v=b03394b5"></script>
   <script src="assets/js/assistente.js?v=d8769f6e"></script>
   <script>
     document.addEventListener("DOMContentLoaded", function () {
-      var CW = window.ColorWeg;
+      var CW = window.ColorWeg, padrao = window.padraoClassificacao;
       var params = new URLSearchParams(location.search);
-      var categoria = CATEGORIAS[params.get("categoria")] ? params.get("categoria") : "todas";
-      var chips = document.getElementById("chips");
       var busca = document.getElementById("busca");
       busca.value = params.get("busca") || "";
-      var textura = params.get("textura") || "todas";
-      var caixaTextura = document.getElementById("filtro-textura"), chipsTextura = document.getElementById("chips-textura");
-      // texturas que existem no catálogo (aparecem sozinhas quando a equipe cadastra)
-      function desenharTexturas() {
-        var vistas = {};
-        PRODUTOS.forEach(function (p) { var t = String(p.textura || "").trim(); if (t) vistas[normalizar(t)] = vistas[normalizar(t)] || t; });
-        var lista = Object.keys(vistas).sort().map(function (k) { return vistas[k]; });
-        if (textura !== "todas" && !vistas[normalizar(textura)]) textura = "todas";
-        caixaTextura.hidden = !lista.length;
-        chipsTextura.innerHTML = [["todas", "Todas"]].concat(lista.map(function (t) { return [t, t]; })).map(function (o) {
-          var ativo = o[0] === "todas" ? textura === "todas" : normalizar(o[0]) === normalizar(textura);
-          return '<button class="chip' + (ativo ? " ativo" : "") + '" role="tab" aria-selected="' + ativo + '" data-textura="' + CW.esc(o[0]) + '">' + CW.esc(o[1]) + '</button>';
-        }).join("");
+      function normalizar(s) { return String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""); }
+
+      // Três filtros que se combinam: Classe (resina) · Textura · Acabamento (brilho)
+      var filtros = {
+        categoria: { el: document.getElementById("chips"), valor: "todas",
+          de: function (p) { return p.categoria; },
+          opcoes: function () {
+            var ks = (window.CLASSES || []).filter(function (k) { return CATEGORIAS[k]; });
+            PRODUTOS.forEach(function (p) { if (CATEGORIAS[p.categoria] && ks.indexOf(p.categoria) < 0) ks.push(p.categoria); });
+            return ks.map(function (k) { return [k, CATEGORIAS[k].nome]; });
+          } },
+        textura: { el: document.getElementById("chips-textura"), valor: "todas",
+          de: function (p) { return padrao(p.textura, TEXTURAS); },
+          opcoes: function () { return TEXTURAS.map(function (t) { return [t, t]; }); } },
+        acabamento: { el: document.getElementById("chips-acabamento"), valor: "todas",
+          de: function (p) { return padrao(p.acabamento, ACABAMENTOS); },
+          opcoes: function () { return ACABAMENTOS.map(function (t) { return [t, t]; }); } }
+      };
+      var pc = params.get("categoria");
+      if (pc === "texturizada") filtros.textura.valor = "Texturizado";          // link antigo "Texturizadas"
+      else if (CATEGORIAS[pc]) filtros.categoria.valor = pc;
+      var pt = padrao(params.get("textura"), TEXTURAS); if (pt) filtros.textura.valor = pt;
+      var pa = padrao(params.get("acabamento"), ACABAMENTOS); if (pa) filtros.acabamento.valor = pa;
+
+      function passa(p, ignorar) {
+        return Object.keys(filtros).every(function (k) { var f = filtros[k]; return k === ignorar || f.valor === "todas" || f.de(p) === f.valor; });
+      }
+      function desenharFiltros(termoOk) {
+        Object.keys(filtros).forEach(function (k) {
+          var f = filtros[k], base = PRODUTOS.filter(function (p) { return termoOk(p) && passa(p, k); });
+          f.el.innerHTML = [["todas", "Todas"]].concat(f.opcoes()).map(function (o) {
+            var n = o[0] === "todas" ? base.length : base.filter(function (p) { return f.de(p) === o[0]; }).length;
+            var ativo = f.valor === o[0];
+            return '<button class="chip' + (ativo ? " ativo" : "") + '" role="tab" aria-selected="' + ativo + '"' + (!n && !ativo ? " disabled" : "") +
+              ' data-valor="' + CW.esc(o[0]) + '">' + CW.esc(o[1]) + (o[0] === "todas" ? "" : ' <small>' + n + '</small>') + '</button>';
+          }).join("");
+        });
       }
 
-      var opcoes = [["todas", "Todas"]].concat(Object.keys(CATEGORIAS).map(function (k) { return [k, CATEGORIAS[k].nome]; }));
-      chips.innerHTML = opcoes.map(function (o) {
-        return '<button class="chip" role="tab" data-cat="' + o[0] + '">' + CW.esc(o[1]) + '</button>';
-      }).join("");
-
-      function normalizar(s) { return String(s).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, ""); }
-
       function atualizar() {
-        desenharTexturas();
         var termo = normalizar(busca.value.trim());
-        var lista = PRODUTOS.filter(function (p) {
-          if (categoria !== "todas" && p.categoria !== categoria) return false;
-          if (textura !== "todas" && normalizar(p.textura || "") !== normalizar(textura)) return false;
+        var termoOk = function (p) {
           if (!termo) return true;
-          var texto = normalizar([p.nome, p.linha, p.descricao, p.textura || "", (CATEGORIAS[p.categoria] || {}).nome, p.cores.map(function (c) { return c.nome; }).join(" ")].join(" "));
-          return texto.indexOf(termo) !== -1;
-        });
-        chips.querySelectorAll(".chip").forEach(function (c) {
-          var ativo = c.dataset.cat === categoria;
-          c.classList.toggle("ativo", ativo);
-          c.setAttribute("aria-selected", ativo);
-        });
+          return normalizar([p.nome, p.linha, p.descricao, p.textura, p.acabamento, (CATEGORIAS[p.categoria] || {}).nome, p.cores.map(function (c) { return c.nome; }).join(" ")].join(" ")).indexOf(termo) !== -1;
+        };
+        var lista = PRODUTOS.filter(function (p) { return termoOk(p) && passa(p); });
+        desenharFiltros(termoOk);
         document.getElementById("contagem").textContent = lista.length + (lista.length === 1 ? " produto encontrado" : " produtos encontrados");
         CW.renderProdutos(document.getElementById("lista-produtos"), lista);
 
         var url = new URL(location.href);
-        if (categoria === "todas") url.searchParams.delete("categoria"); else url.searchParams.set("categoria", categoria);
-        if (textura === "todas") url.searchParams.delete("textura"); else url.searchParams.set("textura", textura);
+        Object.keys(filtros).forEach(function (k) { if (filtros[k].valor === "todas") url.searchParams.delete(k); else url.searchParams.set(k, filtros[k].valor); });
         if (busca.value.trim()) url.searchParams.set("busca", busca.value.trim()); else url.searchParams.delete("busca");
         history.replaceState(null, "", url);
       }
 
-      chips.addEventListener("click", function (e) {
-        var b = e.target.closest(".chip");
-        if (!b) return;
-        categoria = b.dataset.cat;
-        atualizar();
-      });
-      chipsTextura.addEventListener("click", function (e) {
-        var b = e.target.closest(".chip");
-        if (!b) return;
-        textura = b.dataset.textura;
-        atualizar();
+      Object.keys(filtros).forEach(function (k) {
+        filtros[k].el.addEventListener("click", function (e) {
+          var b = e.target.closest(".chip");
+          if (!b || b.disabled) return;
+          filtros[k].valor = b.dataset.valor;
+          atualizar();
+        });
       });
       busca.addEventListener("input", atualizar);
       document.addEventListener("catalogo-atualizado", atualizar);   // produtos novos do painel

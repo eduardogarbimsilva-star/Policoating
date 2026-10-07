@@ -23,7 +23,7 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Barlow:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/style.css?v=fc405c61">
+  <link rel="stylesheet" href="assets/css/style.css?v=fb151ffd">
 </head>
 <body>
   <a class="pular" href="#conteudo">Pular para o conteúdo</a>
@@ -156,7 +156,7 @@
           <div class="admin-aba" data-conteudo="produtos">
           <div class="admin-barra">
             <label class="busca"><input type="search" id="admin-busca" placeholder="Buscar por nome, código ou cor..." aria-label="Buscar produto"></label>
-            <select id="admin-filtro" aria-label="Filtrar por linha"><option value="">Todas as linhas</option></select>
+            <select id="admin-filtro" aria-label="Filtrar por linha"><option value="">Todas as classes</option></select>
             <div class="admin-acoes">
               <button type="button" class="btn btn-primario" id="btn-novo">+ Novo produto</button>
             </div>
@@ -175,7 +175,7 @@
               <option value="mostrar" data-admin>Mostrar no site</option>
               <option value="ocultar" data-admin>Ocultar do site</option>
               <option value="marca" data-admin>Trocar marca</option>
-              <option value="tipo" data-admin>Trocar tipo</option>
+              <option value="tipo" data-admin>Trocar classe</option><option value="textura" data-admin>Trocar textura</option><option value="acabamento" data-admin>Trocar acabamento (brilho)</option>
               <option value="reajuste" data-admin>Reajustar preço (%)</option>
               <option value="excluir" data-admin>Excluir</option>
             </select>
@@ -185,7 +185,7 @@
           </div>
           <div class="tabela-rolagem">
             <table class="admin-tabela">
-              <thead><tr><th class="col-sel"><input type="checkbox" id="sel-todos" aria-label="Selecionar todos"></th><th>Produto</th><th>Tipo e marca</th><th>Preço (kg)</th><th>Situação</th><th><span class="sr">Ações</span></th></tr></thead>
+              <thead><tr><th class="col-sel"><input type="checkbox" id="sel-todos" aria-label="Selecionar todos"></th><th>Produto</th><th>Classe e marca</th><th>Preço (kg)</th><th>Situação</th><th><span class="sr">Ações</span></th></tr></thead>
               <tbody id="admin-lista"></tbody>
             </table>
           </div>
@@ -474,7 +474,7 @@
           </div>
           <div class="grade-campos">
             <label>Código do produto<input name="codigo" readonly tabindex="-1" class="campo-travado"><small id="codigo-dica">Gerado automaticamente.</small></label>
-            <label>Tipo *<span class="select-mais"><select name="categoria" required></select><button type="button" class="btn-mais" id="btn-novo-tipo" title="Cadastrar novo tipo">+ Novo</button></span></label>
+            <label>Classe *<span class="select-mais"><select name="categoria" required></select><button type="button" class="btn-mais" id="btn-novo-tipo" title="Cadastrar nova classe">+ Nova</button></span></label>
             <label>Marca *<span class="select-mais"><select name="marca" required></select><button type="button" class="btn-mais" id="btn-nova-marca" title="Cadastrar nova marca">+ Nova</button></span></label>
             <label class="largo">Nome do produto *<input name="nome" required maxlength="120" placeholder="Poliéster Fosco Preto RAL 9005"></label>
             <div class="largo campo-cor">
@@ -488,10 +488,9 @@
           </div>
           <div class="grade-campos">
             <label class="largo">Descrição *<textarea name="descricao" rows="3" maxlength="600" placeholder="Para que serve, onde usar, diferenciais..."></textarea></label>
+            <label>Textura *<select name="textura" required></select></label>
+            <label>Acabamento (brilho) *<select name="acabamento" required></select></label>
             <label>Nome da linha (ex.: Linha Exterior)<input name="linha" maxlength="60"></label>
-            <label>Acabamento<input name="acabamento" maxlength="60" placeholder="Brilhante, Fosco, Acetinado..."></label>
-            <label>Textura<input name="textura" maxlength="40" list="lista-texturas" placeholder="Escolha ou digite: Lisa, Martelada..." autocomplete="off"></label>
-            <datalist id="lista-texturas"><option value="Lisa"><option value="Texturizada fina"><option value="Texturizada grossa"><option value="Rugosa"><option value="Martelada"><option value="Enrugada"><option value="Areada"></datalist>
             <label>Rendimento<input name="rendimento" maxlength="60" placeholder="≈ 9,5 m²/kg a 70 µm"></label>
             <label>Cura<input name="cura" maxlength="60" placeholder="10 min a 200 °C"></label>
             <label>Densidade (g/cm³)<input name="densidade" type="number" step="0.01" min="0.5" max="5"></label>
@@ -609,7 +608,7 @@
   </footer>
 
   <script src="assets/js/config.js?v=1a02af0a"></script>
-  <script src="assets/js/produtos.js?v=efe7e02f"></script>
+  <script src="assets/js/produtos.js?v=2d33cea9"></script>
   <script src="assets/js/catalogo.js?v=0f583563"></script>
   <script src="assets/js/icones.js?v=3b2cf7da"></script>
   <script src="assets/js/midia.js?v=89a07a7d"></script>
@@ -617,10 +616,10 @@
   <script src="assets/js/fotos.js?v=48f81340"></script>
   <script src="assets/js/auth.js?v=84685be3"></script>
   <script src="assets/js/loja.js?v=67be2651"></script>
-  <script src="assets/js/main.js?v=a1decc77"></script>
+  <script src="assets/js/main.js?v=4c0dc95b"></script>
   <script src="assets/js/animacoes.js?v=75e1f9fd"></script>
   <script src="assets/js/secoes.js?v=b03394b5"></script>
   <script src="assets/js/assistente.js?v=d8769f6e"></script>
-  <script src="assets/js/admin.js?v=d5968c33"></script>
+  <script src="assets/js/admin.js?v=3555f25a"></script>
 </body>
 </html>

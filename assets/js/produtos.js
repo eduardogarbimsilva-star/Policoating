@@ -47,3 +47,20 @@ window.CATEGORIAS = {
 // Os produtos são cadastrados no Painel da empresa (admin.html). Esta lista fica vazia de propósito:
 // o site mostra só o que foi cadastrado, e o que for excluído no painel não volta.
 window.PRODUTOS = [];
+
+// Classificação do produto (definida pela Policoating):
+// Classe = resina · Textura = superfície · Acabamento = nível de brilho
+window.CLASSES = ["poliester", "hibrida", "epoxi"];
+window.TEXTURAS = ["Liso", "Texturizado", "Microtextura", "Craqueado"];
+window.ACABAMENTOS = ["Ultra Brilhante", "Brilhante", "Semi Brilho", "Semi Fosco", "Fosco", "Ultra Fosca"];
+// Nome padrão de um valor antigo/digitado ("Brilhante (> 85 GU)" → "Brilhante", "Lisa" → "Liso")
+window.padraoClassificacao = function (valor, lista) {
+  const n = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[-\s]+/g, " ").trim();
+  const v = n(valor); if (!v) return "";
+  const apelidos = { lisa: "Liso", liso: "Liso", "semibrilho": "Semi Brilho", "semi brilhante": "Semi Brilho", acetinado: "Semi Brilho", "semifosco": "Semi Fosco", "ultra fosco": "Ultra Fosca", "texturizada": "Texturizado", "micro textura": "Microtextura", "microtexturizado": "Microtextura", craquelado: "Craqueado", craquelada: "Craqueado" };
+  const porTamanho = lista.slice().sort((a, b) => b.length - a.length);
+  const achado = porTamanho.find((o) => v === n(o) || v.startsWith(n(o) + " ") || v.startsWith(n(o) + "("));
+  if (achado) return achado;
+  const ap = Object.keys(apelidos).sort((a, b) => b.length - a.length).find((k) => v === k || v.startsWith(k + " "));
+  return ap && lista.includes(apelidos[ap]) ? apelidos[ap] : "";
+};

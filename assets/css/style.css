@@ -2665,9 +2665,18 @@ video.video-produto { object-fit: contain; }
   .inst-fundo { min-height: 560px; }
 }
 
-/* ---------- Textura do produto ---------- */
+/* ---------- Classificação do produto: Classe · Textura · Acabamento ---------- */
 .textura-cartao { margin-left: auto; padding: 2px 9px; border-radius: 999px; background: var(--fundo-suave, #eef2f8); color: var(--texto, #1d2b44); font-size: .74rem; font-weight: 600; white-space: nowrap; }
-.filtro-textura { display: flex; align-items: center; gap: 10px; flex-basis: 100%; order: 2; }
-.filtro-textura > span { font-size: .82rem; font-weight: 700; color: var(--texto-suave); text-transform: uppercase; letter-spacing: .06em; }
-.filtro-textura .chip { padding-top: 6px; padding-bottom: 6px; font-size: .84rem; }
-@media (max-width: 640px) { .filtro-textura { flex-wrap: wrap; } .filtro-textura .chips { margin: 0; padding: 2px 0 6px; } }
+.filtros-classe { display: grid; gap: 10px; flex: 1 1 100%; order: 2; min-width: 0; }
+.filtro-linha { display: flex; align-items: flex-start; gap: 12px; min-width: 0; }
+.filtro-nome { flex: 0 0 104px; padding-top: 9px; font-size: .78rem; font-weight: 700; color: var(--texto-suave); text-transform: uppercase; letter-spacing: .06em; }
+.filtro-linha .chips { min-width: 0; }
+.filtro-linha .chip { padding-top: 6px; padding-bottom: 6px; font-size: .86rem; }
+.filtro-linha .chip small { margin-left: 4px; font-size: .74rem; opacity: .6; font-weight: 600; }
+.filtro-linha .chip:disabled { opacity: .4; cursor: default; }
+.barra-filtros:has(.filtros-classe) .busca { margin-left: auto; }
+@media (max-width: 640px) {
+  .filtro-linha { flex-direction: column; align-items: stretch; gap: 6px; }
+  .filtro-nome { flex-basis: auto; padding-top: 0; }
+  .filtro-linha .chips { margin: 0 -16px; padding: 2px 16px 6px; }
+}

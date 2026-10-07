@@ -22,7 +22,7 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Barlow:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/style.css?v=fb151ffd">
+  <link rel="stylesheet" href="assets/css/style.css?v=a448c0d1">
 </head>
 <body>
   <a class="pular" href="#conteudo">Pular para o conteúdo</a>
@@ -102,15 +102,18 @@
 
     <section class="secao">
       <div class="container">
-        <div class="barra-filtros">
-          <div class="filtros-classe">
-            <div class="filtro-linha"><span class="filtro-nome">Classe</span><div class="chips" id="chips" role="tablist" aria-label="Filtrar por classe"></div></div>
-            <div class="filtro-linha"><span class="filtro-nome">Textura</span><div class="chips" id="chips-textura" role="tablist" aria-label="Filtrar por textura"></div></div>
-            <div class="filtro-linha"><span class="filtro-nome">Acabamento</span><div class="chips" id="chips-acabamento" role="tablist" aria-label="Filtrar por acabamento (brilho)"></div></div>
+        <div class="painel-filtros">
+          <div class="pf-topo">
+            <label class="busca pf-busca"><input type="search" id="busca" placeholder="Buscar por nome, cor ou código..." aria-label="Buscar produtos"></label>
+            <p class="pf-contagem" id="contagem" aria-live="polite"></p>
+            <button type="button" class="pf-limpar" id="limpar-filtros" hidden>Limpar filtros</button>
           </div>
-          <label class="busca"><input type="search" id="busca" placeholder="Buscar produto, linha ou cor..." aria-label="Buscar produtos"></label>
+          <div class="pf-grupos">
+            <div class="pf-grupo"><span class="pf-nome">Classe</span><div class="pf-opcoes" id="chips" role="group" aria-label="Filtrar por classe"></div></div>
+            <div class="pf-grupo"><span class="pf-nome">Textura</span><div class="pf-opcoes" id="chips-textura" role="group" aria-label="Filtrar por textura"></div></div>
+            <div class="pf-grupo"><span class="pf-nome">Acabamento</span><div class="pf-opcoes" id="chips-acabamento" role="group" aria-label="Filtrar por acabamento (brilho)"></div></div>
+          </div>
         </div>
-        <p id="contagem" style="color:var(--texto-suave);font-size:.9rem;margin-bottom:18px"></p>
         <div class="grade-produtos" id="lista-produtos"></div>
       </div>
     </section>
@@ -237,16 +240,19 @@
       function passa(p, ignorar) {
         return Object.keys(filtros).every(function (k) { var f = filtros[k]; return k === ignorar || f.valor === "todas" || f.de(p) === f.valor; });
       }
+      // Opções sem produto somem (a não ser a escolhida); clicar de novo na escolhida desmarca
       function desenharFiltros(termoOk) {
         Object.keys(filtros).forEach(function (k) {
           var f = filtros[k], base = PRODUTOS.filter(function (p) { return termoOk(p) && passa(p, k); });
-          f.el.innerHTML = [["todas", "Todas"]].concat(f.opcoes()).map(function (o) {
-            var n = o[0] === "todas" ? base.length : base.filter(function (p) { return f.de(p) === o[0]; }).length;
-            var ativo = f.valor === o[0];
-            return '<button class="chip' + (ativo ? " ativo" : "") + '" role="tab" aria-selected="' + ativo + '"' + (!n && !ativo ? " disabled" : "") +
-              ' data-valor="' + CW.esc(o[0]) + '">' + CW.esc(o[1]) + (o[0] === "todas" ? "" : ' <small>' + n + '</small>') + '</button>';
+          var html = f.opcoes().map(function (o) {
+            var n = base.filter(function (p) { return f.de(p) === o[0]; }).length, ativo = f.valor === o[0];
+            if (!n && !ativo) return "";
+            return '<button type="button" class="pf-op' + (ativo ? " ativo" : "") + '" aria-pressed="' + ativo + '" data-valor="' + CW.esc(o[0]) + '">' +
+              CW.esc(o[1]) + '<span class="pf-n">' + n + '</span></button>';
           }).join("");
+          f.el.innerHTML = html || '<span class="pf-vazio">Nenhuma opção</span>';
         });
+        document.getElementById("limpar-filtros").hidden = Object.keys(filtros).every(function (k) { return filtros[k].valor === "todas"; }) && !busca.value.trim();
       }
 
       function atualizar() {
@@ -257,7 +263,7 @@
         };
         var lista = PRODUTOS.filter(function (p) { return termoOk(p) && passa(p); });
         desenharFiltros(termoOk);
-        document.getElementById("contagem").textContent = lista.length + (lista.length === 1 ? " produto encontrado" : " produtos encontrados");
+        document.getElementById("contagem").textContent = lista.length + (lista.length === 1 ? " produto" : " produtos");
         CW.renderProdutos(document.getElementById("lista-produtos"), lista);
 
         var url = new URL(location.href);
@@ -268,11 +274,15 @@
 
       Object.keys(filtros).forEach(function (k) {
         filtros[k].el.addEventListener("click", function (e) {
-          var b = e.target.closest(".chip");
-          if (!b || b.disabled) return;
-          filtros[k].valor = b.dataset.valor;
+          var b = e.target.closest(".pf-op");
+          if (!b) return;
+          filtros[k].valor = filtros[k].valor === b.dataset.valor ? "todas" : b.dataset.valor;
           atualizar();
         });
+      });
+      document.getElementById("limpar-filtros").addEventListener("click", function () {
+        Object.keys(filtros).forEach(function (k) { filtros[k].valor = "todas"; });
+        busca.value = ""; atualizar();
       });
       busca.addEventListener("input", atualizar);
       document.addEventListener("catalogo-atualizado", atualizar);   // produtos novos do painel

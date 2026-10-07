@@ -2665,18 +2665,38 @@ video.video-produto { object-fit: contain; }
   .inst-fundo { min-height: 560px; }
 }
 
-/* ---------- Classificação do produto: Classe · Textura · Acabamento ---------- */
-.textura-cartao { margin-left: auto; padding: 2px 9px; border-radius: 999px; background: var(--fundo-suave, #eef2f8); color: var(--texto, #1d2b44); font-size: .74rem; font-weight: 600; white-space: nowrap; }
-.filtros-classe { display: grid; gap: 10px; flex: 1 1 100%; order: 2; min-width: 0; }
-.filtro-linha { display: flex; align-items: flex-start; gap: 12px; min-width: 0; }
-.filtro-nome { flex: 0 0 104px; padding-top: 9px; font-size: .78rem; font-weight: 700; color: var(--texto-suave); text-transform: uppercase; letter-spacing: .06em; }
-.filtro-linha .chips { min-width: 0; }
-.filtro-linha .chip { padding-top: 6px; padding-bottom: 6px; font-size: .86rem; }
-.filtro-linha .chip small { margin-left: 4px; font-size: .74rem; opacity: .6; font-weight: 600; }
-.filtro-linha .chip:disabled { opacity: .4; cursor: default; }
-.barra-filtros:has(.filtros-classe) .busca { margin-left: auto; }
+/* ---------- Catálogo: painel de filtros (Classe · Textura · Acabamento) ---------- */
+.textura-cartao { margin-left: auto; padding: 2px 9px; border-radius: 999px; background: var(--fundo-alt, #eef2f8); color: var(--texto); font-size: .74rem; font-weight: 600; white-space: nowrap; }
+.painel-filtros { margin-bottom: 28px; border: 1px solid var(--borda); border-radius: 10px; background: #fff; box-shadow: 0 6px 24px rgba(11, 20, 36, .05); }
+.pf-topo { display: flex; align-items: center; gap: 16px; padding: 16px 20px; border-bottom: 1px solid var(--borda); }
+.pf-busca { flex: 1 1 auto; min-width: 0; max-width: 460px; }
+.pf-busca input { background: var(--fundo-alt, #f5f7fa); }
+.pf-contagem { margin: 0 0 0 auto; font-size: .9rem; font-weight: 600; color: var(--texto-suave); white-space: nowrap; }
+.pf-limpar { border: 0; background: none; padding: 6px 0; font: inherit; font-size: .88rem; font-weight: 600; color: var(--azul); cursor: pointer; white-space: nowrap; }
+.pf-limpar:hover { text-decoration: underline; }
+.pf-grupos { display: grid; grid-template-columns: 1fr 1fr 1.35fr; }
+.pf-grupo { min-width: 0; padding: 16px 20px 18px; }
+.pf-grupo + .pf-grupo { border-left: 1px solid var(--borda); }
+.pf-nome { display: block; margin-bottom: 10px; font-size: .72rem; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: var(--texto-suave); }
+.pf-opcoes { display: flex; flex-wrap: wrap; gap: 8px; }
+.pf-op { display: inline-flex; align-items: center; gap: 7px; padding: 7px 12px; border: 1px solid var(--borda); border-radius: 6px; background: #fff;
+  font: inherit; font-size: .88rem; font-weight: 500; color: var(--texto); cursor: pointer; transition: border-color .2s, color .2s, background .2s; }
+.pf-op:hover { border-color: var(--azul); color: var(--azul); }
+.pf-n { min-width: 20px; padding: 1px 6px; border-radius: 999px; background: var(--fundo-alt, #eef2f6); color: var(--texto-suave); font-size: .72rem; font-weight: 700; text-align: center; }
+.pf-op.ativo { background: var(--azul); border-color: var(--azul); color: #fff; }
+.pf-op.ativo .pf-n { background: rgba(255, 255, 255, .22); color: #fff; }
+.pf-op:focus-visible { outline: 2px solid var(--azul); outline-offset: 2px; }
+.pf-vazio { font-size: .85rem; color: var(--texto-suave); }
+@media (max-width: 900px) {
+  .pf-grupos { grid-template-columns: 1fr; }
+  .pf-grupo + .pf-grupo { border-left: 0; border-top: 1px solid var(--borda); }
+}
 @media (max-width: 640px) {
-  .filtro-linha { flex-direction: column; align-items: stretch; gap: 6px; }
-  .filtro-nome { flex-basis: auto; padding-top: 0; }
-  .filtro-linha .chips { margin: 0 -16px; padding: 2px 16px 6px; }
+  .pf-topo { flex-wrap: wrap; padding: 14px 16px; gap: 10px 14px; }
+  .pf-busca { flex-basis: 100%; max-width: none; }
+  .pf-contagem { margin-left: 0; }
+  .pf-grupo { padding: 14px 0 14px 16px; }
+  .pf-opcoes { flex-wrap: nowrap; overflow-x: auto; padding-right: 16px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  .pf-opcoes::-webkit-scrollbar { display: none; }
+  .pf-op { flex: 0 0 auto; }
 }

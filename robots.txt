@@ -1,5 +1,6 @@
 User-agent: *
 Allow: /
-Disallow: /conta.html
+Disallow: /conta
+Disallow: /admin
 
 Sitemap: https://policoatingtintas.com.br/sitemap.xml

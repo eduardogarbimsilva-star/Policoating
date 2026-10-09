@@ -81,7 +81,7 @@
       $("#lb-titulo").textContent = it.titulo;
       $("#lb-sub").textContent = it.sub;
       const acao = $("#lb-acao");
-      if (it.produto && produto(it.produto)) { acao.hidden = false; acao.textContent = "Ver produto"; acao.href = "produtos.html#produto=" + it.produto; acao.removeAttribute("target"); }
+      if (it.produto && produto(it.produto)) { acao.hidden = false; acao.textContent = "Ver produto"; acao.href = "produtos#produto=" + it.produto; acao.removeAttribute("target"); }
       else if (it.video) { acao.hidden = false; acao.textContent = "Falar com um vendedor"; acao.href = CW.linkWhatsApp(`Olá! Vi o vídeo "${it.titulo}" na galeria da Policoating e gostaria de mais informações.`); acao.target = "_blank"; }
       else { acao.hidden = false; acao.textContent = "Pedir orçamento"; acao.href = CW.linkWhatsApp(`Olá! Vi na galeria "${it.titulo}${it.sub ? " – " + it.sub : ""}" e gostaria de um orçamento.`); acao.target = "_blank"; }
     }

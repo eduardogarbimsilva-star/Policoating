@@ -363,7 +363,7 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
 
     if (!carrinho.length) {
       lista.innerHTML = `<div class="carrinho-vazio"><div class="icone">${ic("caixa")}</div>
-        <p>Seu carrinho está vazio.</p><p><a href="produtos.html">Explore nossos produtos →</a></p></div>`;
+        <p>Seu carrinho está vazio.</p><p><a href="produtos">Explore nossos produtos →</a></p></div>`;
       return;
     }
     lista.innerHTML = carrinho
@@ -423,13 +423,13 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
       const p = Conta.perfil || {};
       if (!Conta.perfilCompleto()) {
         box.innerHTML = `<div class="cliente-box alerta">Complete seu cadastro (endereço e documento) para finalizar o pedido.
-          <a href="conta.html#dados">Completar cadastro →</a></div>`;
+          <a href="conta#dados">Completar cadastro →</a></div>`;
         textoBtn("Completar cadastro");
         return;
       }
       const titulo = p.tipo === "pj" ? p.razao_social : p.nome;
       box.innerHTML = `<div class="cliente-box"><span>Entrega para</span><strong>${esc(titulo)}</strong>
-        <small>${esc(p.cidade)}/${esc(p.uf)} · CEP ${esc(p.cep)}</small><a href="conta.html#dados">Alterar dados</a></div>`;
+        <small>${esc(p.cidade)}/${esc(p.uf)} · CEP ${esc(p.cep)}</small><a href="conta#dados">Alterar dados</a></div>`;
       textoBtn("Enviar pedido");
       return;
     }
@@ -462,11 +462,11 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
   async function finalizarPedido() {
     if (!carrinho.length) return;
     if (!logado()) {
-      try { sessionStorage.setItem(CHAVE_VOLTAR, location.pathname.split("/").pop() || "index.html"); } catch (e) { /* ignora */ }
-      location.href = "conta.html?voltar=carrinho";
+      try { sessionStorage.setItem(CHAVE_VOLTAR, location.pathname.split("/").pop() || "./"); } catch (e) { /* ignora */ }
+      location.href = "conta?voltar=carrinho";
       return;
     }
-    if (!Conta.perfilCompleto()) { location.href = "conta.html#dados"; return; }
+    if (!Conta.perfilCompleto()) { location.href = "conta#dados"; return; }
     // abre a aba do WhatsApp já no clique (depois o navegador bloquearia a janela)
     let janela = null;
     try { janela = window.open("", "_blank"); if (janela) janela.document.write("<p style='font:16px sans-serif;padding:24px'>Registrando o seu pedido e abrindo o WhatsApp...</p>"); } catch (e) { /* segue */ }
@@ -491,7 +491,7 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
       salvarCarrinho();
       fecharTudo();
       mostrarToast(salvo
-        ? `Pedido <strong>${esc(numero)}</strong> registrado! O vendedor já recebeu e ele fica em <a href="conta.html#pedidos" style="color:var(--destaque)">Meus pedidos</a>. No WhatsApp, é só tocar em Enviar para agilizar o atendimento.`
+        ? `Pedido <strong>${esc(numero)}</strong> registrado! O vendedor já recebeu e ele fica em <a href="conta#pedidos" style="color:var(--destaque)">Meus pedidos</a>. No WhatsApp, é só tocar em Enviar para agilizar o atendimento.`
         : `Não conseguimos registrar o pedido <strong>${esc(numero)}</strong> agora. <strong>Envie a mensagem no WhatsApp</strong> para o vendedor recebê-lo.`);
     } catch (e) {
       if (janela) janela.close();
@@ -780,7 +780,7 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
       b.addEventListener("click", () => {
         const tipo = b.dataset.extra;
         if (tipo === "link") {
-          const url = location.origin + location.pathname.replace(/[^/]*$/, "") + "produtos.html#produto=" + encodeURIComponent(p.id);
+          const url = location.origin + location.pathname.replace(/[^/]*$/, "") + "produtos#produto=" + encodeURIComponent(p.id);
           (navigator.clipboard ? navigator.clipboard.writeText(url) : Promise.reject()).then(
             () => mostrarToast("Link do produto copiado!"),
             () => prompt("Copie o link do produto:", url)
@@ -983,25 +983,25 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
     if (lerStorage(CHAVE_LGPD, false)) return;
     document.body.insertAdjacentHTML("beforeend", `<div class="aviso-lgpd" role="region" aria-label="Aviso de privacidade">
       <p>Usamos o armazenamento do seu navegador para manter o carrinho, os favoritos e o login. Saiba mais na
-      <a href="privacidade.html">Política de Privacidade</a>.</p><button class="btn btn-primario" type="button">Entendi</button></div>`);
+      <a href="privacidade">Política de Privacidade</a>.</p><button class="btn btn-primario" type="button">Entendi</button></div>`);
     $(".aviso-lgpd button").addEventListener("click", () => { gravarStorage(CHAVE_LGPD, true); $(".aviso-lgpd").remove(); });
   }
 
   /* ---------- Link "Entrar / Minha conta" no cabeçalho ---------- */
   function atualizarCabecalhoConta() {
-    const pagina = (location.pathname.split("/").pop() || "index.html");
+    const pagina = location.pathname.split("/").pop().replace(/\.html$/, "");
     $$(".link-conta").forEach((a) => {
       const t = $(".texto", a);
       if (logado()) {
         t.textContent = Conta.nomeExibicao() || "Minha conta"; a.title = "Minha conta"; a.classList.add("logado");
-        a.href = "conta.html";
+        a.href = "conta";
         a.setAttribute("aria-haspopup", "true");
         montarMenuConta(a);
       } else {
         t.textContent = "Entrar"; a.title = "Entrar ou criar conta"; a.classList.remove("logado");
         a.removeAttribute("aria-haspopup");
         // depois de entrar, a pessoa volta para esta página
-        a.href = /^[a-z0-9-]+\.html$/.test(pagina) && !["conta.html", "404.html"].includes(pagina) ? "conta.html?voltar=" + pagina : "conta.html";
+        a.href = /^[a-z0-9-]+$/.test(pagina) && !["conta", "404", "index"].includes(pagina) ? "conta?voltar=" + pagina : "conta";
         const m = a.parentElement.querySelector(".menu-conta"); if (m) m.remove();
         mostrarLinkPainel(null);
       }
@@ -1025,7 +1025,7 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
       document.addEventListener("click", (e) => { if (!menu.hidden && !menu.contains(e.target) && !link.contains(e.target)) { menu.hidden = true; link.setAttribute("aria-expanded", "false"); } });
       document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !menu.hidden) { menu.hidden = true; link.focus(); } });
       menu.addEventListener("click", async (e) => {
-        if (e.target.closest("[data-sair]")) { e.preventDefault(); await Conta.sair(); location.href = "index.html"; }
+        if (e.target.closest("[data-sair]")) { e.preventDefault(); await Conta.sair(); location.href = "./"; }
         const tc = e.target.closest("[data-trocar-conta]");
         if (tc) { e.preventDefault(); await Conta.trocarPara(tc.dataset.trocarConta); }
       });
@@ -1033,11 +1033,11 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
     const u = Conta.usuario || {};
     menu.innerHTML = `
       <div class="mc-topo"><strong>${esc(Conta.nomeExibicao() || "Minha conta")}</strong><small>${esc(u.email || "")}</small></div>
-      <a href="conta.html#resumo">${ic("casa")}Visão geral</a>
-      <a href="conta.html#pedidos">${ic("caixa")}Meus pedidos</a>
-      <a href="conta.html#favoritos">${ic("coracao")}Favoritos</a>
-      <a href="conta.html#dados">${ic("usuario")}Meus dados</a>
-      <a href="admin.html" class="mc-admin" hidden>${ic("industria")}<span>Painel da empresa</span></a>
+      <a href="conta#resumo">${ic("casa")}Visão geral</a>
+      <a href="conta#pedidos">${ic("caixa")}Meus pedidos</a>
+      <a href="conta#favoritos">${ic("coracao")}Favoritos</a>
+      <a href="conta#dados">${ic("usuario")}Meus dados</a>
+      <a href="admin" class="mc-admin" hidden>${ic("industria")}<span>Painel da empresa</span></a>
       ${htmlTrocarConta(u.email)}
       <button type="button" data-sair>${ic("sair")}Sair</button>`;
     if (window.Catalogo) window.Catalogo.Admin.meuPapel().then((papel) => {
@@ -1064,7 +1064,7 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
       let li = $(".menu-painel", m);
       if (!papel) { if (li) li.remove(); return; }
       if (!li) { li = document.createElement("li"); li.className = "menu-painel"; m.appendChild(li); }
-      li.innerHTML = `<a href="admin.html">${ic("grafico")}${papel === "admin" ? "Painel" : "Pedidos"}</a>`;
+      li.innerHTML = `<a href="admin">${ic("grafico")}${papel === "admin" ? "Painel" : "Pedidos"}</a>`;
     });
   }
 
@@ -1130,7 +1130,7 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
           : "Seu acesso à equipe da Policoating foi encerrado. Entre de novo para continuar como cliente.";
         try { sessionStorage.setItem("policoating_aviso_acesso", msg); sessionStorage.removeItem("policoating_2fa_sessao"); } catch (e) { /* segue */ }
         await Conta.sair();
-        location.href = "conta.html";
+        location.href = "conta";
       } catch (e) { /* sem internet: tenta de novo depois */ }
       finally { ocupado = false; }
     }

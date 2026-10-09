@@ -33,7 +33,7 @@
         </dl>
         <div class="notas">${barra("Resistência ao sol", n.sol || 0)}${barra("Resistência química", n.quimica || 0)}${barra("Anticorrosão", n.corrosao || 0)}</div>
         <div class="tags">${(cat.acabamentos || []).map((a) => `<span>${CW.esc(a)}</span>`).join("")}</div>
-        <a class="link" href="produtos.html?categoria=${chave}">Ver produtos ${CW.esc(cat.nome.toLowerCase())} →</a>
+        <a class="link" href="produtos?categoria=${chave}">Ver produtos ${CW.esc(cat.nome.toLowerCase())} →</a>
       </div>
     </article>`;
   }
@@ -102,7 +102,7 @@
           <div class="campo-titulo">Experimente outra cor</div>
           <div class="amb-paleta">${PALETA.map((h) => `<button type="button" data-cor="${h}" style="background:${h}" aria-label="Cor ${h}"></button>`).join("")}</div>
           <p class="amb-produto"></p>
-          <a class="btn btn-primario amb-link" href="produtos.html">Ver produto indicado</a>
+          <a class="btn btn-primario amb-link" href="produtos">Ver produto indicado</a>
         </div>
       </div>`;
     let atual = 0, cor = AMBIENTES[0].cor, timer = 0, interagiu = false;
@@ -116,7 +116,7 @@
       $(".amb-texto", raiz).textContent = a.texto;
       const p = (window.PRODUTOS || []).find((x) => x.id === a.produto);
       $(".amb-produto", raiz).innerHTML = p ? `Indicado: <strong>${CW.esc(p.nome)}</strong>` : "";
-      $(".amb-link", raiz).href = "produtos.html#produto=" + a.produto;
+      $(".amb-link", raiz).href = "produtos#produto=" + a.produto;
       $$(".amb-abas button", raiz).forEach((b, i) => { b.classList.toggle("ativo", i === atual); b.setAttribute("aria-selected", i === atual); });
       $$(".amb-paleta button", raiz).forEach((b) => b.classList.toggle("ativo", b.dataset.cor.toLowerCase() === cor.toLowerCase()));
     }

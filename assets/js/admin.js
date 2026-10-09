@@ -985,7 +985,7 @@
         try {
           const r = await A.definirEmailEmpresa(atual, novo);
           CW.mostrarToast(`Login trocado para ${esc(r.novo)}.${r.aviso === "ok" ? " A pessoa foi avisada por e-mail." : ""}`);
-          if (eu) { await window.Conta.sair(); location.href = "conta.html"; return; }
+          if (eu) { await window.Conta.sair(); location.href = "conta"; return; }
           carregarEquipe();
         } catch (err) { be.disabled = false; $("#equipe-erro").textContent = err.message; }
         return;

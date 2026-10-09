@@ -353,8 +353,8 @@
   }
 
   function executarAcao(a) {
-    const destinos = { guia: "recursos.html#guia", pedidos: "conta.html#pedidos", favoritos: "conta.html#favoritos", entrar: "conta.html",
-      catalogo: "produtos.html", fichas: "recursos.html#documentos", processo: "aplicacao.html#equipamentos", calculadora: "recursos.html#calculadora" };
+    const destinos = { guia: "recursos#guia", pedidos: "conta#pedidos", favoritos: "conta#favoritos", entrar: "conta",
+      catalogo: "produtos", fichas: "recursos#documentos", processo: "aplicacao#equipamentos", calculadora: "recursos#calculadora" };
     if (a === "carrinho") { alternar(false); CW().abrirCarrinho(); return; }
     if (a === "whatsapp") { window.open(CW().linkWhatsApp(mensagemVendedor()), "_blank", "noopener"); return; }
     if (destinos[a]) location.href = destinos[a];

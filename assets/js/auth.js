@@ -177,7 +177,7 @@
         if (criar) { const r = await sb.rpc("email_ja_cadastrado", { e: email }); jaTem = !r.error && r.data === true; }
         // Se o modelo de e-mail do Supabase enviar um link em vez do código, o link também funciona:
         // ele volta para a página "Minha conta" deste site, já com o cliente conectado.
-        const voltarPara = location.origin + location.pathname.replace(/[^/]*$/, "") + "conta.html";
+        const voltarPara = location.origin + location.pathname.replace(/[^/]*$/, "") + "conta.html";  // .html: endereço liberado no Supabase (o site limpa o .html ao abrir)
         const captchaToken = await tokenCaptcha();
         const { error } = await sb.auth.signInWithOtp({ email, options: { shouldCreateUser: !!criar || daEquipe, emailRedirectTo: voltarPara, captchaToken } });
         if (error) throw traduzirErro(error);
@@ -253,7 +253,7 @@
     async trocarPara(email) {
       try { sessionStorage.setItem("policoating_entrar_como", normalizarEmail(email || "")); sessionStorage.removeItem("policoating_2fa_sessao"); } catch (e) { /* segue */ }
       await this.sair();
-      location.href = "conta.html";
+      location.href = "conta";
     },
 
     async sair() {

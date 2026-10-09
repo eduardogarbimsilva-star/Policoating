@@ -182,12 +182,12 @@
   // Depois de entrar, volta para onde a pessoa estava (carrinho ou página de origem)
   const voltarPara = (() => {
     const v = params.get("voltar") || "";
-    return /^[a-z0-9-]+\.html$/.test(v) && v !== "conta.html" ? v : "";
+    return /^[a-z0-9-]+(\.html)?$/.test(v) && !/^conta(\.html)?$/.test(v) ? v : "";
   })();
   function voltarAoCarrinhoSePreciso() {
     if (params.get("voltar") === "carrinho") {
       if (!Conta.perfilCompleto()) return false;
-      const destino = sess.get(CHAVE_VOLTAR) || "produtos.html";
+      const destino = sess.get(CHAVE_VOLTAR) || "produtos";
       sess.del(CHAVE_VOLTAR);
       location.href = destino + "#carrinho";
       return true;
@@ -285,7 +285,7 @@
 
   $("#btn-sair").addEventListener("click", async () => {
     await Conta.sair();
-    location.href = "conta.html";
+    location.href = "conta";
   });
 
   const dataCurta = (iso) => new Date(iso).toLocaleDateString("pt-BR");
@@ -362,7 +362,7 @@
     $("#est-ultimo").textContent = pedidos.length ? dataCurta(pedidos[0].criado_em) : "—";
     $("#resumo-ultimo").innerHTML = pedidos.length
       ? cartaoPedido(pedidos[0], 0, true)
-      : `<p class="vazio-mini">Você ainda não enviou pedidos. <a href="produtos.html">Ver produtos →</a></p>`;
+      : `<p class="vazio-mini">Você ainda não enviou pedidos. <a href="produtos">Ver produtos →</a></p>`;
   }
 
   /* ---------- Meus pedidos ---------- */
@@ -375,7 +375,7 @@
     atualizarLateral();
     if (!pedidos.length) {
       box.innerHTML = `<div class="vazio cartao-info"><div class="icone-vazio">${window.Icone("caixa")}</div><p>Você ainda não enviou pedidos.</p>
-        <p><a class="btn btn-primario" href="produtos.html" style="margin-top:12px">Ver produtos</a></p></div>`;
+        <p><a class="btn btn-primario" href="produtos" style="margin-top:12px">Ver produtos</a></p></div>`;
       return;
     }
     box.innerHTML = pedidos.map((p, i) => cartaoPedido(p, i, false)).join("");

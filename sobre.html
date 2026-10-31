@@ -138,8 +138,451 @@
           <h2>Pintura eletrostática a pó em 4 etapas</h2>
           <p>Um processo limpo, sem solventes, que forma uma camada uniforme e muito resistente.</p>
         </div>
-        <figure class="foto-real revelar" style="max-width:900px;margin:0 auto 40px"><img src="assets/img/marca/aplicacao-pistola.jpg" alt="Aplicação eletrostática com pistola Policoating" width="1264" height="843" loading="lazy"></figure>
-        <div class="processo">
+
+<!-- CARROSSEL PREMIUM - LATERAIS POLICOATING -->
+<div class="pc-carousel" id="pc-laterais"
+     role="region"
+     aria-roledescription="carrossel"
+     aria-label="Fotos das laterais da Policoating">
+
+  <div class="pc-slide ativo">
+    <img src="assets/img/marca/lateral-1.jpg"
+         alt="Primeira vista lateral da Policoating"
+         loading="eager" decoding="async">
+  </div>
+
+  <div class="pc-slide">
+    <img src="assets/img/marca/lateral-2.jpg"
+         alt="Segunda vista lateral da Policoating"
+         loading="lazy" decoding="async">
+  </div>
+
+  <div class="pc-slide">
+    <img src="assets/img/marca/lateral-3.jpg"
+         alt="Terceira vista lateral da Policoating"
+         loading="lazy" decoding="async">
+  </div>
+
+  <div class="pc-overlay"></div>
+
+  <span class="pc-etiqueta">ESTRUTURA POLICOATING</span>
+
+  <button type="button" class="pc-seta pc-anterior"
+          aria-label="Imagem anterior">&#10094;</button>
+
+  <button type="button" class="pc-seta pc-proxima"
+          aria-label="Próxima imagem">&#10095;</button>
+
+  <div class="pc-rodape">
+    <div class="pc-descricao">
+      <strong>Conheça nossa estrutura</strong>
+      <span>Instalações da Policoating</span>
+    </div>
+
+    <div class="pc-indicadores">
+      <span class="pc-contador">01 / 03</span>
+      <div class="pc-pontos">
+        <button class="pc-ponto ativo" type="button"
+                aria-label="Ver imagem 1"></button>
+        <button class="pc-ponto" type="button"
+                aria-label="Ver imagem 2"></button>
+        <button class="pc-ponto" type="button"
+                aria-label="Ver imagem 3"></button>
+      </div>
+    </div>
+  </div>
+
+  <div class="pc-progresso"><span></span></div>
+</div>
+
+<style>
+.pc-carousel {
+  position: relative;
+  isolation: isolate;
+  width: 100%;
+  max-width: 900px;
+  aspect-ratio: 16 / 10;
+  margin: 0 auto 40px;
+  border-radius: 20px;
+  overflow: hidden;
+  background: #101d30;
+  box-shadow: 0 18px 55px rgba(8,31,72,.22);
+  animation: pc-entrada .8s ease both;
+}
+
+@keyframes pc-entrada {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.pc-slide {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 1s ease-in-out;
+}
+
+.pc-slide.ativo {
+  opacity: 1;
+  z-index: 1;
+}
+
+.pc-slide img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  transform: scale(1.075);
+  transition: transform 6s ease-out;
+}
+
+.pc-slide.ativo img {
+  transform: scale(1);
+}
+
+.pc-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    rgba(0,0,0,.28) 0%,
+    transparent 35%,
+    transparent 52%,
+    rgba(4,13,33,.78) 100%
+  );
+}
+
+.pc-etiqueta {
+  position: absolute;
+  z-index: 3;
+  top: 22px;
+  left: 25px;
+  padding: 9px 15px;
+  border: 1px solid rgba(255,255,255,.25);
+  border-radius: 7px;
+  background: rgba(5,17,39,.48);
+  backdrop-filter: blur(12px);
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 2px;
+}
+
+.pc-seta {
+  position: absolute;
+  top: 50%;
+  z-index: 5;
+  transform: translateY(-50%);
+  width: 45px;
+  height: 45px;
+  border: 1px solid rgba(255,255,255,.35);
+  border-radius: 50%;
+  background: rgba(4,18,38,.35);
+  backdrop-filter: blur(10px);
+  color: white;
+  font-size: 20px;
+  cursor: pointer;
+  transition: background .25s, transform .25s;
+}
+
+.pc-seta:hover {
+  background: #1558d6;
+  transform: translateY(-50%) scale(1.1);
+}
+
+.pc-anterior { left: 17px; }
+.pc-proxima { right: 17px; }
+
+.pc-rodape {
+  position: absolute;
+  bottom: 27px;
+  left: 28px;
+  right: 28px;
+  z-index: 4;
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 15px;
+  color: white;
+}
+
+.pc-descricao {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.pc-descricao strong {
+  color: white;
+  font-size: clamp(18px, 3vw, 26px);
+  font-weight: 750;
+}
+
+.pc-descricao span {
+  font-size: 13px;
+  color: rgba(255,255,255,.8);
+}
+
+.pc-indicadores {
+  display: flex;
+  align-items: center;
+  gap: 17px;
+}
+
+.pc-contador {
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  letter-spacing: 1px;
+}
+
+.pc-pontos {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pc-ponto {
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  background: rgba(255,255,255,.5);
+  cursor: pointer;
+  transition: width .3s, background .3s;
+}
+
+.pc-ponto.ativo {
+  width: 26px;
+  background: #4d8bff;
+}
+
+.pc-progresso {
+  position: absolute;
+  z-index: 6;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: rgba(255,255,255,.18);
+}
+
+.pc-progresso span {
+  display: block;
+  width: 0;
+  height: 100%;
+  background: linear-gradient(90deg,#1558d6,#6eb9ff);
+}
+
+.pc-carousel.rodando .pc-progresso span {
+  animation: pc-carregar 5s linear forwards;
+}
+
+@keyframes pc-carregar {
+  from { width: 0; }
+  to { width: 100%; }
+}
+
+.pc-carousel button:focus-visible {
+  outline: 3px solid #91c5ff;
+  outline-offset: 3px;
+}
+
+@media (max-width: 600px) {
+  .pc-carousel {
+    aspect-ratio: 4 / 3;
+    border-radius: 14px;
+  }
+
+  .pc-etiqueta {
+    top: 12px;
+    left: 12px;
+    font-size: 9px;
+    letter-spacing: 1px;
+  }
+
+  .pc-seta {
+    width: 35px;
+    height: 35px;
+  }
+
+  .pc-anterior { left: 8px; }
+  .pc-proxima { right: 8px; }
+
+  .pc-rodape {
+    left: 16px;
+    right: 16px;
+    bottom: 17px;
+  }
+
+  .pc-descricao span { font-size: 11px; }
+  .pc-indicadores { gap: 9px; }
+  .pc-contador { font-size: 10px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pc-carousel { animation: none; }
+  .pc-slide,
+  .pc-slide img {
+    transition: none;
+  }
+  .pc-carousel.rodando .pc-progresso span {
+    animation: none;
+  }
+}
+</style>
+
+<script>
+(function () {
+  const root = document.getElementById("pc-laterais");
+  if (!root) return;
+
+  const slides = [...root.querySelectorAll(".pc-slide")];
+  const pontos = [...root.querySelectorAll(".pc-ponto")];
+  const contador = root.querySelector(".pc-contador");
+  const progresso = root.querySelector(".pc-progresso span");
+  const movimentoReduzido = window.matchMedia(
+    "(prefers-reduced-motion: reduce)"
+  );
+
+  let atual = 0;
+  let intervalo = null;
+  let mouseDentro = false;
+  let focoDentro = false;
+
+  function podeRodar() {
+    return !document.hidden &&
+           !mouseDentro &&
+           !focoDentro &&
+           !movimentoReduzido.matches;
+  }
+
+  function parar() {
+    clearInterval(intervalo);
+    intervalo = null;
+    root.classList.remove("rodando");
+  }
+
+  function iniciar() {
+    parar();
+    if (!podeRodar()) return;
+
+    void progresso.offsetWidth;
+    root.classList.add("rodando");
+
+    intervalo = setInterval(function () {
+      mostrar(atual + 1);
+    }, 5000);
+  }
+
+  function mostrar(numero) {
+    atual = (numero + slides.length) % slides.length;
+
+    slides.forEach(function (slide, i) {
+      const ativo = i === atual;
+      slide.classList.toggle("ativo", ativo);
+      slide.setAttribute("aria-hidden", String(!ativo));
+    });
+
+    pontos.forEach(function (ponto, i) {
+      const ativo = i === atual;
+      ponto.classList.toggle("ativo", ativo);
+      ponto.setAttribute("aria-current", String(ativo));
+    });
+
+    contador.textContent =
+      String(atual + 1).padStart(2, "0") +
+      " / " +
+      String(slides.length).padStart(2, "0");
+
+    iniciar();
+  }
+
+  root.querySelector(".pc-anterior").addEventListener(
+    "click", function () { mostrar(atual - 1); }
+  );
+
+  root.querySelector(".pc-proxima").addEventListener(
+    "click", function () { mostrar(atual + 1); }
+  );
+
+  pontos.forEach(function (ponto, i) {
+    ponto.addEventListener("click", function () {
+      mostrar(i);
+    });
+  });
+
+  root.addEventListener("mouseenter", function () {
+    mouseDentro = true;
+    parar();
+  });
+
+  root.addEventListener("mouseleave", function () {
+    mouseDentro = false;
+    iniciar();
+  });
+
+  root.addEventListener("focusin", function () {
+    focoDentro = true;
+    parar();
+  });
+
+  root.addEventListener("focusout", function (e) {
+    if (!root.contains(e.relatedTarget)) {
+      focoDentro = false;
+      iniciar();
+    }
+  });
+
+  root.addEventListener("keydown", function (e) {
+    if (e.key === "ArrowLeft") {
+      e.preventDefault();
+      mostrar(atual - 1);
+    }
+    if (e.key === "ArrowRight") {
+      e.preventDefault();
+      mostrar(atual + 1);
+    }
+  });
+
+  let toqueInicial = null;
+
+  root.addEventListener("touchstart", function (e) {
+    if (e.touches.length === 1) {
+      toqueInicial = e.touches[0].clientX;
+    }
+  }, { passive: true });
+
+  root.addEventListener("touchend", function (e) {
+    if (toqueInicial === null) return;
+
+    const diferenca = e.changedTouches[0].clientX -
+                      toqueInicial;
+
+    if (Math.abs(diferenca) > 55) {
+      mostrar(atual + (diferenca < 0 ? 1 : -1));
+    }
+
+    toqueInicial = null;
+  }, { passive: true });
+
+  document.addEventListener("visibilitychange", iniciar);
+
+  if (movimentoReduzido.addEventListener) {
+    movimentoReduzido.addEventListener("change", iniciar);
+  }
+
+  mostrar(0);
+})();
+</script>
+<!-- FIM DO CARROSSEL -->
+      <div class="processo">
           <div class="passo revelar"><h3>Pré-tratamento</h3><p>Desengraxe, decapagem e fosfatização (ou nanotecnologia) deixam a peça limpa e pronta para máxima aderência.</p></div>
           <div class="passo revelar"><h3>Aplicação eletrostática</h3><p>A pistola carrega o pó eletricamente e ele é atraído pela peça aterrada, cobrindo cantos e bordas de forma uniforme.</p></div>
           <div class="passo revelar"><h3>Cura em estufa</h3><p>Na estufa (em geral 180–200 °C), o pó derrete, se nivela e polimeriza, formando um filme contínuo e duro.</p></div>

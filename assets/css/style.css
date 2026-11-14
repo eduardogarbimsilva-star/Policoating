@@ -496,6 +496,8 @@ input, select, textarea { font: inherit; }
 }
 .aviso-lgpd p { color: var(--texto-suave); }
 .aviso-lgpd .btn { padding: 10px 18px; }
+.aviso-cookies { flex-direction: column; align-items: stretch; max-width: 480px; }
+.aviso-botoes { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; }
 
 /* ---------- Área do cliente ---------- */
 .conta { max-width: 1160px; }

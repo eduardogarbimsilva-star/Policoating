@@ -11,6 +11,7 @@
   const CHAVE_CARRINHO = "policoating_carrinho";
   const CHAVE_FAVORITOS = "policoating_favoritos";
   const CHAVE_LGPD = "policoating_lgpd";
+  const CHAVE_COOKIES = "policoating_cookies";   // "todos" (aceitou estatísticas) ou "essenciais"
   const CHAVE_VOLTAR = "policoating_voltar";
   const Conta = window.Conta || null;
   const Fotos = window.Fotos || null;
@@ -978,14 +979,46 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
     return `<svg viewBox="0 0 32 32" width="20" height="20" aria-hidden="true" fill="currentColor"><path d="M16.04 3C8.86 3 3.03 8.82 3.03 16c0 2.29.6 4.53 1.74 6.5L3 29l6.68-1.75A12.94 12.94 0 0 0 16.04 29C23.2 29 29 23.18 29 16S23.2 3 16.04 3zm0 23.6c-1.97 0-3.9-.53-5.58-1.53l-.4-.24-3.96 1.04 1.06-3.86-.26-.4A10.56 10.56 0 0 1 5.44 16c0-5.85 4.76-10.6 10.6-10.6 5.84 0 10.57 4.75 10.57 10.6 0 5.84-4.74 10.6-10.57 10.6zm5.81-7.93c-.32-.16-1.9-.94-2.19-1.04-.3-.11-.51-.16-.73.16-.21.32-.83 1.04-1.02 1.26-.19.21-.37.24-.69.08-.32-.16-1.35-.5-2.57-1.59-.95-.85-1.59-1.9-1.78-2.22-.19-.32-.02-.49.14-.65.14-.14.32-.37.48-.56.16-.19.21-.32.32-.53.11-.21.05-.4-.03-.56-.08-.16-.73-1.75-1-2.4-.26-.63-.53-.54-.73-.55h-.62c-.21 0-.56.08-.85.4-.3.32-1.12 1.09-1.12 2.66s1.14 3.09 1.3 3.3c.16.21 2.25 3.43 5.44 4.81.76.33 1.35.52 1.81.67.76.24 1.46.21 2 .13.61-.09 1.9-.78 2.16-1.53.27-.75.27-1.39.19-1.53-.08-.13-.29-.21-.61-.37z"/></svg>`;
   }
 
-  /* ---------- Aviso LGPD ---------- */
-  function avisoLgpd() {
-    if (lerStorage(CHAVE_LGPD, false)) return;
-    document.body.insertAdjacentHTML("beforeend", `<div class="aviso-lgpd" role="region" aria-label="Aviso de privacidade">
-      <p>Usamos o armazenamento do seu navegador para manter o carrinho, os favoritos e o login. Saiba mais na
-      <a href="privacidade">Política de Privacidade</a>.</p><button class="btn btn-primario" type="button">Entendi</button></div>`);
-    $(".aviso-lgpd button").addEventListener("click", () => { gravarStorage(CHAVE_LGPD, true); $(".aviso-lgpd").remove(); });
+  /* ---------- Aviso LGPD + estatísticas de visitas (Google Analytics) ---------- */
+  const idAnalytics = () => (/^G-[A-Z0-9]{4,20}$/.test(CFG.analytics || "") ? CFG.analytics : "");
+  function ligarAnalytics() {
+    const id = idAnalytics();
+    if (!id || window.gtag || /(^|\/)admin(\.html)?$/.test(location.pathname)) return;   // o painel da equipe não conta como visita
+    window.dataLayer = window.dataLayer || [];
+    window.gtag = function () { window.dataLayer.push(arguments); };
+    window.gtag("js", new Date());
+    window.gtag("config", id, { anonymize_ip: true });
+    const s = document.createElement("script");
+    s.async = true; s.src = "https://www.googletagmanager.com/gtag/js?id=" + encodeURIComponent(id);
+    document.head.appendChild(s);
   }
+  function avisoLgpd(forcar) {
+    const escolha = lerStorage(CHAVE_COOKIES, "");
+    if (escolha === "todos") ligarAnalytics();
+    if ($(".aviso-lgpd")) return;
+    if (!idAnalytics()) {
+      // sem Analytics configurado, basta o aviso simples de sempre
+      if (lerStorage(CHAVE_LGPD, false) && !forcar) return;
+      document.body.insertAdjacentHTML("beforeend", `<div class="aviso-lgpd" role="region" aria-label="Aviso de privacidade">
+        <p>Usamos o armazenamento do seu navegador para manter o carrinho, os favoritos e o login. Saiba mais na
+        <a href="privacidade">Política de Privacidade</a>.</p><button class="btn btn-primario" type="button" data-cookies="essenciais">Entendi</button></div>`);
+    } else {
+      if (escolha && !forcar) return;
+      document.body.insertAdjacentHTML("beforeend", `<div class="aviso-lgpd aviso-cookies" role="region" aria-label="Aviso de privacidade">
+        <p>Usamos o navegador para manter o carrinho, os favoritos e o login. Com a sua permissão, também medimos as visitas (Google Analytics) para melhorar o site. Saiba mais na
+        <a href="privacidade">Política de Privacidade</a>.</p>
+        <div class="aviso-botoes"><button class="btn btn-contorno-azul" type="button" data-cookies="essenciais">Só o essencial</button><button class="btn btn-primario" type="button" data-cookies="todos">Aceitar</button></div></div>`);
+    }
+    $$(".aviso-lgpd [data-cookies]").forEach((b) => b.addEventListener("click", () => {
+      const anterior = lerStorage(CHAVE_COOKIES, "");
+      gravarStorage(CHAVE_LGPD, true); gravarStorage(CHAVE_COOKIES, b.dataset.cookies);
+      $(".aviso-lgpd").remove();
+      if (b.dataset.cookies === "todos") ligarAnalytics();
+      else if (anterior === "todos" && window.gtag) location.reload();   // retirou a permissão: para de medir na hora
+    }));
+  }
+  // "Altere suas preferências de privacidade" (Política de Privacidade)
+  document.addEventListener("click", (e) => { if (e.target.closest("[data-preferencias-cookies]")) { e.preventDefault(); avisoLgpd(true); } });
 
   /* ---------- Link "Entrar / Minha conta" no cabeçalho ---------- */
   function atualizarCabecalhoConta() {

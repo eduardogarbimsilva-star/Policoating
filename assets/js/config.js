@@ -27,7 +27,7 @@ window.SITE_CONFIG = {
   },
   // Google Analytics 4: cole aqui o "ID da métrica" (ex.: "G-ABC123XYZ"). Ele é público.
   // Só carrega para quem clicar em "Aceitar" no aviso de privacidade (LGPD). Vazio = desligado.
-  analytics: "",
+  analytics: "G-TQZXVMNKV5",
   // Captcha anti-robô no login (Cloudflare Turnstile). Cole aqui a "Site Key" (é pública) e ative o captcha
   // no Supabase (Authentication → Attack Protection) com a "Secret Key". Vazio = sem captcha.
   captcha: "",

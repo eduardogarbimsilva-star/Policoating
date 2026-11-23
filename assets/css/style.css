@@ -1238,7 +1238,7 @@ h1, h2 { letter-spacing: -.01em; }
   width: 48px; height: 48px; border-radius: 8px; background: var(--azul-claro); color: var(--azul); display: grid; place-items: center; margin-bottom: 16px; font-size: 1rem;
 }
 .icone .icone-svg { width: 24px; height: 24px; }
-.icone-vazio { color: var(--texto-suave); margin-bottom: 8px; }
+.icone-vazio { color: var(--texto-suave); margin-bottom: 8px; display: flex; justify-content: center; }
 .icone-vazio .icone-svg { width: 40px; height: 40px; }
 .carrinho-vazio .icone { margin: 0 auto 12px; }
 .acoes-extra button { display: inline-flex; align-items: center; gap: 7px; }
@@ -2708,3 +2708,11 @@ video.video-produto { object-fit: contain; }
 .cor-cartao-nome { min-width: 0; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-height: 1.35; color: var(--texto); font-weight: 500; }
 .classif-cartao { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 12px; }
 .classif-cartao span { padding: 3px 9px; border-radius: 4px; background: var(--fundo-alt, #f4f7fa); border: 1px solid var(--borda); color: var(--texto-suave); font-size: .74rem; font-weight: 600; line-height: 1.3; white-space: nowrap; }
+
+/* ---------- Catálogo: carregando / erro ---------- */
+.carregando-catalogo { display: grid; justify-items: center; gap: 12px; }
+.girando { width: 34px; height: 34px; border-radius: 50%; border: 3px solid var(--borda); border-top-color: var(--azul); animation: girar .8s linear infinite; }
+@keyframes girar { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .girando { animation-duration: 2.4s; } }
+.vazio-acoes { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 14px; }
+.pf-grupos[hidden] { display: none; }

@@ -137,10 +137,19 @@
   }
   aplicarConfig(ONLINE ? (ler(CHAVE_CFG) || {}).dados : ler(CHAVE_CFG_DEMO));
 
+  /* Estado do catálogo para a tela: "carregando" (1ª visita, sem lista guardada), "ok" ou "erro" (servidor fora e nada guardado) */
+  const CATALOGO = window.CATALOGO = { estado: "ok", tentar: () => buscarCatalogo() };
+  function mudarEstado(estado) {
+    if (CATALOGO.estado === estado) return;
+    CATALOGO.estado = estado;
+    document.dispatchEvent(new CustomEvent("catalogo-estado", { detail: estado }));
+  }
+
   // 1) Na hora (depois dos tipos cadastrados no painel): lista guardada (online) ou a do painel de demonstração
   if (ONLINE) {
     const cache = ler(CHAVE_CACHE);
     if (cache && Array.isArray(cache.produtos)) aplicar(cache.produtos);
+    else CATALOGO.estado = "carregando";
   } else {
     const demo = ler(CHAVE_DEMO);
     if (demo) aplicar(Object.values(demo).filter((r) => r.ativo).sort((a, b) => a.ordem - b.ordem).map((r) => r.dados));
@@ -171,9 +180,13 @@
     } catch (e) { /* segue com a lista atual */ }
   }
 
-  const pronto = atualizarDoServidor()
-    .then((mudou) => { if (mudou) document.dispatchEvent(new CustomEvent("catalogo-atualizado")); })
-    .catch((e) => console.warn("Catálogo:", e.message));
+  function buscarCatalogo() {
+    if (!window.PRODUTOS.length && ONLINE) mudarEstado("carregando");
+    return atualizarDoServidor()
+      .then((mudou) => { mudarEstado("ok"); if (mudou) document.dispatchEvent(new CustomEvent("catalogo-atualizado")); })
+      .catch((e) => { console.warn("Catálogo:", e.message); mudarEstado(window.PRODUTOS.length ? "ok" : "erro"); });
+  }
+  const pronto = buscarCatalogo();
 
   /* ---------- Painel da empresa ---------- */
   const lerDemo = () => ler(CHAVE_DEMO) || {};

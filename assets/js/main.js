@@ -559,9 +559,9 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
     </div>
     <p class="modal-legenda" id="modal-legenda">${esc(corSel.nome)} · ${esc(p.acabamento || "")}</p>
     <ul class="modal-garantias">
-      <li>${ic("escudo")}<span><strong>Qualidade Policoating</strong>Fabricação própria e ficha técnica</span></li>
-      <li>${ic("conversa")}<span><strong>Atendimento técnico</strong>Tire dúvidas com o vendedor</span></li>
-      <li>${ic("local")}<span><strong>Todo o Brasil</strong>Frete combinado no pedido</span></li>
+      <li>${ic("escudo")}<span><strong>Qualidade Policoating</strong> Fabricação própria e ficha técnica</span></li>
+      <li>${ic("conversa")}<span><strong>Atendimento técnico</strong> Tire dúvidas com o vendedor</span></li>
+      <li>${ic("local")}<span><strong>Todo o Brasil</strong> Frete combinado no pedido</span></li>
     </ul>
   </div></div>
   <div class="modal-info">
@@ -905,11 +905,25 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
 
   function renderProdutos(container, lista) {
     if (!container) return;
+    const estado = (window.CATALOGO || {}).estado;
+    container.setAttribute("aria-busy", String(!lista.length && estado === "carregando"));
     container.innerHTML = lista.length
       ? lista.map(cartaoProduto).join("")
-      : `<div class="vazio"><div class="icone-vazio">${ic("busca")}</div><p>Nenhum produto encontrado. Tente outra busca ou categoria.</p></div>`;
+      : estado === "carregando"
+        ? `<div class="vazio carregando-catalogo" role="status"><span class="girando" aria-hidden="true"></span><p>Carregando produtos…</p></div>`
+        : estado === "erro"
+          ? `<div class="vazio" role="alert"><div class="icone-vazio">${ic("busca")}</div><p>Não foi possível carregar o catálogo agora.</p>
+             <p class="vazio-acoes"><button type="button" class="btn btn-primario" data-tentar-catalogo>Tentar de novo</button>
+             <a class="btn btn-whats" target="_blank" rel="noopener" data-whats-catalogo>Falar no WhatsApp</a></p></div>`
+          : `<div class="vazio"><div class="icone-vazio">${ic("busca")}</div><p>Nenhum produto encontrado. Tente outra busca ou categoria.</p></div>`;
+    $$("[data-whats-catalogo]", container).forEach((a) => (a.href = linkWhatsApp("Olá! Não consegui ver o catálogo no site. Pode me ajudar?")));
     observarRevelar();
   }
+  // a lista se redesenha quando o catálogo muda de "carregando" para "ok"/"erro"
+  document.addEventListener("catalogo-estado", () => document.dispatchEvent(new CustomEvent("catalogo-atualizado")));
+  document.addEventListener("click", (e) => {
+    if (e.target.closest("[data-tentar-catalogo]") && window.CATALOGO) window.CATALOGO.tentar();
+  });
 
   // Passar o mouse (ou tocar) nas bolinhas troca a foto do cartão
   function trocarFotoCartao(amostra) {

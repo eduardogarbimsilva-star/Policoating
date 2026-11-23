@@ -448,6 +448,7 @@
 
   // CEP -> endereço
   let ultimoCep = "";
+  let doCep = null;   // o que veio da última consulta: { logradouro, bairro, cidade, uf }
   $("#f-cep").addEventListener("input", async (e) => {
     const cep = BR.so(e.target.value);
     if (cep.length !== 8 || cep === ultimoCep) return;
@@ -456,15 +457,29 @@
     dica.textContent = "Buscando endereço…";
     try {
       const end = await BR.buscarCep(cep);
-      if (end.logradouro) campo("logradouro").value = end.logradouro;
-      if (end.bairro) campo("bairro").value = end.bairro;
+      if (BR.so(campo("cep").value) !== cep) return;   // o cliente já digitou outro CEP: ignora a resposta antiga
+      const mudouCidade = campo("cidade").value && (campo("cidade").value !== end.cidade || campo("uf").value !== end.uf);
+      ["logradouro", "bairro"].forEach((n) => {
+        // CEP geral da cidade (sem rua): limpa a rua/bairro de um CEP anterior, mas não apaga o que o cliente digitou
+        if (end[n]) campo(n).value = end[n];
+        else if (mudouCidade || (doCep && campo(n).value === doCep[n])) campo(n).value = "";
+      });
       campo("cidade").value = end.cidade;
       campo("uf").value = end.uf;
-      dica.textContent = "Endereço encontrado.";
+      doCep = { logradouro: end.logradouro || "", bairro: end.bairro || "", cidade: end.cidade, uf: end.uf };
+      dica.textContent = end.logradouro ? "Endereço encontrado." : "CEP geral da cidade: preencha a rua e o bairro.";
       (end.logradouro ? campo("numero") : campo("logradouro")).focus();
     } catch (err) {
+      ultimoCep = "";   // permite tentar o mesmo CEP de novo
       dica.textContent = err.message + " Preencha manualmente.";
     }
+  });
+  // Estado trocado à mão depois do CEP: a cidade do CEP não vale para outro estado
+  $("#f-uf").addEventListener("change", () => {
+    if (!doCep || campo("uf").value === doCep.uf) return;
+    if (campo("cidade").value === doCep.cidade) campo("cidade").value = "";
+    $("#dica-cep").textContent = "O estado escolhido não é o do CEP. Confira o CEP e informe a cidade.";
+    campo("cidade").focus();
   });
 
   // CNPJ -> dados da empresa (Receita Federal via BrasilAPI)

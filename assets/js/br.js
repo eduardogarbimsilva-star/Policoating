@@ -44,9 +44,12 @@
   async function buscarCep(cep) {
     const c = so(cep);
     if (c.length !== 8) throw new Error("CEP deve ter 8 dígitos.");
-    const r = await fetch("https://viacep.com.br/ws/" + c + "/json/");
-    if (!r.ok) throw new Error("Não foi possível consultar o CEP agora.");
-    const d = await r.json();
+    let r, d;
+    try {
+      r = await fetch("https://viacep.com.br/ws/" + c + "/json/");
+      if (r.ok) d = await r.json();
+    } catch (e) { /* sem internet ou serviço fora do ar */ }
+    if (!d) throw new Error("Não foi possível consultar o CEP agora.");
     if (d.erro) throw new Error("CEP não encontrado.");
     return { logradouro: d.logradouro, bairro: d.bairro, cidade: d.localidade, uf: d.uf, complemento: d.complemento };
   }

@@ -2058,3 +2058,47 @@ end $$;
 revoke all on function public.aparar_cotacoes_cliente(uuid, int) from public, anon, authenticated;
 grant execute on function public.aparar_cotacoes_cliente(uuid, int) to service_role;
 notify pgrst, 'reload schema';
+
+-- ===========================================================
+-- PARTE AC — Chat da cotação aprovada (cliente ↔ equipe de frete e envio, com assistente de recepção)
+--   Rode depois da PARTE AB e DEPOIS de publicar a função "chat" (supabase/functions/chat).
+--   • Só abre para cotação com status "Aprovada" e com o recurso "Chat da cotação" LIGADO
+--     (começa DESLIGADO: ligue em Comércio e Recursos quando quiser).
+--   • O assistente recebe o cliente e responde dúvidas básicas até alguém da equipe responder;
+--     quando a pessoa da equipe sai do chat (ou fica 2 min sem abrir), o assistente volta.
+--   • As mensagens saem junto com a cotação quando ela vence (7 dias).
+--   • Ninguém lê ou grava direto pelo site: tudo passa pela função "chat" (que confere quem é).
+--   Desfazer: drop table public.cotacoes_chat_estado; drop table public.cotacoes_chat;
+--             delete from public.recursos where chave = 'quote_chat_enabled';
+-- ===========================================================
+create table if not exists public.cotacoes_chat (
+  id          bigserial primary key,
+  cotacao_id  uuid not null references public.cotacoes(id) on delete cascade,
+  autor       text not null check (autor in ('cliente', 'equipe', 'ia', 'sistema')),
+  autor_id    uuid references auth.users(id) on delete set null,
+  autor_nome  text check (autor_nome is null or length(autor_nome) <= 80),
+  texto       text not null check (length(texto) between 1 and 2000),
+  ip_hash     text,
+  criada_em   timestamptz not null default now()
+);
+create index if not exists cotacoes_chat_conversa on public.cotacoes_chat (cotacao_id, id);
+alter table public.cotacoes_chat enable row level security;   -- sem políticas: só a função (chave de servidor)
+
+create table if not exists public.cotacoes_chat_estado (
+  cotacao_id        uuid primary key references public.cotacoes(id) on delete cascade,
+  agente_id         uuid references auth.users(id) on delete set null,
+  agente_nome       text check (agente_nome is null or length(agente_nome) <= 80),
+  agente_visto      timestamptz,                -- último sinal de que a pessoa da equipe está com o chat aberto
+  agente_respondeu  boolean not null default false,   -- respondeu → assistente pausado até sair
+  equipe_lida_ate   bigint not null default 0,  -- última mensagem que a equipe viu (para "não lidas")
+  cliente_lida_ate  bigint not null default 0,
+  ia_respostas      int not null default 0,     -- teto de respostas do assistente por conversa
+  atualizado_em     timestamptz not null default now()
+);
+alter table public.cotacoes_chat_estado enable row level security;
+
+insert into public.recursos (chave, ligado, requisito) values
+  ('quote_chat_enabled', false, 'Precisa da função "chat" publicada e da PARTE AC do setup.sql.')
+on conflict (chave) do nothing;
+update public.recursos set implementado = true, requisito = null where chave = 'quote_chat_enabled';
+notify pgrst, 'reload schema';

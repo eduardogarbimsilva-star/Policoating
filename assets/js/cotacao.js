@@ -288,6 +288,7 @@
       ${htmlLinhaTempo(c.status)}
       <div class="cot-comp-kpis">${destaques.map(([k, v, s]) => `<div><span>${k}</span><strong>${esc(v)}</strong><small>${esc(s)}</small></div>`).join("")}</div>
       ${c.valor_proposta != null || c.resposta ? `<div class="cot-proposta"><span class="cot-rotulo">Proposta do vendedor</span>${c.valor_proposta != null ? `<strong>${reais(c.valor_proposta)}</strong>` : ""}${c.resposta ? `<p>${esc(c.resposta)}</p>` : ""}</div>` : c.status === "recusada" ? "" : `<p class="cot-dica cot-dica-st">${esc(st.dica)}</p>`}
+      ${window.ChatCotacao ? window.ChatCotacao.htmlConvite(c) : ""}
       ${opcoes.resumido ? `<details class="cot-detalhes"><summary>Ver cotação completa</summary>${corpo}</details>` : corpo}
       <footer class="cot-comp-rodape">
         <small>Emitida em ${dataHora(c.emitida_em)}${c.atualizado_em && c.atualizado_em !== c.emitida_em ? ` · atualizada em ${dataHora(c.atualizado_em)}` : ""} · Frete e prazo são estimativas; o vendedor confirma na proposta.</small>

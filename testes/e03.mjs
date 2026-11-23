@@ -39,8 +39,8 @@ const abrirAba = async (p) => { await p.click('.admin-abas [data-aba="recursos"]
   const cards = await p.$$eval(".rec-card", (l) => l.map((c) => ({ k: c.dataset.chave, on: c.querySelector("[data-alternar]").getAttribute("aria-checked") === "true", dis: c.querySelector("[data-alternar]").disabled, req: !!c.querySelector(".rec-req") })));
   const ligados = cards.filter((c) => c.on).map((c) => c.k);
   const travados = cards.filter((c) => c.dis && c.req).length;
-  R.add("V31-E03-02", "13 recursos; só a aprovação manual ligada; os não prontos ficam travados com requisito",
-    cards.length === 13 && ligados.join() === "manual_quote_approval" && travados === 12 && !erros.length, `${cards.length} recursos, ligados=${ligados.join()}, travados=${travados} erros=${erros.join(" | ")}`);
+  R.add("V31-E03-02", "14 recursos (com o chat da cotação); só a aprovação manual ligada; os não prontos ficam travados com requisito",
+    cards.length === 14 && ligados.join() === "manual_quote_approval" && travados === 13 && !erros.length, `${cards.length} recursos, ligados=${ligados.join()}, travados=${travados} erros=${erros.join(" | ")}`);
   const pub = await ctx.newPage(); await pub.goto(`${BASE}/index.html`); await espera(pub, 500);
   const algum = await pub.evaluate(() => window.Recursos.DEF.some((d) => window.Recursos.ligado(d.chave) && d.chave !== "manual_quote_approval"));
   R.add("V31-E03-03", "No site público nenhum recurso novo aparece ligado", !algum);

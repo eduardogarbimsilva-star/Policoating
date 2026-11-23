@@ -35,6 +35,8 @@ node testes/novidades.mjs              # janela "O que mudou no site" (10 s, X/E
 node testes/ajuda.mjs                  # botão ? do painel: fotos antes/depois das configurações
 node testes/celular.mjs                # celular sem vazar/sobrepor/cortar texto (SITE=https://policoatingtintas.com.br para o site ao vivo)
 node testes/celular_painel.mjs         # painel no celular, todas as abas
+node testes/chat.mjs                   # função "chat" no Node (banco imitado): assistente, equipe entra/sai, limites
+node testes/chat_e2e.mjs               # chat de ponta a ponta (cliente e painel ao mesmo tempo, modo demonstração)
 node testes/e13_e14.mjs                # E13/E14: sitemap/robots sem páginas privadas, recursos desligados por padrão, desfazer no SQL, saúde do sistema
 node testes/producao.mjs               # site NO AR, só leitura: versão publicada, páginas sem erro, funções e recursos (rode depois de publicar)
 ```

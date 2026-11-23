@@ -32,7 +32,7 @@
     { icone: I.caixa, equipe: true, titulo: "Volumetria e veículos", texto: "Cotação com medidas dos volumes, cubagem e regra Montana até 750 kg / caminhão (Painel → Cotações → Configurações)." },
     { icone: I.relogio, equipe: true, titulo: "Intervalo entre cotações", texto: "2 minutos entre uma cotação e outra do mesmo cliente, com contagem regressiva (ajustável)." },
     { icone: I.ajuda, equipe: true, titulo: "Ajuda com antes e depois", texto: "Nas configurações importantes, o botão ? mostra como o site fica com e sem a opção ligada." },
-    { breve: true, icone: I.chat, equipe: true, titulo: "Chat das cotações aceitas", texto: "Atenda o cliente pelo painel; a IA recebe ele enquanto ninguém da equipe está no chat (recurso começa desligado)." }
+    { icone: I.chat, equipe: true, titulo: "Chat das cotações aceitas", texto: "Atenda o cliente pelo painel; a IA recebe ele enquanto ninguém da equipe está no chat (recurso começa desligado)." }
   ];
   const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const ler = () => { try { return localStorage.getItem(CHAVE); } catch (e) { return null; } };

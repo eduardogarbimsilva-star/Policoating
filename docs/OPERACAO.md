@@ -36,10 +36,11 @@ Outras configurações:
 ## 2. Banco (Supabase → SQL Editor)
 
 Rodar **na ordem**, cada parte uma vez (todas podem ser rodadas de novo sem quebrar):
-R → S → T → U → V → W → X → Y → Z → AA → AB. Cada parte tem, no começo, o que faz e como **desfazer**.
+R → S → T → U → V → W → X → Y → Z → AA → AB → AC. Cada parte tem, no começo, o que faz e como **desfazer**.
 
 - A PARTE AA exige a função `frete` nova publicada **antes** (a consulta pelo número passa por ela).
 - A PARTE AB (cliente excluir/aparar a própria lista) vem depois da AA e da função `frete` atualizada.
+- A PARTE AC (chat da cotação aprovada) vem depois de publicar a função `chat`; o recurso começa **desligado**.
 - A limpeza das cotações vencidas usa a extensão **pg_cron** (Database → Extensions).
 
 Testado num Postgres local: o `setup.sql` inteiro roda duas vezes seguidas sem erro; todas as 21 tabelas
@@ -51,6 +52,7 @@ têm RLS; toda função com privilégio tem `search_path` fixo; o visitante só 
 |---|---|---|---|
 | `frete` | `supabase/functions/frete/index.ts` | frete, cotação, consulta pelo número | `ORS_API_KEY` |
 | `catalogo-google` | `supabase/functions/catalogo-google/index.ts` | feed do Merchant Center + diagnóstico | — |
+| `chat` | `supabase/functions/chat/index.ts` | chat da cotação aprovada (cliente ↔ equipe, assistente de recepção) | `ANTHROPIC_API_KEY` (opcional; sem ela o assistente responde só com os dados da cotação) |
 
 Limites por IP: 30 fretes/10 min, 6 cotações/hora, 60 consultas e 15 números errados/10 min.
 Nenhum registro guarda IP aberto, nome ou CPF (só hash do IP e contagens).
@@ -100,3 +102,13 @@ Nenhum registro guarda IP aberto, nome ou CPF (só hash do IP e contagens).
 | Confirmar se a foto do banner com "PoliCoating" na máquina é real (senão, legenda "ilustrativa") | Dono |
 | GitHub Pages não permite cabeçalhos de segurança (CSP/HSTS próprios); avaliar Cloudflare na frente do site | Dono (opcional) |
 | `email_ja_cadastrado` diz se um e-mail tem conta (usado no login); risco baixo, aceito | — |
+
+## Chat da cotação aprovada (PARTE AC)
+
+- Aparece para o cliente só com a cotação **Aprovada** e o recurso "Chat da cotação aprovada" ligado.
+- O assistente virtual dá as boas-vindas e responde dúvidas básicas (frete, prazo, itens, validade) **só com os dados da cotação**.
+- Quando alguém da equipe **responde**, o assistente pausa. Quando a pessoa fecha o chat, clica em "Sair do chat" ou fica 2 minutos sem abrir, o assistente volta (com aviso na conversa).
+- Equipe: Painel → Cotações → "Conversas com clientes" (com não lidas) ou "Abrir chat com o cliente" dentro da cotação aprovada.
+- Limites: 20 mensagens do cliente a cada 10 min por conversa, 30 respostas do assistente por conversa, 15 números errados por IP a cada 10 min.
+- As mensagens saem junto com a cotação quando ela vence (7 dias).
+

@@ -4,7 +4,7 @@ import { chromium, BASE, contextoDemo, sementeCatalogo, relatorio } from "./comu
 
 const R = relatorio();
 const nav = await chromium.launch();
-const PAGINAS = ["index", "produtos", "aplicacao", "galeria", "sobre", "recursos", "conta", "privacidade", "cotacao", "admin", "404"];
+const PAGINAS = ["index", "produtos", "aplicacao", "galeria", "sobre", "recursos", "conta", "privacidade", "trocas", "cotacao", "admin", "404"];
 for (const vp of [{ width: 1366, height: 860, nome: "computador" }, { width: 390, height: 844, nome: "celular" }]) {
   const ctx = await contextoDemo(nav, { viewport: { width: vp.width, height: vp.height } });
   await ctx.addInitScript((c) => localStorage.setItem("policoating_demo_catalogo", JSON.stringify(c)), sementeCatalogo());

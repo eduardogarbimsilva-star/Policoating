@@ -1070,6 +1070,27 @@
         <button type="button" class="btn btn-primario" data-salvar-alvos>Salvar onde vale</button>
       </details>`;
     }
+    /** Prontidão para o Google Shopping (mesmas regras da função catalogo-google) */
+    function htmlMerchant() {
+      const lista = (window.PRODUTOS || []).filter((p) => p.ativo !== false);
+      const motivo = (p) => CW.precoInfo(p).tipo === "combinar" ? "sem preço publicado"
+        : !(Array.isArray(p.fotos) && p.fotos.some((u) => typeof u === "string" && u)) ? "sem foto"
+        : !(p.cores || []).length ? "sem cor" : String(p.descricao || "").trim().length < 20 ? "descrição curta" : "";
+      const fora = lista.map((p) => ({ p, m: motivo(p) })).filter((x) => x.m), prontos = lista.length - fora.length;
+      const sb = (window.SITE_CONFIG || {}).supabase || {}, feed = sb.url ? `${sb.url}/functions/v1/catalogo-google` : "";
+      const item = (ok, txt) => `<li class="${ok ? "ok" : "falta"}">${ok ? "✓" : "✗"} ${txt}</li>`;
+      return `<details class="rec-merchant" open><summary>Pronto para o Google Shopping? <b>${prontos} de ${lista.length}</b> produtos completos</summary>
+        <ul class="rec-check">
+          ${item(prontos > 0, `Produtos com preço, foto e descrição: ${prontos} de ${lista.length}`)}
+          ${item(true, "Página própria de cada produto com dados para o Google (produto?id=…)")}
+          ${item(true, 'Política de trocas e devoluções publicada (<a href="trocas" target="_blank" rel="noopener">ver</a>)')}
+          ${item(true, "Frete automático por CEP (cadastre também a tabela de frete no Merchant Center)")}
+          ${item(!!(R.todos().direct_checkout_enabled || {}).ligado, "Compra direta com pagamento online (etapa E09 — Mercado Pago)")}
+        </ul>
+        ${fora.length ? `<p class="dica">Faltam dados nestes produtos (edite na aba Produtos):</p><ul class="rec-faltam">${fora.slice(0, 40).map(({ p, m }) => `<li><b>${esc(p.codigo || p.id.toUpperCase())}</b> ${esc(p.nome)} — <span>${esc(m)}</span></li>`).join("")}</ul>` : ""}
+        ${feed ? `<p class="dica">Endereço do feed para o Merchant Center: <code>${esc(feed)}</code> · <a href="${esc(feed)}?diagnostico=1" target="_blank" rel="noopener">ver diagnóstico</a></p>` : ""}
+      </details>`;
+    }
     function linhaProduto(id, v) {
       const p = (window.PRODUTOS || []).find((x) => x.id === id);
       return `<div class="rec-linha" data-prod="${esc(id)}"><span>${esc(p ? `${p.codigo || id.toUpperCase()} — ${p.nome}` : id.toUpperCase())}</span>
@@ -1089,6 +1110,7 @@
             ${!pronto ? `<p class="rec-req"><b>Requisito:</b> ${esc(r.requisito || "")}</p>` : ""}
             <p class="rec-info"><b>Ao ligar:</b> ${esc(d.impacto)}${d.aviso ? ` <span class="rec-aviso">${esc(d.aviso)}</span>` : ""}</p>
             ${htmlExcecoes(d, r)}
+            ${d.chave === "merchant_center_feed_enabled" ? htmlMerchant() : ""}
           </article>`;
         }).join("")}</section>`).join("");
       injetarHistoricos();

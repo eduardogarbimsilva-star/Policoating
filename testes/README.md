@@ -3,6 +3,7 @@
 O site é estático (GitHub Pages) e cada página `.html` é editada diretamente.
 
 ## Ferramentas (`ferramentas/`)
+- `python3 ferramentas/sitemap.py` — refaz o sitemap.xml com a página de cada produto ativo (rode ao cadastrar ou tirar produtos).
 - `python3 ferramentas/layout.py` — confere se o cabeçalho e o rodapé estão iguais em todas as páginas.
   Edite no `index.html` e rode com `--aplicar` para copiar para as outras.
 - `python3 ferramentas/versoes.py` — atualiza o `?v=` dos CSS/JS em todas as páginas.
@@ -25,6 +26,8 @@ node testes/e10_e11.mjs                # E10: bolinhas das redes · E11: app ins
 node testes/e05.mjs                    # E05: "Calcular frete" no produto e configuração do frete no painel
 node testes/frete.mjs                  # E05/E06: função "frete" do Supabase (frete e cotação com código) — não precisa do servidor local
 node testes/e06_e08.mjs                # E06–E08: página de cotação, botão no produto, consulta pelo código, Minhas cotações e painel da equipe
+node testes/e02.mjs                    # E02: página própria do produto, dados para o Google, trocas e devoluções
+node testes/catalogo_google.mjs        # E02: feed do Google Merchant Center (função catalogo-google) — não precisa do servidor local
 ```
 
 ## Testes do banco (`testes/sql/`)

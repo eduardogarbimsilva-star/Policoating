@@ -52,8 +52,9 @@
       descricao: "Oferece instalar o site como aplicativo no celular e no computador.",
       impacto: "O convite aparece uma vez e pode ser dispensado.", aviso: "Nada pessoal fica guardado no aparelho." },
     { chave: "merchant_center_feed_enabled", grupo: "SEO comercial", titulo: "Feed do Google Merchant Center", etapa: "E02", porProduto: true,
-      descricao: "Envia os produtos com preço para aparecerem no Google Shopping.",
-      impacto: "Só produtos com preço e disponibilidade reais.", aviso: "" },
+      descricao: "Publica o feed de produtos (função catalogo-google) para o Google Merchant Center / Shopping.",
+      impacto: "Só entram produtos ativos com preço publicado, foto e descrição; uma linha por embalagem (5 e 25 kg).",
+      aviso: "O Google só aprova a loja com compra direta no site (etapa E09). Até lá, deixe desligado." },
     { chave: "new_home_banners_enabled", grupo: "Comunicação", titulo: "Novos banners da página inicial", etapa: "E12", porProduto: false,
       descricao: "Banners que anunciam os recursos novos.",
       impacto: "Os banners só anunciam o que estiver ligado.", aviso: "" }

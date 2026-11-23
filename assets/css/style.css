@@ -3236,3 +3236,63 @@ video.video-produto { object-fit: contain; }
   .cot-tabela tfoot td[colspan] { grid-column: 1 / -1; }
   .cot-tabela tfoot td[colspan]::before { content: none; }
 }
+
+/* ===== Página de trocas ===== */
+.legal-atualizado { color: var(--texto-suave); font-size: .86rem; margin-bottom: 18px; }
+.legal-nota { margin-top: 28px; padding: 14px 16px; border-radius: 10px; background: var(--fundo-alt); font-size: .88rem; color: var(--texto-suave); }
+
+/* ===== Página do produto (E02) ===== */
+.pp-topo { background: var(--fundo-alt); border-bottom: 1px solid var(--borda); }
+.pp-topo .migalhas { padding: 14px 0; font-size: .86rem; color: var(--texto-suave); }
+.pp-topo .migalhas a { color: var(--azul); }
+.pp-secao { padding-top: 36px; }
+.pp-produto { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 40px; align-items: start; }
+.pp-galeria { position: sticky; top: 96px; }
+.pp-foto { aspect-ratio: 5 / 4; border-radius: 16px; overflow: hidden; background: var(--fundo-alt); border: 1px solid var(--borda); display: grid; place-items: center; }
+.pp-foto img, .pp-foto svg { width: 100%; height: 100%; object-fit: cover; display: block; }
+.pp-miniaturas { display: flex; gap: 8px; margin-top: 10px; overflow-x: auto; }
+.pp-miniaturas button { flex: 0 0 72px; height: 58px; border-radius: 8px; overflow: hidden; border: 2px solid transparent; padding: 0; background: none; cursor: pointer; }
+.pp-miniaturas button[aria-pressed="true"] { border-color: var(--azul); }
+.pp-miniaturas img { width: 100%; height: 100%; object-fit: cover; }
+.pp-etiqueta { position: static; display: inline-block; margin-bottom: 8px; }
+.pp-info h1 { font-size: clamp(1.6rem, 3vw, 2.2rem); line-height: 1.15; margin-bottom: 6px; }
+.pp-preco { margin: 16px 0; padding: 14px 16px; border-radius: 12px; background: var(--azul-claro); display: grid; gap: 2px; }
+.pp-preco-cx { font-size: 1.9rem; font-weight: 800; color: var(--azul-escuro); line-height: 1.1; }
+.pp-preco-combinar { font-size: 1.3rem; font-weight: 700; color: var(--azul-escuro); }
+.pp-preco small { color: var(--texto-suave); font-size: .86rem; }
+.pp-desc { color: var(--texto); margin-bottom: 12px; }
+.pp-cor { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.pp-cor i { width: 26px; height: 26px; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .15); }
+.pp-emb { margin-bottom: 14px; }
+.pp-emb button { padding: 10px 16px; font-size: .9rem; }
+.pp-compra { display: flex; gap: 10px; flex-wrap: wrap; }
+.pp-compra .cot-qtd button { width: 42px; }
+.pp-compra .btn { flex: 1; min-width: 200px; }
+.pp-resumo { margin: 8px 0 14px; color: var(--texto-suave); font-size: .9rem; }
+.pp-acoes { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 4px; }
+.pp-garantias { list-style: none; padding: 0; margin: 18px 0 0; display: grid; gap: 6px; font-size: .88rem; color: var(--texto-suave); }
+.pp-garantias li::before { content: "✓ "; color: #17693a; font-weight: 700; }
+.pp-garantias b { color: var(--texto); }
+.pp-ficha { margin-top: 40px; }
+.pp-ficha h2 { font-size: 1.3rem; margin-bottom: 12px; }
+.pp-ficha dl { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0 24px; border-top: 1px solid var(--borda); }
+.pp-ficha dl > div { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--borda); }
+.pp-ficha dt { color: var(--texto-suave); }
+.pp-ficha dd { font-weight: 600; text-align: right; }
+.pp-rel { background: var(--fundo-alt); }
+.pp-rel-titulo { font-size: 1.4rem; margin-bottom: 18px; }
+.link-produto { color: inherit; text-decoration: none; }
+.link-produto:hover { color: var(--azul); text-decoration: underline; }
+.link-pagina-produto { display: inline-flex; align-items: center; gap: 6px; font-size: .86rem; font-weight: 600; color: var(--azul); text-decoration: none; padding: 6px 4px; }
+@media (max-width: 900px) { .pp-produto { grid-template-columns: 1fr; gap: 24px; } .pp-galeria { position: static; } }
+
+/* ===== Painel: prontidão para o Google Shopping ===== */
+.rec-merchant { margin-top: 12px; padding: 12px 14px; border-radius: 10px; background: var(--fundo-alt); border: 1px solid var(--borda); }
+.rec-merchant summary { cursor: pointer; font-weight: 600; }
+.rec-check { list-style: none; padding: 0; margin: 10px 0; display: grid; gap: 4px; font-size: .88rem; }
+.rec-check .ok { color: #17693a; } .rec-check .falta { color: #a11d1d; }
+.rec-faltam { margin: 6px 0 10px 18px; font-size: .84rem; columns: 2; }
+.rec-faltam span { color: #a11d1d; }
+.rec-merchant code { font-size: .78rem; word-break: break-all; background: #fff; padding: 1px 6px; border-radius: 4px; }
+@media (max-width: 700px) { .rec-faltam { columns: 1; } }
+.pp-topo .migalhas { margin: 0; }

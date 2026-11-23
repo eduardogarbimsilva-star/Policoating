@@ -1896,3 +1896,13 @@ revoke all on function public.consultar_cotacao(text) from public;
 grant execute on function public.consultar_cotacao(text) to anon, authenticated;
 
 notify pgrst, 'reload schema';
+
+-- ===========================================================
+-- PARTE W — Feed do Google Merchant Center pronto para ligar (etapa E02)
+--   Rode depois da PARTE V. Publique também a função "catalogo-google" (Verify JWT desligado).
+--   O feed só leva produtos ativos, com preço publicado, foto e descrição.
+--   Desfazer: update public.recursos set implementado = false where chave = 'merchant_center_feed_enabled';
+-- ===========================================================
+update public.recursos set implementado = true, requisito = null
+ where chave = 'merchant_center_feed_enabled';
+notify pgrst, 'reload schema';

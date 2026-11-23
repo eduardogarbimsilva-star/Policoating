@@ -614,6 +614,7 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
       ${window.Cotacao && window.Recursos && window.Recursos.disponivel("b2b_quote_enabled", p) ? `<button type="button" data-extra="cotacao">${ic("documento")}Solicitar cotação</button>` : ""}
       <button type="button" data-extra="orcamento">${ic("conversa")}Pedir orçamento</button>
       <button type="button" data-extra="link">${ic("link")}Copiar link</button>
+      <a class="link-pagina-produto" href="produto?id=${encodeURIComponent(p.id)}">${ic("documento")}Página completa do produto</a>
     </div>
   </div>
 </div>`;
@@ -793,7 +794,7 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
       b.addEventListener("click", () => {
         const tipo = b.dataset.extra;
         if (tipo === "link") {
-          const url = location.origin + location.pathname.replace(/[^/]*$/, "") + "produtos#produto=" + encodeURIComponent(p.id);
+          const url = location.origin + location.pathname.replace(/[^/]*$/, "") + "produto?id=" + encodeURIComponent(p.id);
           (navigator.clipboard ? navigator.clipboard.writeText(url) : Promise.reject()).then(
             () => mostrarToast("Link do produto copiado!"),
             () => prompt("Copie o link do produto:", url)
@@ -908,7 +909,7 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
   </div>
   <div class="info">
     <div class="linha-codigo"><span class="linha">${esc(p.marca || p.linha || "")}</span><span class="codigo-cartao">Cód. ${esc(p.codigo || p.id)}</span></div>
-    <h3>${esc(p.nome)}</h3>
+    <h3><a class="link-produto" href="produto?id=${encodeURIComponent(p.id)}">${esc(p.nome)}</a></h3>
     <p class="desc">${esc(p.descricao)}</p>
     <div class="cor-cartao" title="${esc(c.nome)}"><i style="background:${esc(c.hex)}"></i><span class="cor-cartao-nome">${esc(c.nome)}</span></div>
     ${classificacao(p) ? `<div class="classif-cartao">${classificacao(p).split(" · ").map((t) => `<span>${esc(t)}</span>`).join("")}</div>` : ""}

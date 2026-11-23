@@ -1766,8 +1766,10 @@ alter table public.cotacoes_limpezas enable row level security;
 drop policy if exists "admin ve limpezas" on public.cotacoes_limpezas;
 create policy "admin ve limpezas" on public.cotacoes_limpezas for select to authenticated using (public.eh_admin());
 
-/** Consulta pelo código (visitante ou cliente). Vencida ou inexistente: não devolve nada (não revela se existiu) */
-create or replace function public.consultar_cotacao(p_protocolo text)
+/** Consulta pelo código (visitante ou cliente). Vencida ou inexistente: não devolve nada (não revela se existiu)
+    (o drop deixa rodar esta parte de novo mesmo depois da PARTE V, que muda o formato; a PARTE V recria a versão completa) */
+drop function if exists public.consultar_cotacao(text);
+create function public.consultar_cotacao(p_protocolo text)
 returns table (protocolo text, status text, emitida_em timestamptz, expira_em timestamptz, cidade text, uf text,
                itens jsonb, peso_kg numeric, frete jsonb, resposta text, valor_proposta numeric, descricao text)
 language sql stable security definer set search_path = public

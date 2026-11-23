@@ -3456,27 +3456,39 @@ body.ca-aberta { overflow: hidden; }
 .cabecalho .container { min-width: 0; }
 .cabecalho nav { min-width: 0; }
 .link-conta .texto { max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-@media (min-width: 861px) and (max-width: 1500px) {
-  .cabecalho .container { gap: 12px; }
-  .menu > li > a { padding: 0 10px; }
-  .menu > li > a::after { left: 10px; right: 10px; }
-  .btn-carrinho .texto { display: none; }
-  .link-conta .texto { max-width: 100px; }
+/* Cabeçalho que se ajusta ao espaço real (main.js mede e põe cab-c1..cab-c4 quando os itens não cabem).
+   Antes era por largura da tela, mas o cabeçalho tem largura máxima: em tela grande nada compactava. */
+@media (min-width: 861px) {
+  .cabecalho .container { max-width: max(var(--largura), min(1400px, 100%)); }
+  .cabecalho .logo, .cabecalho nav, .acoes-topo { flex-shrink: 0; }
+  .logo small, .menu > li > a, .link-conta, .btn-carrinho { white-space: nowrap; }
+  .cabecalho.cab-c1 .container { gap: 12px; }
+  .cabecalho.cab-c1 .menu > li > a { padding: 0 10px; }
+  .cabecalho.cab-c1 .menu > li > a::after { left: 10px; right: 10px; }
+  .cabecalho.cab-c1 .btn-carrinho .texto { display: none; }
+  .cabecalho.cab-c1 .link-conta .texto { max-width: 100px; overflow: hidden; text-overflow: ellipsis; }
+  .cabecalho.cab-c2 .menu > li > a { padding: 0 7px; font-size: .9rem; }
+  .cabecalho.cab-c2 .menu > li > a::after { left: 7px; right: 7px; }
+  .cabecalho.cab-c2 .menu-painel .rotulo-painel { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .cabecalho.cab-c2 .acoes-topo { gap: 6px; }
+  .cabecalho.cab-c2 .link-conta .texto { max-width: 80px; }
+  .cabecalho.cab-c3 .logo-texto small { display: none; }
+  .cabecalho.cab-c3 .logo-texto strong { font-size: 1.15rem; }
+  .cabecalho.cab-c3 .menu > li > a { padding: 0 5px; font-size: .86rem; }
+  .cabecalho.cab-c3 .link-conta .texto { display: none; }
+  .cabecalho.cab-c3 .btn-avisos { width: 40px; height: 40px; }
+  .cabecalho.cab-c4 .logo-texto { display: none; }
+  .cabecalho.cab-c4 .menu > li > a { padding: 0 4px; font-size: .82rem; }
+  .cabecalho.cab-c4 .menu > li > a::after { left: 4px; right: 4px; }
 }
-@media (min-width: 861px) and (max-width: 1300px) {
-  .menu > li > a { padding: 0 7px; font-size: .9rem; }
-  .menu > li > a::after { left: 7px; right: 7px; }
-  .menu-painel .rotulo-painel { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
-  .acoes-topo { gap: 6px; }
-  .link-conta .texto { max-width: 80px; }
-}
-@media (min-width: 861px) and (max-width: 1120px) {
-  .logo-texto small { display: none; }
-  .logo-texto strong { font-size: 1.15rem; }
-  .menu > li > a { padding: 0 5px; font-size: .86rem; }
-  .link-conta .texto { display: none; }
-  .btn-avisos { width: 40px; height: 40px; }
-}
+
+/* Barra superior: nunca quebra em duas linhas; o que não cabe some, do menos para o mais importante */
+.barra-topo a, .barra-topo-links { white-space: nowrap; }
+.barra-topo .container > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
+@media (min-width: 861px) { .barra-topo .container { max-width: max(var(--largura), min(1400px, 100%)); } }
+@media (max-width: 1280px) { .barra-topo-links { gap: 16px; } .busca-topo input { width: 200px; } }
+@media (max-width: 1180px) { .barra-topo .container > span.ocultar-mobile { display: none; } .barra-topo .container { justify-content: flex-end; } }
+@media (max-width: 1000px) { .barra-topo a[data-email] { display: none; } }
 
 /* ===== Animação ao cotar v2 (caminhão / avião) ===== */
 .cb-tela { position: fixed; inset: 0; z-index: 300; display: grid; place-items: center; padding: 16px; background: rgba(8, 14, 26, .62); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); opacity: 0; transition: opacity .3s ease; }

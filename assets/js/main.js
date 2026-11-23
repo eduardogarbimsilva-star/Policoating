@@ -1241,6 +1241,28 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
     document.addEventListener("visibilitychange", () => { if (!document.hidden) conferir(); });
   })();
 
+  /* ---------- cabeçalho: compacta só o necessário para nada se sobrepor ---------- */
+  (function ajusteCabecalho() {
+    const cab = document.querySelector(".cabecalho"), box = cab && cab.querySelector(".container");
+    if (!cab || !box) return;
+    const NIVEIS = ["cab-c1", "cab-c2", "cab-c3", "cab-c4"];
+    const naoCabe = () => box.scrollWidth > box.clientWidth + 1;
+    let pendente = 0;
+    function ajustar() {
+      pendente = 0;
+      NIVEIS.forEach((c) => cab.classList.remove(c));
+      if (window.matchMedia("(max-width: 860px)").matches) return;   // celular: menu sanduíche
+      for (let i = 0; i < NIVEIS.length && naoCabe(); i++) cab.classList.add(NIVEIS[i]);
+    }
+    const agendar = () => { if (!pendente) pendente = requestAnimationFrame(ajustar); };
+    ajustar();
+    window.addEventListener("resize", agendar);
+    if (window.ResizeObserver) new ResizeObserver(agendar).observe(box);
+    // entrou na conta, apareceu o sino, o item "Painel", o nome do usuário…
+    new MutationObserver(agendar).observe(box, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ["hidden"] });
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(agendar);
+  })();
+
   /* API pública usada pelas páginas */
   window.ColorWeg = { videoInfo, videoDe, htmlVideo, acharProduto, precoInfo, htmlPreco, formatarPreco, descreverQtd, kgDoItem, embalagemPadrao, lerVistos, iconeWhats, totalItens: () => totalItens(), itensCarrinho: () => carrinho.slice(), fotoProduto, imgProduto, lerFavoritos, alternarFavorito, gravarStorage, lerStorage, buscarProduto, $, $$, caixaSVG, renderProdutos, abrirProduto, adicionarAoCarrinho, linkWhatsApp, ehEscura, esc, observarRevelar, mostrarToast, abrirCarrinho };
 })();

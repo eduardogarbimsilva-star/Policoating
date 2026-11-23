@@ -30,6 +30,7 @@ node testes/e02.mjs                    # E02: página própria do produto, dados
 node testes/catalogo_google.mjs        # E02: feed do Google Merchant Center (função catalogo-google) — não precisa do servidor local
 node testes/e12.mjs                    # E12: banners de novidades (só o que está ligado), foco ao fechar janelas, contraste, menos movimento, CLS
 node testes/cotacao_config.mjs         # cotação configurável no painel (campos, produto opcional, veículos, peso máximo, volumetria, intervalo, lista e exclusão), animação ao cotar e avisos
+node testes/cabecalho.mjs              # cabeçalho e barra superior sem sobreposição em várias larguras (deslogado e dono)
 node testes/e13_e14.mjs                # E13/E14: sitemap/robots sem páginas privadas, recursos desligados por padrão, desfazer no SQL, saúde do sistema
 node testes/producao.mjs               # site NO AR, só leitura: versão publicada, páginas sem erro, funções e recursos (rode depois de publicar)
 ```

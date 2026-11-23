@@ -142,9 +142,11 @@
       try {
         const sb = await window.Conta.cliente();
         const campos = "protocolo,status,emitida_em,expira_em,cidade,uf,itens,peso_kg,frete,resposta,valor_proposta,descricao,nome,cep,logradouro,numero,bairro,atualizado_em";
-        const buscar = (c) => sb.from("cotacoes").select(c).eq("cliente_id", u.id).order("emitida_em", { ascending: false }).limit(50);
-        let { data, error } = await buscar(campos + ",entrega");
-        if (error && /entrega/.test(error.message || "")) ({ data, error } = await buscar(campos));   // banco sem a PARTE V
+        // a equipe enxerga todas as cotações pelo RLS: o filtro garante que as que a pessoa excluiu não voltem para a lista dela
+        const buscar = (c, ocultas) => { let q = sb.from("cotacoes").select(c).eq("cliente_id", u.id); if (ocultas) q = q.eq("oculta_cliente", false); return q.order("emitida_em", { ascending: false }).limit(50); };
+        let { data, error } = await buscar(campos + ",entrega", true);
+        if (error && /oculta_cliente/.test(error.message || "")) ({ data, error } = await buscar(campos + ",entrega", false));   // banco sem a PARTE AB
+        if (error && /entrega/.test(error.message || "")) ({ data, error } = await buscar(campos, false));   // banco sem a PARTE V
         if (error) throw error;
         (data || []).forEach((c) => porCodigo.set(c.protocolo, Object.assign(c, { daConta: true })));
       } catch (e) { if (!/JWT|session/i.test(e.message || "")) throw traduzir(e); }
@@ -162,7 +164,11 @@
     esquecer(protocolo);
     const u = window.Conta && window.Conta.usuario;
     if (!ONLINE) { if (u) gravar(K_DEMO, ler(K_DEMO, []).map((c) => (c.protocolo === protocolo && c.cliente_id === (u.id || u.email) ? Object.assign(c, { cliente_id: null }) : c))); return; }
-    if (u) { try { const sb = await window.Conta.cliente(); await sb.rpc("ocultar_minha_cotacao", { p_protocolo: protocolo }); } catch (e) { /* sem a PARTE AB: some só deste aparelho */ } }
+    if (u) {
+      const sb = await window.Conta.cliente();
+      const { error } = await sb.rpc("ocultar_minha_cotacao", { p_protocolo: protocolo });
+      if (error && !/ocultar_minha_cotacao|PGRST202/.test((error.message || "") + (error.code || ""))) throw traduzir(error);   // sem a PARTE AB: some só deste aparelho
+    }
   }
 
   /* ---------- equipe (painel) ---------- */

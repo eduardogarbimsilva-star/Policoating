@@ -414,7 +414,9 @@
       C.ligarCopiar(box);
       $$("[data-excluir]", box).forEach((x) => x.addEventListener("click", async () => {
         if (!confirm(`Tirar a cotação ${x.dataset.excluir} da sua lista? O número continua valendo com o vendedor até vencer.`)) return;
-        await C.excluir(x.dataset.excluir); renderCotacoes();
+        x.disabled = true; x.textContent = "Excluindo…";
+        try { await C.excluir(x.dataset.excluir); } catch (e) { x.disabled = false; x.textContent = "Excluir da minha lista"; alert("Não deu para excluir agora: " + (e.message || "tente de novo.")); return; }
+        renderCotacoes();
       }));
     } catch (err) { box.innerHTML = `<p class="erro">${esc(err.message)}</p>`; }
   }

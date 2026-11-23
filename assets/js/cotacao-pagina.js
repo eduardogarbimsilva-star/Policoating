@@ -426,7 +426,9 @@
       const b = $("[data-ir-nova]", box); if (b) b.addEventListener("click", () => abrir("nova"));
       $$("[data-excluir]", box).forEach((x) => x.addEventListener("click", async () => {
         if (!confirm(`Excluir a cotação ${x.dataset.excluir} da sua lista? O número continua valendo com o vendedor até vencer.`)) return;
-        await C.excluir(x.dataset.excluir); desenharMinhas();
+        x.disabled = true; x.textContent = "Excluindo…";
+        try { await C.excluir(x.dataset.excluir); } catch (e) { x.disabled = false; x.textContent = "Excluir da minha lista"; alert("Não deu para excluir agora: " + (e.message || "tente de novo.")); return; }
+        desenharMinhas();
       }));
       $("#cot-badge").textContent = v.length || "";
     } catch (err) { box.innerHTML = `<p class="erro">${esc(err.message)}</p>`; }

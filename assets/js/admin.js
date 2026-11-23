@@ -69,7 +69,7 @@
       document.title = "Área do vendedor | Policoating";
       $(".cabecalho-pagina h1").textContent = "Área do vendedor";
       $(".cabecalho-pagina p").textContent = "Pedidos feitos pelo site, promoções, carteira de clientes e notas de entrada.";
-      $$(".admin-abas [data-aba]").forEach((b) => { if (!["produtos", "pedidos", "clientes", "notas", "relatorios"].includes(b.dataset.aba)) b.remove(); });
+      $$(".admin-abas [data-aba]").forEach((b) => { if (!["produtos", "pedidos", "cotacoes", "clientes", "notas", "relatorios"].includes(b.dataset.aba)) b.remove(); });
       document.body.classList.add("so-vendedor");
     }
     const [podeExcluir, podeExportar] = await Promise.all([A.podeExcluirPedidos(), A.podeExportarClientes()]);
@@ -504,6 +504,7 @@
       if (nome === "contato") carregarConfig();
       if (nome === "clientes") carregarClientes();
       if (nome === "pedidos") carregarPedidos();
+      if (nome === "cotacoes") carregarCotacoes();
       if (nome === "galeria") carregarGaleria();
       if (nome === "equipe") carregarEquipe();
       if (nome === "recursos") carregarRecursos();
@@ -926,6 +927,115 @@
 
     /* ---------- Equipe (só administradores) ---------- */
     const CARGOS = { admin: "Administrador", vendedor: "Vendedor" };
+    /* ---------- Cotações da equipe (E08) ---------- */
+    const COT = window.Cotacao;
+    let cotacoes = [], cotFiltro = "abertas";
+    const ABERTAS = ["recebida", "em_analise", "aguardando_dados", "proposta_enviada"];
+    const soNum = (v) => String(v || "").replace(/\D/g, "");
+    const fmtDoc = (d) => (d && d.length === 14 ? BR.mascaras.cnpj(d) : BR.mascaras.cpf(d || ""));
+    const abaCot = $('.admin-abas [data-aba="cotacoes"]');
+    const seloCot = document.createElement("span"); seloCot.className = "aba-novos aba-novos-cot"; seloCot.hidden = true;
+    if (abaCot) abaCot.appendChild(seloCot);
+    function atualizarSeloCot() {
+      const n = cotacoes.filter((c) => c.status === "recebida").length;
+      seloCot.textContent = n > 99 ? "99+" : String(n); seloCot.hidden = !n;
+      seloCot.title = n ? `${n} ${n === 1 ? "cotação nova" : "cotações novas"}` : "";
+    }
+    function textoBusca(c) {
+      return [c.protocolo, c.nome, c.documento, fmtDoc(c.documento), c.telefone, c.email, c.cidade, c.uf, c.descricao,
+        ...(c.itens || []).map((i) => `${i.codigo || ""} ${i.nome || ""}`)].join(" ").toLowerCase();
+    }
+    function desenharCotacoes() {
+      const box = $("#cot-adm-lista"); if (!box || !COT) return;
+      const termo = ($("#cot-adm-busca").value || "").trim().toLowerCase(), termoNum = soNum(termo);
+      const cont = (f) => cotacoes.filter(f).length;
+      const chips = [["abertas", "Em aberto", (c) => ABERTAS.includes(c.status)], ["todas", "Todas", () => true],
+        ...Object.keys(COT.STATUS).map((k) => [k, COT.STATUS[k].nome, (c) => c.status === k])];
+      $("#cot-adm-resumo").innerHTML = chips.map(([k, nome, f]) => `<button type="button" data-filtro="${k}" aria-pressed="${cotFiltro === k}">${esc(nome)} (${cont(f)})</button>`).join("");
+      $$("#cot-adm-resumo [data-filtro]").forEach((b) => b.addEventListener("click", () => { cotFiltro = b.dataset.filtro; desenharCotacoes(); }));
+      const filtroSt = (chips.find((x) => x[0] === cotFiltro) || chips[0])[2];
+      const lista = cotacoes.filter((c) => (termo ? textoBusca(c).includes(termo) || (termoNum.length >= 4 && (soNum(c.documento).includes(termoNum) || soNum(c.telefone).includes(termoNum))) : filtroSt(c)));
+      if (!lista.length) { box.innerHTML = `<p class="dica">${cotacoes.length ? "Nenhuma cotação com esse filtro." : "Nenhuma cotação nos últimos 7 dias."}</p>`; return; }
+      box.innerHTML = lista.map((c) => {
+        const st = COT.STATUS[c.status] || COT.STATUS.recebida;
+        const itens = (c.itens || []).map((i) => `<li><span>${esc(i.codigo || "")} — ${esc(i.nome || i.id)}${i.cor ? ` · ${esc(i.cor)}` : ""}</span><b>${esc(i.qtd)} × ${esc(i.embalagem || "kg")}</b></li>`).join("");
+        const end = `${esc(c.logradouro || "")}, ${esc(c.numero || "")}${c.complemento ? " – " + esc(c.complemento) : ""}<br>${c.bairro ? esc(c.bairro) + " · " : ""}${esc(c.cidade)}/${esc(c.uf)} · CEP ${esc(BR.mascaras.cep(c.cep || ""))}`;
+        const tel = soNum(c.telefone);
+        const whats = tel ? `https://wa.me/55${tel}?text=${encodeURIComponent(`Olá, ${String(c.nome || "").split(" ")[0]}! Aqui é da Policoating, sobre a sua cotação ${c.protocolo}.`)}` : "";
+        return `<details class="adm-cot" data-id="${esc(c.id)}">
+          <summary><span class="adm-cot-cod">${esc(c.protocolo)}</span>
+            <span class="adm-cot-quem"><b>${esc(c.nome)}</b> <small>· ${esc(c.cidade)}/${esc(c.uf)} · ${(c.itens || []).length} ${(c.itens || []).length === 1 ? "produto" : "produtos"}</small></span>
+            <span class="cot-status cot-st-${esc(c.status)}">${esc(st.nome)}</span>
+            <span class="adm-cot-quando" title="Vence em ${COT.dataHora(c.expira_em)}">${COT.dataHora(c.emitida_em)}</span></summary>
+          <div class="adm-cot-corpo">
+            <div>
+              <h5>Cliente</h5>
+              <dl class="adm-cot-dados">
+                <dt>Nome</dt><dd>${esc(c.nome)}</dd>
+                <dt>${soNum(c.documento).length === 14 ? "CNPJ" : "CPF"}</dt><dd>${esc(fmtDoc(c.documento))}</dd>
+                <dt>Telefone</dt><dd>${esc(BR.mascaras.telefone(c.telefone || ""))}${whats ? ` · <a href="${esc(whats)}" target="_blank" rel="noopener">WhatsApp</a>` : ""}</dd>
+                ${c.email ? `<dt>E-mail</dt><dd><a href="mailto:${esc(c.email)}">${esc(c.email)}</a></dd>` : ""}
+                <dt>Entrega</dt><dd>${end}</dd>
+                <dt>Conta</dt><dd>${c.cliente_id ? "cliente com cadastro no site" : "sem login"}</dd>
+              </dl>
+              <h5>Produtos</h5><ul class="cot-itens">${itens}</ul>
+              <p class="cot-linha">${c.peso_kg ? `Peso total: <b>${Number(c.peso_kg).toLocaleString("pt-BR")} kg</b> · ` : ""}${COT.htmlFrete(c.frete)}${c.frete && c.frete.cidade && c.frete.zona !== "manual" ? ` <small>(${esc(c.frete.regra || "")})</small>` : ""}</p>
+              <h5>Descrição do cliente</h5><p class="cot-desc">${esc(c.descricao)}</p>
+              <p class="cot-meta">Emitida em ${COT.dataHora(c.emitida_em)} · apagada automaticamente em ${COT.dataHora(c.expira_em)}</p>
+            </div>
+            <form class="adm-cot-resp" data-resp>
+              <label>Status<select name="status">${Object.keys(COT.STATUS).map((k) => `<option value="${k}"${k === c.status ? " selected" : ""}>${esc(COT.STATUS[k].nome)}</option>`).join("")}</select></label>
+              <label>Valor da proposta (R$)<input name="valor" inputmode="decimal" value="${c.valor_proposta != null ? String(c.valor_proposta).replace(".", ",") : ""}" placeholder="opcional"></label>
+              <label>Resposta para o cliente<textarea name="resposta" rows="4" maxlength="2000" placeholder="Ex.: Proposta: 100 kg a R$ 25/kg, frete R$ 500, prazo 7 dias.">${esc(c.resposta || "")}</textarea></label>
+              <button type="submit" class="btn btn-primario">Salvar resposta</button>
+              <p class="form-erro" data-erro role="alert"></p>
+              <h5>Histórico desta cotação</h5><ul class="adm-cot-eventos" data-eventos><li><small>Abra para carregar…</small></li></ul>
+            </form>
+          </div>
+        </details>`;
+      }).join("");
+      $$(".adm-cot", box).forEach((d) => {
+        const id = d.dataset.id;
+        d.addEventListener("toggle", async () => {
+          if (!d.open || d.dataset.carregado) return;
+          d.dataset.carregado = "1";
+          const ul = $("[data-eventos]", d);
+          try {
+            const ev = await COT.equipe.eventos(id);
+            ul.innerHTML = ev.length ? ev.map((e) => `<li>${COT.dataHora(e.em)} · <b>${esc((COT.STATUS[e.para] || {}).nome || e.para)}</b> <small>por ${esc(e.ator_email || "—")}${e.de && e.de !== e.para ? ` (antes: ${esc((COT.STATUS[e.de] || {}).nome || e.de)})` : ""}</small>${e.nota ? `<br><small>${esc(e.nota)}</small>` : ""}</li>`).join("") : `<li><small>Sem respostas ainda.</small></li>`;
+          } catch (e) { ul.innerHTML = `<li><small>${esc(e.message)}</small></li>`; }
+        });
+        $("[data-resp]", d).addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const f = e.target, erro = $("[data-erro]", f), bt = $("button", f);
+          const vtxt = f.valor.value.trim().replace(/\./g, "").replace(",", ".");
+          const valor = vtxt === "" ? null : Number(vtxt);
+          if (valor != null && !(valor >= 0)) { erro.textContent = "Valor inválido."; return; }
+          erro.textContent = ""; bt.disabled = true;
+          try {
+            await COT.equipe.atualizar(id, f.status.value, f.resposta.value.trim(), valor);
+            CW.mostrarToast("Resposta salva. O cliente vê ao consultar o código.");
+            await carregarCotacoes(id);
+          } catch (err) { erro.textContent = err.message; }
+          finally { bt.disabled = false; }
+        });
+      });
+    }
+    async function carregarCotacoes(abrirId) {
+      const box = $("#cot-adm-lista"); if (!box || !COT) return;
+      $("#cot-adm-erro").textContent = "";
+      if (!cotacoes.length) box.innerHTML = `<p class="carregando">Carregando cotações…</p>`;
+      try { cotacoes = await COT.equipe.listar(); }
+      catch (e) { $("#cot-adm-erro").textContent = e.message; box.innerHTML = ""; return; }
+      atualizarSeloCot(); desenharCotacoes();
+      if (abrirId) { const d = $(`.adm-cot[data-id="${CSS.escape(abrirId)}"]`, box); if (d) d.open = true; }
+    }
+    if ($("#cot-adm-busca")) {
+      let t; $("#cot-adm-busca").addEventListener("input", () => { clearTimeout(t); t = setTimeout(desenharCotacoes, 150); });
+      $("#cot-adm-atualizar").addEventListener("click", () => carregarCotacoes());
+      if (COT) COT.equipe.listar().then((v) => { cotacoes = v; atualizarSeloCot(); }, () => { /* sem a PARTE U ainda */ });
+    }
+
     /* ---------- Comércio e Recursos (E03) ---------- */
     const R = window.Recursos;
     const dataHora = (iso) => (iso ? new Date(iso).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "");
@@ -977,18 +1087,67 @@
             ${htmlExcecoes(d, r)}
           </article>`;
         }).join("")}</section>`).join("");
+      injetarHistoricos();
+    }
+    /* ---------- histórico junto de cada configuração ---------- */
+    let ultimaAuditoria = null;
+    const CAMPOS_FRETE = { origem_cep: "CEP de saída", origem_logradouro: "Rua", origem_numero: "Número", origem_complemento: "Complemento", origem_bairro: "Bairro",
+      origem_cidade: "Cidade", origem_uf: "UF", origem_lat: "Ponto no mapa", origem_rotulo: "Endereço no mapa", tarifa_local: "Valor fixo local", raio_local_m: "Raio local",
+      tarifa_km: "Valor por km", minimo_externo: "Mínimo fora do raio" };
+    function valorCampo(k, v) {
+      if (v == null || v === "") return "vazio";
+      if (k === "raio_local_m") return `${(Number(v) / 1000).toLocaleString("pt-BR")} km`;
+      if (/^(tarifa_|minimo_)/.test(k)) return Number(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+      return String(v);
+    }
+    function difsFrete(a, n) {
+      a = a || {}; n = n || {};
+      const difs = Object.keys(CAMPOS_FRETE).filter((k) => String(a[k] ?? "") !== String(n[k] ?? ""));
+      if (String(a.origem_lng ?? "") !== String(n.origem_lng ?? "") && !difs.includes("origem_lat")) difs.push("origem_lat");
+      return difs.map((k) => k === "origem_lat"
+        ? `<li><span class="campo">${CAMPOS_FRETE[k]}</span><del>${a.origem_lat == null ? "não localizado" : "ponto anterior"}</del> → <ins>${n.origem_lat == null ? "não localizado" : `${Number(n.origem_lat).toFixed(5)}, ${Number(n.origem_lng).toFixed(5)}`}</ins></li>`
+        : `<li><span class="campo">${CAMPOS_FRETE[k]}</span><del>${esc(valorCampo(k, a[k]))}</del> → <ins>${esc(valorCampo(k, n[k]))}</ins></li>`).join("");
+    }
+    const txtRec = (x) => !x ? "—" : (x.ligado ? "Ligado" : "Desligado") + (x.alvos && Object.keys(x.alvos).length ? " (com exceções)" : "");
+    function itemAlteracao(l) {
+      const difs = l.chave === "frete_config" ? difsFrete(l.antigo, l.novo)
+        : `<li><span class="campo">Situação</span><del>${esc(txtRec(l.antigo))}</del> → <ins>${esc(txtRec(l.novo))}</ins></li>` +
+          (JSON.stringify((l.antigo || {}).alvos || {}) !== JSON.stringify((l.novo || {}).alvos || {}) ? `<li><span class="campo">Onde vale</span><ins>exceções por classe/produto alteradas</ins></li>` : "");
+      const versao = l.chave === "frete_config" && l.novo ? ` · versão ${(l.antigo || {}).versao || "?"} → ${l.novo.versao}` : "";
+      return `<li><div class="alt-topo"><b>${dataHora(l.em)}</b><small>${esc(l.ator_email || "—")}${versao}</small></div>
+        ${l.motivo ? `<div class="alt-motivo">“${esc(l.motivo)}”</div>` : ""}
+        <ul class="alt-difs">${difs || `<li class="alt-vazio">Salvo sem mudar valores.</li>`}</ul></li>`;
+    }
+    function injetarHistoricos() {
+      if (!ultimaAuditoria) return;
+      const fr = ultimaAuditoria.filter((l) => l.chave === "frete_config").slice(0, 5), box = $("#fc-alteracoes ul");
+      if (box) box.innerHTML = fr.length ? fr.map(itemAlteracao).join("") : `<li class="alt-vazio">Nenhuma alteração ainda.</li>`;
+      $$("#recursos-lista .rec-card[data-chave]").forEach((card) => {
+        const v = ultimaAuditoria.filter((l) => l.chave === card.dataset.chave).slice(0, 8);
+        let d = $(".rec-hist-card", card);
+        if (!v.length) { if (d) d.hidden = true; return; }
+        if (!d) { d = document.createElement("details"); d.className = "rec-hist-card"; card.appendChild(d); }
+        const aberto = d.open;
+        d.hidden = false;
+        d.innerHTML = `<summary>Histórico deste recurso (${v.length})</summary><ul class="alt-lista">${v.map(itemAlteracao).join("")}</ul>`;
+        d.open = aberto;
+      });
     }
     async function desenharHistorico() {
       const tb = $("#recursos-historico");
       try {
-        const lista = await R.auditoria(30);
+        const lista = await R.auditoria(100);
+        ultimaAuditoria = lista; injetarHistoricos();
         const txt = (x) => !x ? "—" : (x.ligado ? "ligado" : "desligado") + (x.alvos && Object.keys(x.alvos).length ? " (com exceções)" : "");
         const mudanca = (l) => l.chave === "frete_config"
           ? `endereço/tarifas atualizados (versão ${(l.antigo || {}).versao || "?"} → ${(l.novo || {}).versao || "?"})`
           : `${txt(l.antigo)} → ${txt(l.novo)}`;
         tb.innerHTML = lista.length ? lista.map((l) => `<tr><td>${dataHora(l.em)}</td><td>${esc(l.ator_email || "—")}</td><td>${esc(l.chave === "frete_config" ? "Frete (saída e tarifas)" : (R.definicao(l.chave) || {}).titulo || l.chave)}</td><td>${mudanca(l)}</td><td>${esc(l.motivo || "")}</td></tr>`).join("")
           : `<tr><td colspan="5">Nenhuma alteração ainda.</td></tr>`;
-      } catch (e) { tb.innerHTML = `<tr><td colspan="5">${esc(e.message)}</td></tr>`; }
+      } catch (e) {
+        tb.innerHTML = `<tr><td colspan="5">${esc(e.message)}</td></tr>`;
+        const b = $("#fc-alteracoes ul"); if (b) b.innerHTML = `<li class="alt-vazio">${esc(e.message)}</li>`;
+      }
     }
     function erroRecursos(msg) { const el = $("#recursos-erro"); el.textContent = msg || ""; el.hidden = !msg; }
     /* ---------- Frete: saída e tarifas (E05) ---------- */
@@ -1003,7 +1162,10 @@
       fc("tarifa-local").value = c.tarifa_local; fc("raio").value = (c.raio_local_m || 0) / 1000;
       fc("tarifa-km").value = c.tarifa_km; fc("minimo").value = c.minimo_externo;
       freteLocal = null;
-      fc("mapa-res").innerHTML = c.origem_lat != null ? `Localizado: ${esc(c.origem_rotulo || "")} · <a href="https://www.openstreetmap.org/?mlat=${c.origem_lat}&mlon=${c.origem_lng}#map=17/${c.origem_lat}/${c.origem_lng}" target="_blank" rel="noopener">ver no mapa</a>` : "<b>Ainda não localizado</b> — o frete só pode ser ligado depois disso.";
+      const temPonto = c.origem_lat != null && c.origem_lat !== "" && c.origem_lng != null && c.origem_lng !== "";
+      fc("mapa-res").innerHTML = temPonto
+        ? `<span class="fc-ok">✓ Localizado no mapa</span>${c.origem_rotulo ? `: ${esc(c.origem_rotulo)}` : ""} · <a href="https://www.openstreetmap.org/?mlat=${c.origem_lat}&mlon=${c.origem_lng}#map=17/${c.origem_lat}/${c.origem_lng}" target="_blank" rel="noopener">ver no mapa</a><small class="fc-coords">${Number(c.origem_lat).toFixed(5)}, ${Number(c.origem_lng).toFixed(5)}</small>`
+        : "<b>Ainda não localizado</b> — clique em Localizar no mapa e depois em Salvar frete. O frete só pode ser ligado depois disso.";
       fc("versao").textContent = c.atualizado_por ? `Versão ${c.versao} · alterado por ${c.atualizado_por} em ${dataHora(c.atualizado_em)}` : "";
     }
     fc("cep").addEventListener("input", async (e) => {

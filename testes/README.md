@@ -23,7 +23,8 @@ Cada linha mostra `PASS` ou `FAIL` com o código do cenário da matriz V3.1 (ex.
 node testes/e03.mjs                    # E03: Comércio e Recursos (aba do painel, requisito, exceções, histórico)
 node testes/e10_e11.mjs                # E10: bolinhas das redes · E11: app instalável (manifesto, service worker, convite, cache)
 node testes/e05.mjs                    # E05: "Calcular frete" no produto e configuração do frete no painel
-node testes/frete.mjs                  # E05: função "frete" do Supabase (regra, limites, falhas) — não precisa do servidor local
+node testes/frete.mjs                  # E05/E06: função "frete" do Supabase (frete e cotação com código) — não precisa do servidor local
+node testes/e06_e08.mjs                # E06–E08: página de cotação, botão no produto, consulta pelo código, Minhas cotações e painel da equipe
 ```
 
 ## Testes do banco (`testes/sql/`)
@@ -33,4 +34,5 @@ createdb teste_policoating
 psql -d teste_policoating -f testes/sql/imitacao_supabase.sql   # login/2 etapas imitados
 psql -d teste_policoating -f <só a PARTE R do supabase/setup.sql>
 psql -d teste_policoating -f testes/sql/parte_r.sql             # os ERROR esperados são as recusas testadas
+# (o mesmo para parte_t.sql e parte_u.sql, depois das PARTES T e U; a parte U precisa de auth.users)
 ```

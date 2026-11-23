@@ -1692,3 +1692,139 @@ update public.recursos set implementado = true,
  where chave = 'freight_estimate_enabled';
 
 notify pgrst, 'reload schema';
+
+-- ===========================================================
+-- PARTE U — Cotações com código (protocolo) válido por 7 dias — etapas E06, E07 e E08
+--   Rode depois das PARTES R e T.
+--   • Cada cotação recebe um código aleatório (ex.: COT-7K2M-9QXH-4P) que não dá para adivinhar.
+--   • Vale 7 dias (168 horas) desde a emissão. Depois disso o banco já não mostra a cotação
+--     para ninguém e a limpeza automática (pg_cron, a cada hora) apaga os dados.
+--   • Quem cria: a função "frete" (ação "cotar"), que confere os dados, calcula o frete no servidor
+--     e aplica limite por IP. Ninguém grava direto na tabela.
+--   • Quem vê: o cliente logado vê as suas; qualquer pessoa com o código consulta aquela cotação;
+--     a equipe vê todas e responde (status, proposta e valor), com histórico.
+--   • Desfazer: select cron.unschedule('limpar-cotacoes'); drop function public.limpar_cotacoes_expiradas();
+--     drop function public.consultar_cotacao(text); drop function public.atualizar_cotacao(uuid, text, text, numeric);
+--     drop table public.cotacoes_eventos; drop table public.cotacoes; drop table public.cotacoes_limpezas;
+-- ===========================================================
+create table if not exists public.cotacoes (
+  id            uuid primary key default gen_random_uuid(),
+  protocolo     text not null unique check (protocolo ~ '^COT-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{2}$'),
+  cliente_id    uuid references auth.users(id) on delete set null,
+  ip_hash       text,
+  nome          text not null check (length(nome) between 3 and 150),
+  documento     text not null check (documento ~ '^(\d{11}|\d{14})$'),
+  telefone      text not null check (telefone ~ '^\d{10,11}$'),
+  email         text check (email is null or length(email) <= 150),
+  cep           text not null check (cep ~ '^\d{8}$'),
+  logradouro    text, numero text, complemento text, bairro text,
+  cidade        text not null, uf text not null check (uf ~ '^[A-Z]{2}$'),
+  descricao     text not null check (length(descricao) between 20 and 2000),
+  itens         jsonb not null check (jsonb_typeof(itens) = 'array' and jsonb_array_length(itens) between 1 and 30),
+  peso_kg       numeric(10,2),
+  frete         jsonb,                     -- estimativa usada (zona, valor, km, versão da tarifa) ou {"zona":"manual"}
+  status        text not null default 'recebida'
+                check (status in ('recebida', 'em_analise', 'aguardando_dados', 'proposta_enviada', 'aprovada', 'recusada')),
+  resposta      text check (resposta is null or length(resposta) <= 2000),
+  valor_proposta numeric(12,2) check (valor_proposta is null or valor_proposta >= 0),
+  emitida_em    timestamptz not null default now(),
+  expira_em     timestamptz not null default now() + interval '168 hours',
+  atualizado_em timestamptz not null default now(),
+  atualizado_por text,
+  check (expira_em = emitida_em + interval '168 hours')
+);
+create index if not exists cotacoes_expira on public.cotacoes (expira_em);
+create index if not exists cotacoes_cliente on public.cotacoes (cliente_id, emitida_em desc);
+create index if not exists cotacoes_ip on public.cotacoes (ip_hash, emitida_em desc);
+alter table public.cotacoes enable row level security;
+drop policy if exists "cliente ve suas cotacoes" on public.cotacoes;
+create policy "cliente ve suas cotacoes" on public.cotacoes for select to authenticated
+  using (cliente_id = auth.uid() and expira_em > now());
+drop policy if exists "equipe ve cotacoes" on public.cotacoes;
+create policy "equipe ve cotacoes" on public.cotacoes for select to authenticated
+  using (public.eh_equipe() and expira_em > now());
+-- (sem insert/update/delete por políticas: só a função "frete" cria e só atualizar_cotacao altera)
+
+create table if not exists public.cotacoes_eventos (
+  id         bigserial primary key,
+  cotacao_id uuid not null references public.cotacoes(id) on delete cascade,   -- sai junto quando a cotação expira
+  em         timestamptz not null default now(),
+  ator_email text,
+  de         text, para text,
+  nota       text check (nota is null or length(nota) <= 500)
+);
+alter table public.cotacoes_eventos enable row level security;
+drop policy if exists "equipe ve eventos de cotacao" on public.cotacoes_eventos;
+create policy "equipe ve eventos de cotacao" on public.cotacoes_eventos for select to authenticated
+  using (public.eh_equipe() and exists (select 1 from public.cotacoes c where c.id = cotacao_id and c.expira_em > now()));
+
+-- Registro da limpeza: só contagem e horário (sem código, nome, CPF ou telefone)
+create table if not exists public.cotacoes_limpezas (
+  id bigserial primary key, em timestamptz not null default now(), apagadas int not null
+);
+alter table public.cotacoes_limpezas enable row level security;
+drop policy if exists "admin ve limpezas" on public.cotacoes_limpezas;
+create policy "admin ve limpezas" on public.cotacoes_limpezas for select to authenticated using (public.eh_admin());
+
+/** Consulta pelo código (visitante ou cliente). Vencida ou inexistente: não devolve nada (não revela se existiu) */
+create or replace function public.consultar_cotacao(p_protocolo text)
+returns table (protocolo text, status text, emitida_em timestamptz, expira_em timestamptz, cidade text, uf text,
+               itens jsonb, peso_kg numeric, frete jsonb, resposta text, valor_proposta numeric, descricao text)
+language sql stable security definer set search_path = public
+as $$
+  select c.protocolo, c.status, c.emitida_em, c.expira_em, c.cidade, c.uf, c.itens, c.peso_kg, c.frete, c.resposta, c.valor_proposta, c.descricao
+    from public.cotacoes c
+   where c.protocolo = upper(trim(p_protocolo)) and c.expira_em > now()
+$$;
+revoke all on function public.consultar_cotacao(text) from public;
+grant execute on function public.consultar_cotacao(text) to anon, authenticated;
+
+/** Equipe responde: status, proposta e valor; cada mudança vira evento */
+create or replace function public.atualizar_cotacao(p_id uuid, p_status text, p_resposta text default null, p_valor numeric default null)
+returns public.cotacoes language plpgsql security definer set search_path = public
+as $$
+declare v_antes public.cotacoes; v_depois public.cotacoes;
+begin
+  if not public.eh_equipe() then raise exception 'Só a equipe pode responder cotações.'; end if;
+  select * into v_antes from public.cotacoes where id = p_id and expira_em > now() for update;
+  if not found then raise exception 'Cotação não encontrada ou vencida.'; end if;
+  if p_status not in ('recebida', 'em_analise', 'aguardando_dados', 'proposta_enviada', 'aprovada', 'recusada') then raise exception 'Status inválido.'; end if;
+  update public.cotacoes set status = p_status,
+         resposta = coalesce(nullif(left(trim(coalesce(p_resposta, '')), 2000), ''), resposta),
+         valor_proposta = coalesce(p_valor, valor_proposta),
+         atualizado_em = now(), atualizado_por = lower(auth.jwt() ->> 'email')
+   where id = p_id returning * into v_depois;
+  insert into public.cotacoes_eventos (cotacao_id, ator_email, de, para, nota)
+  values (p_id, lower(auth.jwt() ->> 'email'), v_antes.status, v_depois.status, nullif(left(trim(coalesce(p_resposta, '')), 500), ''));
+  return v_depois;
+end $$;
+revoke all on function public.atualizar_cotacao(uuid, text, text, numeric) from public, anon;
+grant execute on function public.atualizar_cotacao(uuid, text, text, numeric) to authenticated;
+
+/** Limpeza: apaga as cotações vencidas (e seus eventos, em cascata). Pode rodar várias vezes sem problema */
+create or replace function public.limpar_cotacoes_expiradas()
+returns int language plpgsql security definer set search_path = public
+as $$
+declare n int;
+begin
+  delete from public.cotacoes where expira_em <= now();
+  get diagnostics n = row_count;
+  if n > 0 then insert into public.cotacoes_limpezas (apagadas) values (n); end if;
+  return n;
+end $$;
+revoke all on function public.limpar_cotacoes_expiradas() from public, anon, authenticated;
+
+-- Agenda a limpeza de hora em hora (precisa da extensão pg_cron: Database → Extensions → pg_cron)
+do $$
+begin
+  create extension if not exists pg_cron;
+  perform cron.unschedule(jobid) from cron.job where jobname = 'limpar-cotacoes';
+  perform cron.schedule('limpar-cotacoes', '7 * * * *', 'select public.limpar_cotacoes_expiradas()');
+exception when others then
+  raise notice 'pg_cron indisponível (%). Ative em Database → Extensions → pg_cron e rode esta parte de novo. Enquanto isso, as cotações vencidas já ficam invisíveis.', sqlerrm;
+end $$;
+
+update public.recursos set implementado = true, requisito = null
+ where chave in ('b2b_quote_enabled', 'b2b_whatsapp_shortcut_enabled', 'manual_quote_approval');
+
+notify pgrst, 'reload schema';

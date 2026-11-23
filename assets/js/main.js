@@ -304,6 +304,7 @@
       <textarea id="cliente-obs" rows="2" maxlength="500" placeholder="Observações (opcional)"></textarea>
     </div>
     <button class="btn btn-whats btn-bloco" id="btn-finalizar">${iconeWhats()} Enviar pedido</button>
+    <button class="btn btn-contorno-azul btn-bloco" id="btn-cotar-carrinho" hidden>Pedir cotação com estes itens</button>
     <p class="aviso">O pedido é registrado e chega ao vendedor na hora, mesmo que a mensagem do WhatsApp não seja enviada. O WhatsApp abre com todos os dados para agilizar. Frete e pagamento você combina com o vendedor.
       <button class="limpar" id="btn-limpar">Esvaziar carrinho</button></p>
   </div>
@@ -318,6 +319,11 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
     $("#sobreposicao").addEventListener("click", fecharTudo);
     $("[data-fechar-carrinho]").addEventListener("click", fecharTudo);
     $("#btn-finalizar").addEventListener("click", finalizarPedido);
+    $("#btn-cotar-carrinho").addEventListener("click", () => {
+      carrinho.forEach((i) => window.Cotacao.lista.adicionar({ id: i.id, embalagem: i.embalagem, cor: i.cor, qtd: i.qtd }));
+      location.href = "cotacao";
+    });
+    document.addEventListener("recursos-atualizados", renderCarrinho);
     $("#btn-limpar").addEventListener("click", () => {
       if (carrinho.length && confirm("Deseja remover todos os itens do carrinho?")) {
         carrinho = [];
@@ -360,6 +366,8 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
         (tv.combinar ? `<small>${tv.valor ? "+ " : ""}${tv.combinar} ${tv.combinar === 1 ? "item" : "itens"} com o valor consultado no WhatsApp com o vendedor</small>` : `<small>Valores dos produtos. Condições são combinadas com o vendedor.</small>`);
     }
     $("#btn-finalizar").disabled = carrinho.length === 0;
+    const btCot = $("#btn-cotar-carrinho");
+    if (btCot) btCot.hidden = !(carrinho.length && window.Cotacao && window.Recursos && carrinho.every((i) => window.Recursos.disponivel("b2b_quote_enabled", acharProduto(i.id) || { id: i.id })));
     renderClienteCarrinho();
 
     if (!carrinho.length) {
@@ -603,6 +611,7 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
     <div id="frete-produto"></div>
     <div class="acoes-extra">
       <button type="button" data-extra="ficha">${ic("documento")}Ficha técnica</button>
+      ${window.Cotacao && window.Recursos && window.Recursos.disponivel("b2b_quote_enabled", p) ? `<button type="button" data-extra="cotacao">${ic("documento")}Solicitar cotação</button>` : ""}
       <button type="button" data-extra="orcamento">${ic("conversa")}Pedir orçamento</button>
       <button type="button" data-extra="link">${ic("link")}Copiar link</button>
     </div>
@@ -779,7 +788,7 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
     $("#calc-m2").addEventListener("input", calcular);
     atualizarQtd();
     // estimativa de frete (só se o recurso valer para este produto); o peso vem da embalagem e da quantidade escolhidas
-    if (window.Frete) window.Frete.montar($("#frete-produto"), p, () => [{ id: p.id, embalagem: embSel, qtd: limitarQtd(embSel, qtd.value) }]);
+    if (window.Frete) window.Frete.montar($("#frete-produto"), p, () => [{ id: p.id, embalagem: embSel, cor: corSel.nome, qtd: limitarQtd(embSel, qtd.value) }]);
     $$("[data-extra]", modal).forEach((b) =>
       b.addEventListener("click", () => {
         const tipo = b.dataset.extra;
@@ -789,6 +798,11 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
             () => mostrarToast("Link do produto copiado!"),
             () => prompt("Copie o link do produto:", url)
           );
+          return;
+        }
+        if (tipo === "cotacao") {   // E06: leva o produto (com embalagem, cor e quantidade) para a página de cotação
+          window.Cotacao.lista.adicionar({ id: p.id, embalagem: embSel, cor: corSel.nome, qtd: limitarQtd(embSel, qtd.value) });
+          location.href = "cotacao";
           return;
         }
         if (tipo === "ficha" && p.ficha && /^https:\/\//.test(p.ficha)) {   // PDF enviado pelo painel

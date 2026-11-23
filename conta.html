@@ -27,7 +27,7 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Barlow:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/style.css?v=5d56011b">
+  <link rel="stylesheet" href="assets/css/style.css?v=79cc03e9">
 </head>
 <body>
   <a class="pular" href="#conteudo">Pular para o conteúdo</a>
@@ -198,6 +198,7 @@
             <nav class="conta-menu" role="tablist" aria-label="Menu da conta">
               <button type="button" role="tab" data-painel="resumo"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11 12 4l9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg> Visão geral</button>
               <button type="button" role="tab" data-painel="pedidos"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5M12 13v8"/></svg> Meus pedidos <em class="badge" id="badge-pedidos"></em></button>
+              <button type="button" role="tab" data-painel="cotacoes" id="menu-cotacoes" hidden><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg> Minhas cotações <em class="badge" id="badge-cotacoes"></em></button>
               <button type="button" role="tab" data-painel="dados"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg> Meus dados</button>
               <button type="button" role="tab" data-painel="favoritos"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20s-7-4.4-9-9A5 5 0 0 1 12 6a5 5 0 0 1 9 5c-2 4.6-9 9-9 9"/></svg> Favoritos <em class="badge" id="badge-favoritos"></em></button>
               <button type="button" role="tab" data-painel="privacidade"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg> Privacidade</button>
@@ -241,6 +242,14 @@
               <h2 class="painel-titulo">Meus pedidos</h2>
               <p class="painel-sub">Pedidos enviados ao vendedor pelo WhatsApp.</p>
               <div id="lista-pedidos"></div>
+            </section>
+
+            <!-- Cotações -->
+            <section class="painel" id="painel-cotacoes" hidden>
+              <h2 class="painel-titulo">Minhas cotações</h2>
+              <p class="painel-sub">Cotações feitas pelo site nos últimos 7 dias (na sua conta e neste aparelho). Cada uma tem um código para falar com o vendedor.</p>
+              <p><a class="btn btn-primario" href="cotacao">Nova cotação</a> <a class="btn btn-contorno-azul" href="cotacao#consultar">Consultar um código</a></p>
+              <div id="lista-cotacoes"></div>
             </section>
 
             <!-- Dados -->
@@ -419,18 +428,19 @@
   <script src="assets/js/recursos.js?v=3c367689"></script>
   <script src="assets/js/flutuante.js?v=9645d8eb"></script>
   <script src="assets/js/pwa.js?v=eaafcbcb"></script>
-  <script src="assets/js/frete.js?v=240aa6be"></script>
+  <script src="assets/js/frete.js?v=1c82be9c"></script>
+  <script src="assets/js/cotacao.js?v=c18f864c"></script>
   <script src="assets/js/icones.js?v=3b2cf7da"></script>
   <script src="assets/js/midia.js?v=89a07a7d"></script>
   <script src="assets/js/fotos-reais.js?v=cd443528"></script>
   <script src="assets/js/fotos.js?v=48f81340"></script>
   <script src="assets/js/auth.js?v=4e4f2f6a"></script>
   <script src="assets/js/loja.js?v=67be2651"></script>
-  <script src="assets/js/main.js?v=46c4cf81"></script>
+  <script src="assets/js/main.js?v=aefd0066"></script>
   <script src="assets/js/animacoes.js?v=75e1f9fd"></script>
   <script src="assets/js/secoes.js?v=47af24e3"></script>
   <script src="assets/js/assistente.js?v=7567cfc9"></script>
   <script src="assets/js/br.js?v=848f13ba"></script>
-  <script src="assets/js/conta.js?v=acad1ad3"></script>
+  <script src="assets/js/conta.js?v=c339aa3d"></script>
 </body>
 </html>

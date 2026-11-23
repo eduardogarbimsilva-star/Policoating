@@ -29,8 +29,8 @@ const d = F.distanciaRetaM({ lat: -21.6033, lng: -48.3658 }, { lat: -21.7845, ln
 R.add("V31-E05-12", "Linha reta Matão → Araraquara ≈ 28 km", d > 26000 && d < 30000, Math.round(d) + " m");
 
 /* ---------- função completa com serviços imitados ---------- */
-function imitar({ recursoLigado = true, disponivel = true, cep = { logradouro: "Avenida Brasil", localidade: "Araraquara", uf: "SP" }, geo = { lat: -21.7845, lng: -48.178 }, rotaM = 33000, admin = false, jaFeitos = 0, cfg = CFG } = {}) {
-  const log = { inseridos: [], orsGeo: 0, orsRota: 0 };
+function imitar({ recursoLigado = true, disponivel = true, cep = { logradouro: "Avenida Brasil", localidade: "Araraquara", uf: "SP" }, geo = { lat: -21.7845, lng: -48.178 }, rotaM = 33000, admin = false, jaFeitos = 0, cfg = CFG, cotacaoLigada = true, freteLigado = recursoLigado, cotacoesHora = 0, usuario = null, colisoes = 0 } = {}) {
+  const log = { inseridos: [], orsGeo: 0, orsRota: 0, cotacoes: [] };
   globalThis.fetch = async (url, init = {}) => {
     const u = String(url);
     const json = (o, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { "content-type": "application/json" } });
@@ -39,8 +39,15 @@ function imitar({ recursoLigado = true, disponivel = true, cep = { logradouro: "
     if (u.includes("/v2/directions/driving-hgv")) { log.orsRota++; return rotaM == null ? json({ error: "sem rota" }, 404) : json({ routes: [{ summary: { distance: rotaM } }] }); }
     if (u.includes("/rpc/eh_admin")) return json(admin);
     if (u.includes("/rpc/recurso_disponivel")) return json(disponivel);
-    if (u.includes("/rest/v1/recursos")) return json([{ ligado: recursoLigado, implementado: true }]);
-    if (u.includes("/rest/v1/produtos")) return json([{ id: "pol-0001", ativo: true, categoria: "poliester" }]);
+    if (u.includes("/auth/v1/user")) return usuario ? json(usuario) : json({ msg: "invalid" }, 401);
+    if (u.includes("/rest/v1/recursos")) return json([{ ligado: u.includes("b2b_quote_enabled") ? cotacaoLigada : freteLigado, implementado: true }]);
+    if (u.includes("/rest/v1/cotacoes") && init.method === "HEAD") return new Response(null, { headers: { "content-range": `0-0/${cotacoesHora}` } });
+    if (u.includes("/rest/v1/cotacoes")) {
+      const linha = JSON.parse(init.body); log.cotacoes.push(linha);
+      if (colisoes-- > 0) return json({ code: "23505" }, 409);
+      return json([{ ...linha, status: "recebida", emitida_em: "2026-11-23T10:00:00Z", expira_em: "2026-11-30T10:00:00Z" }], 201);
+    }
+    if (u.includes("/rest/v1/produtos")) return json([{ id: "pol-0001", ativo: true, categoria: "poliester", nome: "Pó Poliéster Branco", codigo: "POL-0001" }]);
     if (u.includes("/rest/v1/frete_config")) return json([cfg]);
     if (u.includes("/rest/v1/frete_estimativas") && init.method === "HEAD") return new Response(null, { headers: { "content-range": `0-0/${jaFeitos}` } });
     if (u.includes("/rest/v1/frete_estimativas")) { log.inseridos.push(JSON.parse(init.body)); return new Response(null, { status: 201 }); }
@@ -86,5 +93,33 @@ x = await chamar({ acao: "localizar_origem", logradouro: "Rua Teste", numero: "1
 R.add("V31-E05-26", "Painel localiza o endereço de saída no mapa", x.status === 200 && x.d.lat === -21.6 && x.d.lng === -48.36);
 x = await chamar({ acao: "localizar_origem", logradouro: "Rua Teste", cidade: "Matão", uf: "SP" }, { admin: false }, "token");
 R.add("V31-E05-27", "Localizar a saída exige administrador", x.status === 403);
+
+/* ---------- cotação com código (E06/E07) ---------- */
+const COT = { acao: "cotar", nome: "Metalúrgica Teste Ltda", documento: "11.222.333/0001-81", telefone: "(16) 99999-0000", email: "compras@teste.com.br",
+  cep: "14801-000", logradouro: "Avenida Brasil", numero: "500", bairro: "Centro", descricao: "Pintura de 200 portões de aço, cor branca, acabamento liso.", itens: [{ id: "POL-0001", embalagem: "Caixa 25 kg", cor: "Branco", qtd: 4 }] };
+x = await chamar(COT);
+R.add("V31-E06-01", "Cotação gera código COT-XXXX-XXXX-XX, válida por 7 dias, com frete automático e peso",
+  x.status === 200 && /^COT-[A-HJ-NP-Z2-9]{4}-[A-HJ-NP-Z2-9]{4}-[A-HJ-NP-Z2-9]{2}$/.test(x.d.protocolo) && x.d.expira_em === "2026-11-30T10:00:00Z" && x.d.frete.zona === "externo" && x.d.frete.valor === 500 && x.d.peso_kg === 100, JSON.stringify(x.d));
+const g = x.log.cotacoes[0];
+R.add("V31-E06-02", "Grava CPF/CNPJ e telefone só com números, nome do produto vindo do catálogo, IP só em hash",
+  g.documento === "11222333000181" && g.telefone === "16999990000" && g.itens[0].nome === "Pó Poliéster Branco" && g.itens[0].cor === "Branco" && g.ip_hash.length === 24 && !JSON.stringify(g).includes("200.1.2.3") && g.cliente_id === null);
+x = await chamar(COT, { usuario: { id: "u-123", email: "Cliente@Teste.com" } }, "aaa.bbb.ccc");
+R.add("V31-E06-03", "Cliente logado: a cotação fica ligada à conta dele (histórico em Minha conta)", x.status === 200 && x.log.cotacoes[0].cliente_id === "u-123" && x.log.cotacoes[0].email === "cliente@teste.com");
+x = await chamar({ ...COT, documento: "111.111.111-11" });
+R.add("V31-E06-04", "CPF inválido é recusado", x.status === 400 && /CPF ou CNPJ/.test(x.d.erro));
+x = await chamar({ ...COT, descricao: "tinta" });
+R.add("V31-E06-05", "Descrição curta demais é recusada (pede detalhes)", x.status === 400 && /detalhe/.test(x.d.erro));
+x = await chamar(COT, { cotacaoLigada: false });
+R.add("V31-E06-06", "Cotação desligada no painel: não grava", x.status === 403 && x.log.cotacoes.length === 0);
+x = await chamar(COT, { freteLigado: false });
+R.add("V31-E06-07", "Frete desligado: cotação é gravada com frete a calcular pelo vendedor", x.status === 200 && x.d.frete.zona === "manual" && x.log.orsRota === 0);
+x = await chamar(COT, { cotacoesHora: 6 });
+R.add("V31-E06-08", "Mais de 6 cotações por hora do mesmo IP: bloqueia", x.status === 429 && x.log.cotacoes.length === 0);
+x = await chamar(COT, { colisoes: 1 });
+R.add("V31-E06-09", "Código repetido (raríssimo): gera outro e grava", x.status === 200 && x.log.cotacoes.length === 2 && x.log.cotacoes[0].protocolo !== x.log.cotacoes[1].protocolo);
+x = await chamar({ ...COT, peso_kg: "250,5" });
+R.add("V31-E06-10", "Peso total informado pelo cliente prevalece sobre o calculado", x.d.peso_kg === 250.5);
+const prot = new Set(Array.from({ length: 2000 }, () => F.gerarProtocolo()));
+R.add("V31-E06-11", "2.000 códigos sorteados, nenhum repetido", prot.size === 2000);
 
 process.exitCode = R.imprimir() ? 1 : 0;

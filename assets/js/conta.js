@@ -208,7 +208,7 @@
   });
 
   /* ---------- Painel ---------- */
-  const PAINEIS = ["resumo", "pedidos", "dados", "favoritos", "privacidade"];
+  const PAINEIS = ["resumo", "pedidos", "cotacoes", "dados", "favoritos", "privacidade"];
   let pedidosCache = null;
 
   async function carregarPedidos(forcar) {
@@ -272,6 +272,7 @@
     history.replaceState(null, "", location.pathname + location.search + "#" + aba);
     if (aba === "resumo") renderResumo();
     if (aba === "pedidos") renderPedidos();
+    if (aba === "cotacoes") renderCotacoes();
     if (aba === "dados") preencherDados();
     if (aba === "favoritos") renderFavoritos();
     if (aba === "privacidade") renderPrivacidade();
@@ -390,6 +391,28 @@
       CW.abrirCarrinho();
     }));
 
+  }
+
+  /* ---------- Minhas cotações (E07) ---------- */
+  function mostrarMenuCotacoes() {
+    const C = window.Cotacao, R = window.Recursos, b = $("#menu-cotacoes");
+    if (!b || !C) return;
+    b.hidden = !((R && R.ligado("b2b_quote_enabled")) || C.lembradas().length);
+    $("#badge-cotacoes").textContent = C.lembradas().length || "";
+  }
+  document.addEventListener("recursos-atualizados", mostrarMenuCotacoes);
+  if (window.Recursos) Promise.resolve(window.Recursos.pronto).then(mostrarMenuCotacoes, mostrarMenuCotacoes);
+  async function renderCotacoes() {
+    const C = window.Cotacao, box = $("#lista-cotacoes");
+    if (!C) { box.innerHTML = ""; return; }
+    box.innerHTML = `<p class="carregando">Carregando cotações…</p>`;
+    try {
+      const v = await C.minhas();
+      $("#badge-cotacoes").textContent = v.length || "";
+      box.innerHTML = v.length ? v.map((c) => C.htmlCartao(c)).join("")
+        : `<div class="vazio cartao-info"><p>Nenhuma cotação nos últimos 7 dias.</p></div>`;
+      C.ligarCopiar(box);
+    } catch (err) { box.innerHTML = `<p class="erro">${esc(err.message)}</p>`; }
   }
 
   /* ---------- Privacidade ---------- */

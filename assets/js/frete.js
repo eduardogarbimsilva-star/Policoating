@@ -32,16 +32,36 @@
     return d;
   }
 
-  /** Texto do resultado para o cliente */
-  function htmlResultado(d, cep) {
+  const CAMINHAO = `<svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h11v10H3zM14 9h4l3 3v4h-7"/><circle cx="7" cy="17.5" r="1.8"/><circle cx="17" cy="17.5" r="1.8"/></svg>`;
+  const km = (n) => Number(n).toLocaleString("pt-BR", { maximumFractionDigits: 1 });
+
+  /** Resultado detalhado (cliente e simulação do painel): valor, destino, distância e a conta feita */
+  function htmlResultado(d, cep, opcoes) {
+    opcoes = opcoes || {};
     if (d.zona === "manual") {
       const msg = `Olá! Gostaria de saber o frete para o CEP ${cep.replace(/^(\d{5})(\d{3})$/, "$1-$2")}.`;
       const link = window.ColorWeg ? window.ColorWeg.linkWhatsApp(msg) : "#";
-      return `<span class="frete-manual">${esc(d.mensagem)}</span> <a class="frete-whats" href="${esc(link)}" target="_blank" rel="noopener">Pedir no WhatsApp</a>`;
+      return `<div class="frete-card frete-card-manual"><p class="frete-manual">${esc(d.mensagem)}</p>
+        ${d.cidade ? `<p class="frete-obs">Destino: ${esc(d.cidade)}/${esc(d.uf)}</p>` : ""}
+        <a class="btn btn-whats frete-whats" href="${esc(link)}" target="_blank" rel="noopener">Pedir o frete no WhatsApp</a></div>`;
     }
-    const onde = d.zona === "local" ? `${esc(d.cidade)}/${esc(d.uf)}` : `${esc(d.cidade)}/${esc(d.uf)} · ${Number(d.km).toLocaleString("pt-BR")} km de estrada`;
-    return `<strong class="frete-valor">${reais(d.valor)}</strong> <span class="frete-onde">${onde}</span>
-      <small class="frete-regra">${esc(d.regra || "")}${d.pela_cidade ? " Calculado até o centro da cidade; informe o número para mais precisão." : ""}</small>`;
+    const local = d.zona === "local";
+    const linhas = [[local ? "Entrega" : "Destino", `${esc(d.cidade)}/${esc(d.uf)}`]];
+    if (!local && d.km != null) {
+      linhas.push(["Distância (rota de caminhão, só ida)", `${km(d.km)} km`]);
+      if (d.tarifa_km != null) linhas.push(["Cálculo", `${km(d.km)} km × ${reais(d.tarifa_km)} = ${reais(Math.round(d.km * d.tarifa_km * 100) / 100)}`]);
+      if (d.minimo_aplicado) linhas.push(["Valor mínimo fora da região", `${d.minimo != null ? reais(d.minimo) : reais(d.valor)} <em class="frete-tag">aplicado</em>`, "frete-aplicado"]);
+    }
+    if (d.peso_kg) linhas.push(["Peso considerado", `${Number(d.peso_kg).toLocaleString("pt-BR")} kg`]);
+    return `<div class="frete-card">
+      <div class="frete-card-topo">
+        <div><span class="frete-rot">Frete estimado</span><strong class="frete-valor">${reais(d.valor)}</strong></div>
+        <span class="frete-chip${local ? " frete-chip-local" : ""}">${local ? "Entrega local" : "Fora da região"}</span>
+      </div>
+      <ul class="frete-detalhes">${linhas.map(([k, v, cls]) => `<li${cls ? ` class="${cls}"` : ""}><span>${k}</span><b>${v}</b></li>`).join("")}</ul>
+      <p class="frete-obs">${esc(d.regra || "")}${d.pela_cidade ? " Calculado até o centro da cidade; informe o número para mais precisão." : ""}</p>
+      ${opcoes.cta || ""}
+    </div>`;
   }
 
   /** Monta o bloco "Calcular frete" dentro do produto (ou não monta nada se o recurso não vale para ele) */
@@ -51,29 +71,35 @@
     if (!R || !R.disponivel("freight_estimate_enabled", produto)) { alvo.innerHTML = ""; return; }
     let cepSalvo = ""; try { cepSalvo = localStorage.getItem(K_CEP) || ""; } catch (e) { /* ignora */ }
     alvo.innerHTML = `<div class="frete-box">
-      <div class="campo-titulo">Calcular frete</div>
+      <div class="frete-cab"><span class="frete-ico">${CAMINHAO}</span>
+        <div><strong>Calcular frete</strong><small>Saindo de Matão-SP, por caminhão</small></div></div>
       <form class="frete-form" novalidate>
         <label class="sr" for="frete-cep">CEP de entrega</label>
         <input id="frete-cep" inputmode="numeric" autocomplete="postal-code" placeholder="CEP de entrega" maxlength="9" value="${esc(cepSalvo.replace(/^(\d{5})(\d{3})$/, "$1-$2"))}">
         <label class="sr" for="frete-num">Número</label>
         <input id="frete-num" inputmode="numeric" placeholder="Nº" maxlength="6">
-        <button type="submit" class="btn btn-contorno-azul">Calcular</button>
+        <button type="submit" class="btn btn-primario">Calcular</button>
       </form>
-      <p class="frete-resultado" id="frete-resultado" aria-live="polite"></p>
-      <small class="frete-nota">Saindo de Matão-SP. Valor estimado; o vendedor confirma o frete no pedido.</small>
+      <a class="frete-nao-sei" href="https://buscacepinter.correios.com.br/app/endereco/index.php" target="_blank" rel="noopener">Não sei meu CEP</a>
+      <div class="frete-resultado" id="frete-resultado" aria-live="polite"></div>
+      <small class="frete-nota">Valor estimado. O vendedor confirma o frete no pedido.</small>
     </div>`;
     const cepEl = alvo.querySelector("#frete-cep"), res = alvo.querySelector("#frete-resultado"), bt = alvo.querySelector("button");
     cepEl.addEventListener("input", () => { cepEl.value = so(cepEl.value).slice(0, 8).replace(/^(\d{5})(\d)/, "$1-$2"); });
     alvo.querySelector("form").addEventListener("submit", async (e) => {
       e.preventDefault();
       const cep = so(cepEl.value);
-      if (cep.length !== 8) { res.innerHTML = `<span class="frete-erro">Informe o CEP com 8 números.</span>`; cepEl.focus(); return; }
-      bt.disabled = true; res.innerHTML = `<span class="frete-calculando">Calculando…</span>`;
+      if (cep.length !== 8) { res.innerHTML = `<p class="frete-erro">Informe o CEP com 8 números.</p>`; cepEl.focus(); return; }
+      bt.disabled = true; res.innerHTML = `<p class="frete-calculando"><span class="frete-giro" aria-hidden="true"></span>Calculando a rota…</p>`;
       try {
-        const d = await chamar({ acao: "estimar", cep, numero: so(alvo.querySelector("#frete-num").value), itens: itens() });
-        res.innerHTML = htmlResultado(d, cep);
+        const lista = itens();
+        const d = await chamar({ acao: "estimar", cep, numero: so(alvo.querySelector("#frete-num").value), itens: lista });
+        const podeCotar = window.Cotacao && R.disponivel("b2b_quote_enabled", produto);
+        res.innerHTML = htmlResultado(d, cep, { cta: podeCotar ? `<button type="button" class="btn btn-contorno-azul frete-cotar" data-frete-cotar>Solicitar cotação com este frete</button>` : "" });
+        const c = res.querySelector("[data-frete-cotar]");
+        if (c) c.addEventListener("click", () => { lista.forEach((i) => window.Cotacao.lista.adicionar(Object.assign({ cor: i.cor || "" }, i))); try { localStorage.setItem(K_CEP, cep); } catch (e2) { /* */ } location.href = "cotacao"; });
         try { localStorage.setItem(K_CEP, cep); } catch (e2) { /* ignora */ }
-      } catch (err) { res.innerHTML = `<span class="frete-erro">${esc(err.message)}</span>`; }
+      } catch (err) { res.innerHTML = `<p class="frete-erro">${esc(err.message)}</p>`; }
       finally { bt.disabled = false; }
     });
   }

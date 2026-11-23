@@ -326,11 +326,26 @@ export function configCotacao(d: any) {
   const campos: Record<string, string> = {};
   for (const [k, p] of Object.entries(PADRAO_CAMPOS)) { const m = d.campos?.[k]; campos[k] = ["obrigatorio", "opcional", "oculto"].includes(m) ? m : p; }
   if (campos.telefone === "oculto" && campos.email === "oculto") campos.telefone = "obrigatorio";
+  const num = (v: unknown, min: number, max: number) => { const n = Number(v); return isFinite(n) && n >= min && n <= max ? n : 0; };
   const v = d.veiculos && typeof d.veiculos === "object" ? d.veiculos : {};
-  const lista = (Array.isArray(v.lista) ? v.lista : []).map((x: any) => ({ nome: String(x?.nome || "").replace(/\s+/g, " ").trim().slice(0, 40), pesoMax: Math.round(Number(x?.pesoMax) || 0) }))
-    .filter((x: any) => x.nome && x.pesoMax > 0 && x.pesoMax <= 100000).slice(0, 12).sort((a: any, b: any) => a.pesoMax - b.pesoMax);
-  const kg = Math.round(Number(d.pesoMaximo?.kg) || 0);
-  return { campos, veiculos: { ativo: !!v.ativo && lista.length > 0, lista }, pesoMaximo: { ativo: !!d.pesoMaximo?.ativo && kg > 0 && kg <= 100000, kg } };
+  const lista = (Array.isArray(v.lista) ? v.lista : []).map((x: any) => ({ nome: String(x?.nome || "").replace(/\s+/g, " ").trim().slice(0, 40), pesoMax: Math.round(num(x?.pesoMax, 1, 100000)), volumeMax: Math.round(num(x?.volumeMax, 0.01, 1000) * 100) / 100 }))
+    .filter((x: any) => x.nome && x.pesoMax > 0).slice(0, 12).sort((a: any, b: any) => a.pesoMax - b.pesoMax || (a.volumeMax || 1e9) - (b.volumeMax || 1e9));
+  const kg = Math.round(num(d.pesoMaximo?.kg, 1, 100000));
+  const vol = d.volumetria && typeof d.volumetria === "object" ? d.volumetria : {};
+  return {
+    campos, veiculos: { ativo: !!v.ativo && lista.length > 0, lista }, pesoMaximo: { ativo: !!d.pesoMaximo?.ativo && kg > 0, kg },
+    volumetria: { modo: ["obrigatorio", "opcional", "oculto"].includes(vol.modo) ? vol.modo : "oculto", fator: Math.round(num(vol.fator, 1, 2000)) || 300 },
+    intervaloMin: d.intervaloMin == null ? 2 : Math.round(num(d.intervaloMin, 0, 60)),
+    limiteLista: Math.round(num(d.limiteLista, 1, 50)) || 10
+  };
+}
+/** Volumes informados (quantidade × comprimento × largura × altura em cm) → cubagem em m³ */
+export function lerVolumes(lista: unknown) {
+  const vols = (Array.isArray(lista) ? lista : []).slice(0, 20).map((x: any) => ({
+    qtd: Math.round(Number(x?.qtd) || 0), c: Number(x?.c) || 0, l: Number(x?.l) || 0, a: Number(x?.a) || 0
+  })).filter((x) => x.qtd >= 1 && x.qtd <= 9999 && [x.c, x.l, x.a].every((n) => n > 0 && n <= 2000));
+  const m3 = Math.round(vols.reduce((t, x) => t + x.qtd * x.c * x.l * x.a / 1e6, 0) * 1000) / 1000;
+  return { vols, m3, volumes: vols.reduce((t, x) => t + x.qtd, 0) };
 }
 
 async function cotar(req: Request, db: Banco, ors: string, corpo: any, token: string, responder: (d: unknown, s?: number) => Response) {
@@ -363,6 +378,11 @@ async function cotar(req: Request, db: Banco, ors: string, corpo: any, token: st
   const desde = new Date(Date.now() - 60 * 60 * 1000).toISOString();
   if ((await db.contar(`cotacoes?select=id&ip_hash=eq.${ipHash}&emitida_em=gte.${encodeURIComponent(desde)}`)) >= LIMITE_COTACOES_POR_HORA)
     return responder({ erro: "Muitas cotações seguidas deste aparelho. Aguarde um pouco ou fale com o vendedor pelo WhatsApp." }, 429);
+  if (cfgForm.intervaloMin > 0) {
+    const ult = (await db.get(`cotacoes?select=emitida_em&ip_hash=eq.${ipHash}&order=emitida_em.desc&limit=1`))?.[0];
+    const faltam = ult ? Math.ceil((new Date(ult.emitida_em).getTime() + cfgForm.intervaloMin * 60000 - Date.now()) / 1000) : 0;
+    if (faltam > 0) return responder({ erro: `Aguarde ${faltam} segundos para fazer outra cotação.`, espera_s: faltam }, 429);
+  }
 
   const vale = await recursoValeParaItens(db, "b2b_quote_enabled", itens);
   if (vale === "desligado") return responder({ erro: "A cotação pelo site está indisponível no momento. Fale com o vendedor pelo WhatsApp." }, 403);
@@ -386,11 +406,19 @@ async function cotar(req: Request, db: Banco, ors: string, corpo: any, token: st
   if ((exige("peso") || (!itens.length && mostra("peso"))) && !(peso > 0)) return responder({ erro: itens.length ? "Informe o peso total." : "Sem produtos: informe o peso total da carga." }, 400);
   // peso máximo e veículo (se ligados no painel)
   if (cfgForm.pesoMaximo.ativo && peso > cfgForm.pesoMaximo.kg) return responder({ erro: `O peso passa do máximo por cotação (${cfgForm.pesoMaximo.kg} kg). Fale com o vendedor.` }, 400);
+  // volumetria (dimensões): cubagem em m³ e peso cubado pelo fator do painel
+  let m3 = 0;
+  if (cfgForm.volumetria.modo !== "oculto") {
+    const v = lerVolumes(corpo.entrega?.volumes);
+    if (cfgForm.volumetria.modo === "obrigatorio" && !v.vols.length) return responder({ erro: "Informe as medidas dos volumes (comprimento, largura e altura)." }, 400);
+    if (v.vols.length) { m3 = v.m3; entrega.volumes = v.vols; entrega.cubagem_m3 = v.m3; entrega.peso_cubado_kg = Math.round(v.m3 * cfgForm.volumetria.fator * 100) / 100; entrega.fator_cubagem = cfgForm.volumetria.fator; }
+  }
   if (cfgForm.veiculos.ativo) {
     const v = cfgForm.veiculos.lista.find((x) => x.nome === String(corpo.entrega?.veiculo || ""));
     if (!v) return responder({ erro: "Escolha o veículo da entrega." }, 400);
     if (v.pesoMax < peso) return responder({ erro: `${v.nome} leva até ${v.pesoMax} kg. Escolha outro veículo.` }, 400);
-    entrega.veiculo = v.nome; entrega.veiculo_peso_max = v.pesoMax;
+    if (v.volumeMax && m3 > v.volumeMax) return responder({ erro: `${v.nome} leva até ${String(v.volumeMax).replace(".", ",")} m³. Escolha outro veículo.` }, 400);
+    entrega.veiculo = v.nome; entrega.veiculo_peso_max = v.pesoMax; if (v.volumeMax) entrega.veiculo_volume_max = v.volumeMax;
   }
 
   // frete automático só se o recurso de frete valer (para todos os produtos, quando houver); senão a equipe calcula
@@ -411,6 +439,7 @@ async function cotar(req: Request, db: Banco, ors: string, corpo: any, token: st
     const r = await db.inserirRetornando("cotacoes", { ...linha, protocolo: gerarProtocolo() });
     if (r.ok) {
       const c = r.dados;
+      if (cliente?.id) await db.rpc("aparar_cotacoes_cliente", { p_cliente: cliente.id, p_limite: cfgForm.limiteLista });   // a lista do cliente guarda as mais recentes
       return responder({ protocolo: c.protocolo, emitida_em: c.emitida_em, expira_em: c.expira_em, status: c.status, frete, peso_kg: peso, cidade: end.cidade, uf: end.uf, bairro, logradouro, numero, cep, itens: itensGravados, entrega });
     }
     if (r.status !== 409) return responder({ erro: "Não foi possível registrar a cotação agora. Tente de novo ou fale com o vendedor." }, 500);

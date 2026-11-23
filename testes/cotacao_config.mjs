@@ -86,15 +86,57 @@ const dadosBasicos = async (p) => {
   R.add("CFG-16", "Sem erros de JavaScript", !erros.length, erros.join(" | "));
   await ctx.close();
 }
-{ // animação ao cotar (com movimento): aparece e fica pelo menos 6 s
+{ // animação ao cotar: aparece e fica pelo menos 6 s
   const { ctx, p } = await site({ movimento: true });
+  await p.addInitScript(() => { window.__comAnimacao = true; localStorage.removeItem("policoating_teste_sem_espera"); });
   await p.goto(`${BASE}/cotacao.html`); await espera(p, 900);
   await dadosBasicos(p); await p.fill("#cot-peso", "50");
   const t0 = Date.now(); await p.click("#cot-enviar"); await espera(p, 400);
-  const cena = await p.evaluate(() => { const t = document.querySelector(".ca-tela"); return t && (t.querySelector(".ca-caminhao") ? "caminhão" : t.querySelector(".ca-aviao") ? "avião" : "?"); });
+  const cena = await p.evaluate(() => { const t = document.querySelector(".cb-tela"); return t && (t.querySelector(".cb-cam") ? "caminhão" : t.querySelector(".cb-avi") ? "avião" : "?"); });
   await p.waitForSelector(".cot-comp-num", { timeout: 12000 });
   const dur = Date.now() - t0;
-  R.add("CFG-17", "Animação aparece ao cotar (caminhão ou avião) e libera depois de ~6 s", !!cena && dur >= 5800 && !(await p.$(".ca-tela")), `${cena}, ${dur} ms`);
+  R.add("CFG-17", "Animação aparece ao cotar (caminhão ou avião) e libera depois de ~6 s", !!cena && dur >= 5800 && !(await p.$(".cb-tela")), `${cena}, ${dur} ms`);
+  await ctx.close();
+}
+{ // volumetria obrigatória + Montana/Caminhão por peso e volume, intervalo entre cotações, lista limitada e exclusão
+  const cfg = { volumetria: { modo: "obrigatorio", fator: 300 }, veiculos: { ativo: true, lista: [{ nome: "Montana", pesoMax: 750, volumeMax: 2 }, { nome: "Caminhão", pesoMax: 5000 }] }, intervaloMin: 2, limiteLista: 2 };
+  const { ctx, p, erros } = await site({ cfg });
+  const vol = async (q, c, l, a) => {
+    for (const [k, v] of [["qtd", q], ["c", c], ["l", l], ["a", a]]) await p.fill(`#cot-vol-linhas [data-v="${k}"]`, String(v));
+    await espera(p, 200);
+  };
+  await p.goto(`${BASE}/cotacao.html`); await espera(p, 900);
+  R.add("VOL-01", "Volumetria ligada na config: bloco de medidas aparece, sem 'opcional'", await p.isVisible("#cot-vol") && !(await p.isVisible("#cot-vol-opc")) && await p.isVisible("#cot-r-cub-linha"));
+  await dadosBasicos(p); await p.fill("#cot-peso", "300"); await espera(p, 200);
+  await p.click("#cot-enviar"); await espera(p, 200);
+  R.add("VOL-02", "Volumetria obrigatória: sem medidas não envia", /medidas/i.test(await p.textContent("#cot-erro")));
+  await vol(2, 100, 100, 50);
+  const v1 = await p.evaluate(() => ({ sel: document.querySelector("#cot-veiculo").value, total: document.querySelector("#cot-vol-total").textContent.replace(/\s+/g, " ") }));
+  R.add("VOL-03", "300 kg e 1 m³: soma a cubagem e sugere Montana", v1.sel === "Montana" && /2 volumes/.test(v1.total) && /1 m³/.test(v1.total) && /300 kg/.test(v1.total), JSON.stringify(v1));
+  await vol(2, 100, 100, 150);
+  const v2 = await p.evaluate(() => ({ sel: document.querySelector("#cot-veiculo").value, mont: document.querySelector('#cot-veiculo option[value="Montana"]').disabled }));
+  R.add("VOL-04", "Mesmo peso, 3 m³ (volumoso): Montana bloqueada, vai de Caminhão", v2.sel === "Caminhão" && v2.mont, JSON.stringify(v2));
+  await p.click("#cot-enviar"); await p.waitForSelector(".cot-comp-num", { timeout: 5000 }).catch(() => {});
+  const suc = (await p.textContent("#cot-sucesso")).replace(/\s+/g, " ");
+  R.add("VOL-05", "Comprovante mostra volumes, medidas e cubagem", /Cubagem/.test(suc) && /3 m³/.test(suc) && /2 × 100×100×150 cm/.test(suc), suc.slice(0, 200));
+  const bt = await p.evaluate(() => ({ dis: document.querySelector("#cot-enviar").disabled, txt: document.querySelector("#cot-enviar").textContent }));
+  R.add("INT-01", "Depois de cotar: botão bloqueado com contagem regressiva de 2 minutos", bt.dis && /Nova cotação em [12]:\d\d/.test(bt.txt), JSON.stringify(bt));
+  await p.goto(`${BASE}/cotacao.html`); await espera(p, 900);
+  R.add("INT-02", "A contagem continua depois de recarregar a página", /Nova cotação em/.test(await p.textContent("#cot-enviar")) && await p.$eval("#cot-enviar", (b) => b.disabled));
+  for (let i = 0; i < 2; i++) {   // mais duas cotações (zerando a espera) → só as 2 mais recentes ficam na lista
+    await p.evaluate(() => localStorage.removeItem("policoating_cotacao_ultima"));
+    await p.goto(`${BASE}/cotacao.html`); await espera(p, 900);
+    await dadosBasicos(p); await p.fill("#cot-peso", "100"); await vol(1, 50, 50, 50);
+    await p.click("#cot-enviar"); await p.waitForSelector(".cot-comp-num", { timeout: 5000 }).catch(() => {});
+  }
+  await p.click('[data-cot-aba="minhas"]'); await espera(p, 600);
+  const n1 = await p.$$eval("#cot-minhas [data-excluir]", (l) => l.length);
+  R.add("LIM-01", "Limite da config (2): a lista mostra só as 2 mais recentes, cada uma com botão de excluir", n1 === 2, String(n1));
+  p.once("dialog", (d) => d.accept());
+  await p.click("#cot-minhas [data-excluir]"); await espera(p, 600);
+  const n2 = await p.$$eval("#cot-minhas [data-excluir]", (l) => l.length);
+  R.add("LIM-02", "Excluir tira a cotação da lista (com confirmação)", n2 === 1, String(n2));
+  R.add("VOL-06", "Sem erros de JavaScript", !erros.length, erros.join(" | "));
   await ctx.close();
 }
 { // avisos: muda a situação da cotação → aparece no sino

@@ -2018,3 +2018,43 @@ end $$;
 revoke all on function public.saude_sistema() from public, anon;
 grant execute on function public.saude_sistema() to authenticated;
 notify pgrst, 'reload schema';
+
+-- ===========================================================
+-- PARTE AB — Lista de cotações do cliente: excluir e guardar só as mais recentes
+--   Rode depois da PARTE AA. O cliente pode tirar cotações da lista dele (botão Excluir) e a lista
+--   guarda só as mais recentes (10, ajustável no painel). A EQUIPE continua vendo todas até vencerem
+--   (7 dias); o número da cotação continua valendo para consulta.
+--   Desfazer: alter table public.cotacoes drop column oculta_cliente;
+--             drop function public.ocultar_minha_cotacao(text); drop function public.aparar_cotacoes_cliente(uuid, int);
+--             (e recriar a política "cliente ve suas cotacoes" sem o "not oculta_cliente")
+-- ===========================================================
+alter table public.cotacoes add column if not exists oculta_cliente boolean not null default false;
+drop policy if exists "cliente ve suas cotacoes" on public.cotacoes;
+create policy "cliente ve suas cotacoes" on public.cotacoes for select to authenticated
+  using (cliente_id = auth.uid() and expira_em > now() and not oculta_cliente);
+
+create or replace function public.ocultar_minha_cotacao(p_protocolo text)
+returns boolean language plpgsql security definer set search_path = public
+as $$
+begin
+  if auth.uid() is null then raise exception 'Entre na sua conta.'; end if;
+  update public.cotacoes set oculta_cliente = true where protocolo = upper(trim(p_protocolo)) and cliente_id = auth.uid();
+  return found;
+end $$;
+revoke all on function public.ocultar_minha_cotacao(text) from public, anon;
+grant execute on function public.ocultar_minha_cotacao(text) to authenticated;
+
+create or replace function public.aparar_cotacoes_cliente(p_cliente uuid, p_limite int default 10)
+returns int language plpgsql security definer set search_path = public
+as $$
+declare n int;
+begin
+  update public.cotacoes set oculta_cliente = true
+   where id in (select id from public.cotacoes where cliente_id = p_cliente and not oculta_cliente
+                 order by emitida_em desc offset greatest(coalesce(p_limite, 10), 1));
+  get diagnostics n = row_count;
+  return n;
+end $$;
+revoke all on function public.aparar_cotacoes_cliente(uuid, int) from public, anon, authenticated;
+grant execute on function public.aparar_cotacoes_cliente(uuid, int) to service_role;
+notify pgrst, 'reload schema';

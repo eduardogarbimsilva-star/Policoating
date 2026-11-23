@@ -993,7 +993,7 @@
                 <dt>Conta</dt><dd>${c.cliente_id ? "cliente com cadastro no site" : "sem login"}</dd>
                 ${(() => { const e = c.entrega || {}, R2 = COT.ROT || {}; return [
                   ["Tipo de local", (R2.tipo_local || {})[e.tipo_local]], ["Recebimento", (R2.horario || {})[e.horario]], ["Descarga", (R2.descarga || {})[e.descarga]],
-                  ["Agendamento", e.agendamento == null ? "" : e.agendamento ? "Precisa agendar" : "Não precisa"], ["Referência", e.referencia], ["Veículo", e.veiculo ? e.veiculo + (e.veiculo_peso_max ? ` (até ${e.veiculo_peso_max} kg)` : "") : ""], ["Precisa para", (R2.prazo_desejado || {})[e.prazo_desejado]]
+                  ["Agendamento", e.agendamento == null ? "" : e.agendamento ? "Precisa agendar" : "Não precisa"], ["Referência", e.referencia], ["Veículo", e.veiculo ? e.veiculo + (e.veiculo_peso_max ? ` (até ${e.veiculo_peso_max} kg${e.veiculo_volume_max ? ` e ${e.veiculo_volume_max} m³` : ""})` : "") : ""], ["Volumes", e.cubagem_m3 ? (e.volumes || []).map((v) => `${v.qtd} × ${v.c}×${v.l}×${v.a} cm`).join(" · ") + ` = ${String(e.cubagem_m3).replace(".", ",")} m³ (peso cubado ${String(e.peso_cubado_kg).replace(".", ",")} kg)` : ""], ["Precisa para", (R2.prazo_desejado || {})[e.prazo_desejado]]
                 ].filter(([, v]) => v).map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join(""); })()}
               </dl>
               <h5>Produtos</h5><ul class="cot-itens">${itens}</ul>
@@ -1095,14 +1095,21 @@
         ${CC.CAMPOS.filter((x) => x.etapa === et).map((x) => `<div class="cot-cfg-linha"><span>${esc(x.nome)}${x.k === "produtos" ? " <small>(sem produtos, cota só o frete com o peso informado)</small>" : ""}</span>
           <div class="cot-seg" role="radiogroup" aria-label="${esc(x.nome)}">${CC.MODOS.map((m) => `<button type="button" data-campo="${x.k}" data-modo="${m}" aria-pressed="${c.campos[x.k] === m}">${NOMES_MODO[m]}</button>`).join("")}</div></div>`).join("")}</div>`).join("");
       $("#cot-cfg-veic-ativo").checked = c.veiculos.ativo || (c.veiculos.lista.length > 0 && c.veiculos.ativoSalvo);
-      $("#cot-cfg-veiculos").innerHTML = (c.veiculos.lista.length ? c.veiculos.lista : [{ nome: "", pesoMax: "" }]).map((v, i) => `<div class="cot-cfg-veic" data-i="${i}">
-          <input placeholder="Veículo (ex.: Carro, Van, Caminhão 3/4)" maxlength="40" value="${esc(v.nome)}" data-v="nome" aria-label="Nome do veículo">
-          <label>até <input type="number" min="1" max="100000" step="1" value="${esc(v.pesoMax)}" data-v="pesoMax" aria-label="Peso máximo do veículo em kg"> kg</label>
-          <button type="button" class="cor-sem-foto" data-tirar-veic aria-label="Tirar veículo">✕</button></div>`).join("");
+      desenharVeiculosCfg(c.veiculos.lista);
       $("#cot-cfg-peso-ativo").checked = c.pesoMaximo.ativo; $("#cot-cfg-peso-kg").value = c.pesoMaximo.kg || "";
+      $$("#cot-cfg-vol-modo [data-vol]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.vol === c.volumetria.modo)));
+      $("#cot-cfg-vol-fator").value = c.volumetria.fator;
+      $("#cot-cfg-intervalo").value = c.intervaloMin; $("#cot-cfg-limite").value = c.limiteLista;
+    }
+    function desenharVeiculosCfg(lista) {
+      $("#cot-cfg-veiculos").innerHTML = (lista.length ? lista : [{ nome: "", pesoMax: "", volumeMax: "" }]).map((v, i) => `<div class="cot-cfg-veic" data-i="${i}">
+          <input placeholder="Veículo (ex.: Montana, Van, Caminhão)" maxlength="40" value="${esc(v.nome)}" data-v="nome" aria-label="Nome do veículo">
+          <label>até <input type="number" min="1" max="100000" step="1" value="${esc(v.pesoMax || "")}" data-v="pesoMax" placeholder="peso" aria-label="Peso máximo do veículo em kg"> kg</label>
+          <label>e <input type="number" min="0" max="1000" step="0.1" value="${esc(v.volumeMax || "")}" data-v="volumeMax" placeholder="opcional" aria-label="Volume máximo do veículo em metros cúbicos"> m³</label>
+          <button type="button" class="cor-sem-foto" data-tirar-veic aria-label="Tirar veículo">✕</button></div>`).join("");
     }
     function lerVeiculosCfg() {
-      return $$("#cot-cfg-veiculos .cot-cfg-veic").map((l) => ({ nome: $('[data-v="nome"]', l).value.trim(), pesoMax: Number($('[data-v="pesoMax"]', l).value) || 0 })).filter((v) => v.nome || v.pesoMax);
+      return $$("#cot-cfg-veiculos .cot-cfg-veic").map((l) => ({ nome: $('[data-v="nome"]', l).value.trim(), pesoMax: Number($('[data-v="pesoMax"]', l).value) || 0, volumeMax: Number(String($('[data-v="volumeMax"]', l).value).replace(",", ".")) || 0 })).filter((v) => v.nome || v.pesoMax);
     }
     async function carregarCfgCotacao() {
       if (!CC || !$("#cot-cfg")) return;
@@ -1119,11 +1126,17 @@
           $$(`[data-campo="${b.dataset.campo}"]`, $("#cot-cfg-campos")).forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
         });
         $("#cot-cfg-veic-add").addEventListener("click", () => {
-          cfgCotacao.veiculos.lista = lerVeiculosCfg().concat([{ nome: "", pesoMax: "" }]); cfgCotacao.veiculos.ativoSalvo = $("#cot-cfg-veic-ativo").checked;
-          const pa = $("#cot-cfg-peso-ativo").checked, pk = $("#cot-cfg-peso-kg").value;
-          desenharCfgCotacao(); $("#cot-cfg-peso-ativo").checked = pa; $("#cot-cfg-peso-kg").value = pk;
+          desenharVeiculosCfg(lerVeiculosCfg().concat([{ nome: "", pesoMax: "", volumeMax: "" }]));
           const ult = $$("#cot-cfg-veiculos [data-v=nome]").pop(); if (ult) ult.focus();
         });
+        // modelo pedido pelo cliente: abaixo de 750 kg (e não volumoso) vai de Montana; acima, caminhão
+        $("#cot-cfg-veic-modelo").addEventListener("click", () => {
+          desenharVeiculosCfg([{ nome: "Montana", pesoMax: 750, volumeMax: "" }, { nome: "Caminhão", pesoMax: "", volumeMax: "" }]);
+          $("#cot-cfg-veic-ativo").checked = true;
+          $("#cot-cfg-erro").textContent = "Preencha o peso máximo do caminhão (e, se quiser, o volume máximo da Montana para carga volumosa) e clique em Salvar.";
+          const k = $$('#cot-cfg-veiculos [data-v="pesoMax"]')[1]; if (k) k.focus();
+        });
+        $("#cot-cfg-vol-modo").addEventListener("click", (e) => { const b = e.target.closest("[data-vol]"); if (!b) return; $$("#cot-cfg-vol-modo [data-vol]").forEach((x) => x.setAttribute("aria-pressed", String(x === b))); });
         $("#cot-cfg-veiculos").addEventListener("click", (e) => { const t = e.target.closest("[data-tirar-veic]"); if (t) t.closest(".cot-cfg-veic").remove(); });
         $("#cot-cfg-padrao").addEventListener("click", () => { if (!confirm("Voltar o formulário ao padrão? (Clique em Salvar para confirmar.)")) return; cfgCotacao = CC.normalizar({}); desenharCfgCotacao(); });
         $("#cot-cfg-salvar").addEventListener("click", async (e) => {
@@ -1135,7 +1148,13 @@
           const pAtivo = $("#cot-cfg-peso-ativo").checked, pKg = Number($("#cot-cfg-peso-kg").value) || 0;
           if (pAtivo && !(pKg > 0)) return (erroEl.textContent = "Informe o peso máximo em kg, ou desmarque essa opção.");
           if (cfgCotacao.campos.telefone === "oculto" && cfgCotacao.campos.email === "oculto") return (erroEl.textContent = "Deixe o telefone ou o e-mail visível: a equipe precisa de um contato do cliente.");
-          const nova = { campos: Object.assign({}, cfgCotacao.campos), veiculos: { ativo: vAtivo, lista: veics }, pesoMaximo: { ativo: pAtivo, kg: pKg } };
+          const volModo = ($("#cot-cfg-vol-modo [aria-pressed=true]") || {}).dataset ? $("#cot-cfg-vol-modo [aria-pressed=true]").dataset.vol : "oculto";
+          const fator = Number($("#cot-cfg-vol-fator").value) || 300, intervalo = Number($("#cot-cfg-intervalo").value), limite = Number($("#cot-cfg-limite").value) || 10;
+          if (!(fator >= 1 && fator <= 2000)) return (erroEl.textContent = "Fator de cubagem entre 1 e 2000 kg por m³ (padrão 300).");
+          if (!(intervalo >= 0 && intervalo <= 60)) return (erroEl.textContent = "Intervalo entre cotações: de 0 a 60 minutos.");
+          if (!(limite >= 1 && limite <= 50)) return (erroEl.textContent = "Lista do cliente: de 1 a 50 cotações.");
+          const nova = { campos: Object.assign({}, cfgCotacao.campos), veiculos: { ativo: vAtivo, lista: veics }, pesoMaximo: { ativo: pAtivo, kg: pKg },
+            volumetria: { modo: volModo, fator: Math.round(fator) }, intervaloMin: Math.round(intervalo), limiteLista: Math.round(limite) };
           e.target.disabled = true;
           try {
             const cfg = await A.lerConfig();

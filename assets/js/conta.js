@@ -409,9 +409,13 @@
     try {
       const v = await C.minhas();
       $("#badge-cotacoes").textContent = v.length || "";
-      box.innerHTML = v.length ? v.map((c) => C.htmlCartao(c)).join("")
+      box.innerHTML = v.length ? v.map((c) => C.htmlCartao(c, { excluir: true })).join("")
         : `<div class="vazio cartao-info"><p>Nenhuma cotação nos últimos 7 dias.</p></div>`;
       C.ligarCopiar(box);
+      $$("[data-excluir]", box).forEach((x) => x.addEventListener("click", async () => {
+        if (!confirm(`Tirar a cotação ${x.dataset.excluir} da sua lista? O número continua valendo com o vendedor até vencer.`)) return;
+        await C.excluir(x.dataset.excluir); renderCotacoes();
+      }));
     } catch (err) { box.innerHTML = `<p class="erro">${esc(err.message)}</p>`; }
   }
 

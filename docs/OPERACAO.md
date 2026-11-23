@@ -26,15 +26,20 @@ com as 2 etapas; cada mudança fica no histórico, com quem, quando e o motivo).
 
 Outras configurações:
 - **Painel → Cotações → Configurar formulário**: cada campo da cotação obrigatório/opcional/oculto,
-  produto opcional, veículos com peso máximo e peso máximo por cotação.
+  produto opcional, veículos com peso máximo (e volume máximo opcional, ex.: Montana até 750 kg; acima,
+  caminhão — botão "Usar modelo Montana / Caminhão"), peso máximo por cotação, volumetria
+  (oculta/opcional/obrigatória, fator de cubagem padrão 300 kg/m³), intervalo entre cotações do mesmo
+  cliente (padrão 2 min, com contagem regressiva) e quantas cotações ficam na lista do cliente (padrão 10;
+  as mais antigas saem, e o cliente pode excluir as dele — a equipe continua vendo).
 - **Painel → Comércio e Recursos → Frete**: endereço de saída (fica só no servidor), tarifas e prazo estimado.
 
 ## 2. Banco (Supabase → SQL Editor)
 
 Rodar **na ordem**, cada parte uma vez (todas podem ser rodadas de novo sem quebrar):
-R → S → T → U → V → W → X → Y → Z → AA. Cada parte tem, no começo, o que faz e como **desfazer**.
+R → S → T → U → V → W → X → Y → Z → AA → AB. Cada parte tem, no começo, o que faz e como **desfazer**.
 
 - A PARTE AA exige a função `frete` nova publicada **antes** (a consulta pelo número passa por ela).
+- A PARTE AB (cliente excluir/aparar a própria lista) vem depois da AA e da função `frete` atualizada.
 - A limpeza das cotações vencidas usa a extensão **pg_cron** (Database → Extensions).
 
 Testado num Postgres local: o `setup.sql` inteiro roda duas vezes seguidas sem erro; todas as 21 tabelas

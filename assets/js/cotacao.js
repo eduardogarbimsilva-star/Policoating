@@ -54,9 +54,10 @@
     const agora = Date.now();
     const v = ler(K_MINHAS, []).filter((x) => x && x.protocolo !== c.protocolo && new Date(x.expira_em).getTime() > agora);
     v.unshift({ protocolo: c.protocolo, emitida_em: c.emitida_em, expira_em: c.expira_em });
-    gravar(K_MINHAS, v.slice(0, 50));
+    gravar(K_MINHAS, v.slice(0, limiteLista()));   // só as mais recentes (10, ajustável no painel)
   }
   const lembradas = () => ler(K_MINHAS, []).filter((x) => x && codigoValido(x.protocolo) && new Date(x.expira_em).getTime() > Date.now());
+  const limiteLista = () => ((window.CotacaoConfig && window.CotacaoConfig.normalizar((window.SITE_CONFIG || {}).cotacao)) || {}).limiteLista || 10;
   function esquecer(protocolo) { gravar(K_MINHAS, ler(K_MINHAS, []).filter((x) => x.protocolo !== protocolo)); }
 
   /* ---------- servidor ---------- */
@@ -153,7 +154,15 @@
     let mapa = null;
     try { mapa = await consultarVarios(locais.map((x) => x.protocolo)); } catch (e) { mapa = null; }   // sem conexão: não esquece nada
     if (mapa) locais.forEach((x) => { const c = mapa[x.protocolo]; if (c) porCodigo.set(c.protocolo, Object.assign(c, { doAparelho: true })); else esquecer(x.protocolo); });
-    return [...porCodigo.values()].sort((a, b) => String(b.emitida_em).localeCompare(String(a.emitida_em)));
+    return [...porCodigo.values()].sort((a, b) => String(b.emitida_em).localeCompare(String(a.emitida_em))).slice(0, limiteLista());
+  }
+
+  /** Cliente tira a cotação da lista dele (deste aparelho e, se estiver logado, da conta). A equipe continua vendo. */
+  async function excluir(protocolo) {
+    esquecer(protocolo);
+    const u = window.Conta && window.Conta.usuario;
+    if (!ONLINE) { if (u) gravar(K_DEMO, ler(K_DEMO, []).map((c) => (c.protocolo === protocolo && c.cliente_id === (u.id || u.email) ? Object.assign(c, { cliente_id: null }) : c))); return; }
+    if (u) { try { const sb = await window.Conta.cliente(); await sb.rpc("ocultar_minha_cotacao", { p_protocolo: protocolo }); } catch (e) { /* sem a PARTE AB: some só deste aparelho */ } }
   }
 
   /* ---------- equipe (painel) ---------- */
@@ -256,7 +265,7 @@
           <dl class="cot-dl">${linha("Endereço", end)}${linha("Distância", f.km != null ? `${km(f.km)} por estrada` : f.zona === "local" ? "entrega local" : "")}${linha("Recebedor", c.primeiro_nome ? esc(c.primeiro_nome) : c.nome ? esc(c.nome) : "")}</dl>
         </section>
         <section class="cot-comp-bloco"><h4>Entrega</h4>
-          <dl class="cot-dl">${linha("Tipo de local", esc(ROT.tipo_local[e.tipo_local] || ""))}${linha("Recebimento", esc(ROT.horario[e.horario] || ""))}${linha("Descarga", esc(ROT.descarga[e.descarga] || ""))}${e.agendamento != null ? linha("Agendamento", e.agendamento ? "Precisa agendar" : "Não precisa") : ""}${linha("Referência", esc(e.referencia || ""))}${linha("Veículo", e.veiculo ? esc(e.veiculo + (e.veiculo_peso_max ? ` (até ${e.veiculo_peso_max} kg)` : "")) : "")}${linha("Precisa para", esc(ROT.prazo_desejado[e.prazo_desejado] || ""))}</dl>
+          <dl class="cot-dl">${linha("Tipo de local", esc(ROT.tipo_local[e.tipo_local] || ""))}${linha("Recebimento", esc(ROT.horario[e.horario] || ""))}${linha("Descarga", esc(ROT.descarga[e.descarga] || ""))}${e.agendamento != null ? linha("Agendamento", e.agendamento ? "Precisa agendar" : "Não precisa") : ""}${linha("Referência", esc(e.referencia || ""))}${linha("Veículo", e.veiculo ? esc(e.veiculo + (e.veiculo_peso_max ? ` (até ${e.veiculo_peso_max} kg${e.veiculo_volume_max ? ` e ${String(e.veiculo_volume_max).replace(".", ",")} m³` : ""})` : "")) : "")}${e.cubagem_m3 ? linha("Volumes e medidas", esc((e.volumes || []).map((v) => `${v.qtd} × ${v.c}×${v.l}×${v.a} cm`).join(" · "))) + linha("Cubagem", `${String(e.cubagem_m3).replace(".", ",")} m³ · peso cubado ${String(e.peso_cubado_kg).replace(".", ",")} kg`) : ""}${linha("Precisa para", esc(ROT.prazo_desejado[e.prazo_desejado] || ""))}</dl>
           ${!Object.keys(e).length ? `<p class="cot-dica">Sem detalhes de entrega.</p>` : ""}
         </section>
         <section class="cot-comp-bloco cot-comp-largo"><h4>Carga</h4>${tabela}</section>
@@ -278,6 +287,7 @@
         <small>Emitida em ${dataHora(c.emitida_em)}${c.atualizado_em && c.atualizado_em !== c.emitida_em ? ` · atualizada em ${dataHora(c.atualizado_em)}` : ""} · Frete e prazo são estimativas; o vendedor confirma na proposta.</small>
         <div class="cot-acoes">
           <button type="button" class="btn btn-contorno-azul" data-imprimir>Imprimir / salvar PDF</button>
+          ${opcoes.excluir ? `<button type="button" class="btn cot-excluir" data-excluir="${esc(c.protocolo)}">Excluir da minha lista</button>` : ""}
           <button type="button" class="btn btn-contorno-azul" data-copiar-link="${esc(linkAcompanhar(c))}">Copiar link de acompanhamento</button>
           ${opcoes.whats !== false ? `<a class="btn btn-whats" target="_blank" rel="noopener" href="${esc(linkWhats(c))}">Falar com o vendedor</a>` : ""}
         </div>
@@ -324,5 +334,5 @@
   document.addEventListener("recursos-atualizados", menu);
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", menu); else menu();
 
-  window.Cotacao = { lista, enviar, consultar, minhas, lembradas, equipe, STATUS, ROT, volumes, prazoTxt, htmlComprovante, htmlCartao, htmlFrete, ligarCopiar, linkWhats, normalizarCodigo, codigoValido, pesoKg, dataHora, reais, online: ONLINE, HORAS };
+  window.Cotacao = { lista, enviar, consultar, minhas, lembradas, excluir, limiteLista, equipe, STATUS, ROT, volumes, prazoTxt, htmlComprovante, htmlCartao, htmlFrete, ligarCopiar, linkWhats, normalizarCodigo, codigoValido, pesoKg, dataHora, reais, online: ONLINE, HORAS };
 })();

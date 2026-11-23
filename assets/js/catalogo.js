@@ -120,12 +120,22 @@
     const campos = {};
     CAMPOS_COTACAO.forEach((c) => { const m = (d.campos || {})[c.k]; campos[c.k] = MODOS.includes(m) ? m : c.padrao; });
     if (campos.telefone === "oculto" && campos.email === "oculto") campos.telefone = "obrigatorio";   // sempre há um contato
+    const num = (v, min, max) => { const n = Number(v); return isFinite(n) && n >= min && n <= max ? n : 0; };
     const v = d.veiculos && typeof d.veiculos === "object" ? d.veiculos : {};
-    const lista = (Array.isArray(v.lista) ? v.lista : []).map((x) => ({ nome: String((x && x.nome) || "").replace(/\s+/g, " ").trim().slice(0, 40), pesoMax: Math.round(Number(x && x.pesoMax) || 0) }))
-      .filter((x) => x.nome && x.pesoMax > 0 && x.pesoMax <= 100000).slice(0, 12).sort((a, b) => a.pesoMax - b.pesoMax);
+    const lista = (Array.isArray(v.lista) ? v.lista : []).map((x) => ({ nome: String((x && x.nome) || "").replace(/\s+/g, " ").trim().slice(0, 40), pesoMax: Math.round(num(x && x.pesoMax, 1, 100000)), volumeMax: Math.round(num(x && x.volumeMax, 0.01, 1000) * 100) / 100 }))
+      .filter((x) => x.nome && x.pesoMax > 0).slice(0, 12).sort((a, b) => a.pesoMax - b.pesoMax || (a.volumeMax || 1e9) - (b.volumeMax || 1e9));
     const pm = d.pesoMaximo && typeof d.pesoMaximo === "object" ? d.pesoMaximo : {};
-    const kg = Math.round(Number(pm.kg) || 0);
-    return { campos, veiculos: { ativo: !!v.ativo && lista.length > 0, lista }, pesoMaximo: { ativo: !!pm.ativo && kg > 0, kg: kg > 0 && kg <= 100000 ? kg : 0 } };
+    const kg = Math.round(num(pm.kg, 1, 100000));
+    const vol = d.volumetria && typeof d.volumetria === "object" ? d.volumetria : {};
+    return {
+      campos,
+      veiculos: { ativo: !!v.ativo && lista.length > 0, lista },
+      pesoMaximo: { ativo: !!pm.ativo && kg > 0, kg },
+      // volumetria (dimensões e cubagem): oculto | opcional | obrigatorio; fator de cubagem em kg por m³
+      volumetria: { modo: MODOS.includes(vol.modo) ? vol.modo : "oculto", fator: Math.round(num(vol.fator, 1, 2000)) || 300 },
+      intervaloMin: d.intervaloMin == null ? 2 : Math.round(num(d.intervaloMin, 0, 60)),   // espera entre cotações do mesmo aparelho
+      limiteLista: Math.round(num(d.limiteLista, 1, 50)) || 10                             // cotações guardadas na lista do cliente
+    };
   }
   window.CotacaoConfig = { CAMPOS: CAMPOS_COTACAO, MODOS, normalizar: configCotacao };
 

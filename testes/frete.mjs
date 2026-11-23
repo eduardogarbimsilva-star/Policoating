@@ -29,7 +29,7 @@ const d = F.distanciaRetaM({ lat: -21.6033, lng: -48.3658 }, { lat: -21.7845, ln
 R.add("V31-E05-12", "Linha reta Matão → Araraquara ≈ 28 km", d > 26000 && d < 30000, Math.round(d) + " m");
 
 /* ---------- função completa com serviços imitados ---------- */
-function imitar({ recursoLigado = true, disponivel = true, cep = { logradouro: "Avenida Brasil", localidade: "Araraquara", uf: "SP" }, geo = { lat: -21.7845, lng: -48.178 }, rotaM = 33000, admin = false, jaFeitos = 0, cfg = CFG, cotacaoLigada = true, freteLigado = recursoLigado, cotacoesHora = 0, usuario = null, colisoes = 0, formCfg = null, consultasRecentes = [], existentes = ["COT-AAAA-BBBB-CC"] } = {}) {
+function imitar({ recursoLigado = true, disponivel = true, cep = { logradouro: "Avenida Brasil", localidade: "Araraquara", uf: "SP" }, geo = { lat: -21.7845, lng: -48.178 }, rotaM = 33000, admin = false, jaFeitos = 0, cfg = CFG, cotacaoLigada = true, freteLigado = recursoLigado, cotacoesHora = 0, usuario = null, colisoes = 0, formCfg = null, consultasRecentes = [], existentes = ["COT-AAAA-BBBB-CC"], ultimaCotacaoHa = null } = {}) {
   const log = { inseridos: [], orsGeo: 0, orsRota: 0, cotacoes: [] };
   globalThis.fetch = async (url, init = {}) => {
     const u = String(url);
@@ -45,6 +45,8 @@ function imitar({ recursoLigado = true, disponivel = true, cep = { logradouro: "
     if (u.includes("/rest/v1/configuracoes")) return json(formCfg ? [{ dados: { cotacao: formCfg } }] : []);
     if (u.includes("/auth/v1/user")) return usuario ? json(usuario) : json({ msg: "invalid" }, 401);
     if (u.includes("/rest/v1/recursos")) return json([{ ligado: u.includes("b2b_quote_enabled") ? cotacaoLigada : freteLigado, implementado: true }]);
+    if (u.includes("/rpc/aparar_cotacoes_cliente")) { log.aparou = JSON.parse(init.body); return json(null); }
+    if (u.includes("/rest/v1/cotacoes?select=emitida_em")) return json(ultimaCotacaoHa == null ? [] : [{ emitida_em: new Date(Date.now() - ultimaCotacaoHa * 1000).toISOString() }]);
     if (u.includes("/rest/v1/cotacoes") && init.method === "HEAD") return new Response(null, { headers: { "content-range": `0-0/${cotacoesHora}` } });
     if (u.includes("/rest/v1/cotacoes")) {
       const linha = JSON.parse(init.body); log.cotacoes.push(linha);
@@ -166,5 +168,23 @@ x = await chamar({ acao: "consultar", protocolos: ["abc"] });
 R.add("V31-E13-02d", "Número incompleto: erro claro", x.status === 400);
 const fonte = (await import("node:fs")).readFileSync(new URL("../supabase/functions/frete/index.ts", import.meta.url), "utf8");
 R.add("V31-E13-03", "A função não grava nada em log do servidor (sem console.log de pedido, CPF ou telefone)", !/console\.(log|info|warn|error)\(/.test(fonte));
+
+/* ---------- intervalo entre cotações, lista do cliente, volumetria ---------- */
+x = await chamar(SO_FRETE, { ultimaCotacaoHa: 30 });
+R.add("COT-INT-01", "Intervalo de 2 minutos (padrão): cotação 30 s depois da anterior é recusada com o tempo de espera", x.status === 429 && x.d.espera_s >= 85 && x.d.espera_s <= 90, JSON.stringify(x.d));
+x = await chamar(SO_FRETE, { ultimaCotacaoHa: 30, formCfg: { intervaloMin: 0 } });
+R.add("COT-INT-02", "Intervalo desligado no painel (0): permite", x.status === 200);
+x = await chamar(SO_FRETE, { usuario: { id: "u-9", email: "c@x.com" }, formCfg: { limiteLista: 10 } }, "aaa.bbb.ccc");
+R.add("COT-LIM-01", "Cliente logado: depois de gravar, a lista dele fica só com as 10 mais recentes", x.status === 200 && x.log.aparou && x.log.aparou.p_cliente === "u-9" && x.log.aparou.p_limite === 10);
+const VOL = { volumetria: { modo: "obrigatorio", fator: 300 } };
+x = await chamar(SO_FRETE, { formCfg: VOL });
+R.add("COT-VOL-01", "Volumetria obrigatória: sem medidas é recusado", x.status === 400 && /medidas/.test(x.d.erro));
+x = await chamar({ ...SO_FRETE, entrega: { volumes: [{ qtd: 2, c: 100, l: 50, a: 40 }] } }, { formCfg: VOL });
+R.add("COT-VOL-02", "2 volumes de 100×50×40 cm = 0,4 m³; peso cubado 120 kg (fator 300)", x.status === 200 && x.log.cotacoes[0].entrega.cubagem_m3 === 0.4 && x.log.cotacoes[0].entrega.peso_cubado_kg === 120, JSON.stringify(x.log.cotacoes[0] && x.log.cotacoes[0].entrega));
+const MONT = { volumetria: { modo: "opcional" }, veiculos: { ativo: true, lista: [{ nome: "Montana", pesoMax: 750, volumeMax: 1 }, { nome: "Caminhão", pesoMax: 10000 }] } };
+x = await chamar({ ...SO_FRETE, entrega: { veiculo: "Montana", volumes: [{ qtd: 3, c: 120, l: 80, a: 100 }] } }, { formCfg: MONT });
+R.add("COT-VOL-03", "Montana (até 750 kg e 1 m³): carga volumosa de 2,88 m³ não vai de Montana", x.status === 400 && /Montana leva até 1 m³/.test(x.d.erro), JSON.stringify(x.d));
+x = await chamar({ ...SO_FRETE, entrega: { veiculo: "Caminhão", volumes: [{ qtd: 3, c: 120, l: 80, a: 100 }] } }, { formCfg: MONT });
+R.add("COT-VOL-04", "A mesma carga vai de Caminhão", x.status === 200 && x.log.cotacoes[0].entrega.veiculo === "Caminhão");
 
 process.exitCode = R.imprimir() ? 1 : 0;

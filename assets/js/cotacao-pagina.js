@@ -181,7 +181,8 @@
     $("#cot-r-prazo").textContent = temValor ? C.prazoTxt(f) : "—";
     const semProdOk = modo("produtos") !== "obrigatorio";
     $("#cot-r-frete").textContent = !endCep ? "informe o CEP" : !itens.length && !semProdOk ? "adicione produtos" : !f ? "calculando…" : temValor ? reais(f.valor) : "pelo vendedor";
-    $("#cot-r-frete-obs").textContent = temValor ? (f.regra || "") : f && f.erro ? f.erro : endCep && f ? "O vendedor informa o frete na proposta." : "";
+    $("#cot-r-frete-obs").textContent = temValor ? (f.regra || "") : f && f.erro ? f.erro : endCep && f ? (f.mensagem ? "Não deu para calcular automaticamente: o vendedor informa o frete na proposta." : "O vendedor informa o frete na proposta.") : "";
+    if (endCep && !f && (itens.length || semProdOk)) $("#cot-r-frete-obs").textContent = "Calculando a rota por estrada saindo de Matão-SP. Para outros estados pode levar até 30 segundos.";
     atualizarVeiculos();
     progresso();
   }
@@ -205,23 +206,59 @@
     const liP = $('#cot-progresso [data-etapa="produtos"]'); if (liP) liP.hidden = prod === "oculto";
     $("#cot-prod-opc").hidden = prod !== "opcional";
     $$("#cot-progresso li:not([hidden]) a span").forEach((sp, i) => (sp.textContent = String(i + 1)));
+    contagem();
     $$(".cot-etapa:not([hidden]) .cot-etapa-topo .cot-num").forEach((sp, i) => (sp.textContent = String(i + 1)));
     desenharItens();
     $('[data-campo-cot="veiculo"]').hidden = !cfg.veiculos.ativo;
+    $("#cot-vol").hidden = cfg.volumetria.modo === "oculto";
+    $("#cot-vol-opc").hidden = cfg.volumetria.modo !== "opcional";
+    $("#cot-r-cub-linha").hidden = cfg.volumetria.modo === "oculto";
+    if (cfg.volumetria.modo !== "oculto" && !$("#cot-vol-linhas").children.length) desenharVolumes();
     $("#cot-r-veiculo-linha").hidden = !cfg.veiculos.ativo;
     atualizarVeiculos(); progresso();
   }
   let veiculoEscolhido = "";
+  /* volumetria: linhas de volumes (quantidade × comprimento × largura × altura, em cm) */
+  let volumes = [{ qtd: 1, c: "", l: "", a: "" }];
+  const m3Total = () => Math.round(volumes.reduce((t, v) => t + (+v.qtd > 0 && +v.c > 0 && +v.l > 0 && +v.a > 0 ? v.qtd * v.c * v.l * v.a / 1e6 : 0), 0) * 1000) / 1000;
+  const volumesValidos = () => volumes.filter((v) => +v.qtd >= 1 && +v.c > 0 && +v.l > 0 && +v.a > 0).map((v) => ({ qtd: Math.round(+v.qtd), c: +v.c, l: +v.l, a: +v.a }));
+  const fmtM3 = (n) => `${Number(n).toLocaleString("pt-BR", { maximumFractionDigits: 3 })} m³`;
+  function desenharVolumes() {
+    const box = $("#cot-vol-linhas"); if (!box) return;
+    box.innerHTML = volumes.map((v, i) => `<div class="cot-vol-linha" data-i="${i}">
+      <label>Qtd.<input type="number" min="1" max="9999" step="1" inputmode="numeric" data-v="qtd" value="${esc(v.qtd)}"></label>
+      <label>Compr. (cm)<input type="number" min="1" max="2000" step="1" inputmode="decimal" data-v="c" value="${esc(v.c)}"></label>
+      <label>Larg. (cm)<input type="number" min="1" max="2000" step="1" inputmode="decimal" data-v="l" value="${esc(v.l)}"></label>
+      <label>Alt. (cm)<input type="number" min="1" max="2000" step="1" inputmode="decimal" data-v="a" value="${esc(v.a)}"></label>
+      <button type="button" class="cot-tirar" data-tirar-vol aria-label="Tirar volume"${volumes.length === 1 ? " hidden" : ""}>✕</button></div>`).join("");
+    totalVolumes();
+  }
+  function totalVolumes() {
+    const cfg = cfgForm(), m3 = m3Total(), qtd = volumesValidos().reduce((t, v) => t + v.qtd, 0);
+    const cub = Math.round(m3 * cfg.volumetria.fator * 100) / 100;
+    $("#cot-vol-total").innerHTML = m3 ? `<b>${qtd} ${qtd === 1 ? "volume" : "volumes"}</b> · cubagem <b>${fmtM3(m3)}</b> · peso cubado <b>${fmtKg(cub)}</b> <small>(fator ${cfg.volumetria.fator} kg/m³)</small>` : "";
+    $("#cot-r-cub").textContent = m3 ? fmtM3(m3) : "—";
+  }
+  $("#cot-vol-linhas").addEventListener("input", (e) => {
+    const inp = e.target.closest("[data-v]"); if (!inp) return;
+    volumes[+inp.closest(".cot-vol-linha").dataset.i][inp.dataset.v] = inp.value;
+    totalVolumes(); atualizarVeiculos(); progresso();
+  });
+  $("#cot-vol-linhas").addEventListener("click", (e) => { const b = e.target.closest("[data-tirar-vol]"); if (!b) return; volumes.splice(+b.closest(".cot-vol-linha").dataset.i, 1); desenharVolumes(); atualizarVeiculos(); });
+  $("#cot-vol-add").addEventListener("click", () => { volumes.push({ qtd: 1, c: "", l: "", a: "" }); desenharVolumes(); const ult = $$("#cot-vol-linhas [data-v=c]").pop(); if (ult) ult.focus(); });
   function atualizarVeiculos() {
     const cfg = cfgForm(), sel = $("#cot-veiculo"), dica = $("#cot-veiculo-dica"); if (!sel) return;
     const peso = pesoAtual(), pm = cfg.pesoMaximo;
     let msg = pm.ativo && peso > pm.kg ? `Acima do peso máximo por cotação (${fmtKg(pm.kg)}). Fale com o vendedor ou divida o pedido.` : "";
     if (!cfg.veiculos.ativo) { dica.textContent = msg; $("#cot-r-veiculo").textContent = "—"; return; }
-    const cabe = cfg.veiculos.lista.filter((v) => v.pesoMax >= peso);
+    const m3 = cfg.volumetria.modo !== "oculto" ? m3Total() : 0;
+    const leva = (v) => v.pesoMax >= peso && (!v.volumeMax || m3 <= v.volumeMax);
+    const cabe = cfg.veiculos.lista.filter(leva);
     if (!cabe.find((v) => v.nome === veiculoEscolhido)) veiculoEscolhido = cabe.length ? cabe[0].nome : "";
     sel.innerHTML = `<option value="">${cabe.length ? "Selecione…" : "Nenhum veículo comporta este peso"}</option>` +
-      cfg.veiculos.lista.map((v) => `<option value="${esc(v.nome)}"${v.pesoMax < peso ? " disabled" : ""}${v.nome === veiculoEscolhido ? " selected" : ""}>${esc(v.nome)} — até ${fmtKg(v.pesoMax)}</option>`).join("");
-    if (!msg) msg = !cabe.length ? `Nenhum veículo cadastrado leva ${fmtKg(peso)}. Fale com o vendedor.` : peso ? `Sugerido pelo peso (${fmtKg(peso)}): ${cabe[0].nome}.` : "";
+      cfg.veiculos.lista.map((v) => `<option value="${esc(v.nome)}"${!leva(v) ? " disabled" : ""}${v.nome === veiculoEscolhido ? " selected" : ""}>${esc(v.nome)} — até ${fmtKg(v.pesoMax)}${v.volumeMax ? ` e ${fmtM3(v.volumeMax)}` : ""}</option>`).join("");
+    const carga = `${fmtKg(peso)}${m3 ? ` e ${fmtM3(m3)}` : ""}`;
+    if (!msg) msg = !cabe.length ? `Nenhum veículo cadastrado leva ${carga}. Fale com o vendedor.` : peso || m3 ? `Sugerido pela carga (${carga}): ${cabe[0].nome}.` : "";
     dica.textContent = msg;
     $("#cot-r-veiculo").textContent = veiculoEscolhido || "—";
   }
@@ -239,7 +276,8 @@
         preenche("tipo_local", !!valorRadio("tipo_local")) && sel("horario", "#cot-horario") && sel("descarga", "#cot-descarga") && sel("agendamento", "#cot-agenda"),
       dados: preenche("nome", $("#cot-nome").value.trim().length >= 3) && preenche("documento", docValido(d)) && preenche("telefone", /^\d{10,11}$/.test(tel)) && preenche("email", !!email),
       detalhes: preenche("descricao", $("#cot-desc").value.trim().length >= 20) && sel("prazo_desejado", "#cot-prazo") && preenche("peso", pesoAtual() > 0) &&
-        (!cfgForm().veiculos.ativo || !!veiculoEscolhido) && !(cfgForm().pesoMaximo.ativo && pesoAtual() > cfgForm().pesoMaximo.kg)
+        (!cfgForm().veiculos.ativo || !!veiculoEscolhido) && !(cfgForm().pesoMaximo.ativo && pesoAtual() > cfgForm().pesoMaximo.kg) &&
+        (cfgForm().volumetria.modo !== "obrigatorio" || volumesValidos().length > 0)
     };
   }
   function progresso() { const ok = etapasOk(); $$("#cot-progresso [data-etapa]").forEach((li) => li.classList.toggle("feito", !!ok[li.dataset.etapa])); }
@@ -264,6 +302,24 @@
     resumo();
   }
 
+  /* ---------- intervalo entre cotações (contagem regressiva) ---------- */
+  const K_ULTIMA = "policoating_cotacao_ultima";
+  let timerEspera = 0;
+  const lerUltima = () => { try { return +localStorage.getItem(K_ULTIMA) || 0; } catch (e) { return 0; } };
+  function marcarUltima(seg) { try { localStorage.setItem(K_ULTIMA, String(seg != null ? Date.now() - (cfgForm().intervaloMin * 60 - seg) * 1000 : Date.now())); } catch (e) { /* */ } contagem(); }
+  function contagem() {
+    clearInterval(timerEspera);
+    const bt = $("#cot-enviar");
+    const tick = () => {
+      const fim = lerUltima() + cfgForm().intervaloMin * 60000, falta = Math.ceil((fim - Date.now()) / 1000);
+      if (cfgForm().intervaloMin > 0 && falta > 0) {
+        bt.disabled = true; bt.classList.add("cot-esperando");
+        bt.textContent = `Nova cotação em ${Math.floor(falta / 60)}:${String(falta % 60).padStart(2, "0")}`;
+      } else { clearInterval(timerEspera); bt.disabled = false; bt.classList.remove("cot-esperando"); bt.textContent = "Cotar frete e produtos"; }
+    };
+    tick(); timerEspera = setInterval(tick, 1000);
+  }
+
   /* ---------- enviar ---------- */
   $("#cot-form").addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -276,7 +332,10 @@
     if (mostra("agendamento") && $("#cot-agenda").value) entrega.agendamento = $("#cot-agenda").value === "sim";
     if (mostra("tipo_local") && valorRadio("tipo_local")) entrega.tipo_local = valorRadio("tipo_local");
     if (mostra("referencia") && $("#cot-ref").value.trim()) entrega.referencia = $("#cot-ref").value.trim();
-    if (cfg.veiculos.ativo && veiculoEscolhido) { entrega.veiculo = veiculoEscolhido; const vv = cfg.veiculos.lista.find((x) => x.nome === veiculoEscolhido); if (vv) entrega.veiculo_peso_max = vv.pesoMax; }
+    if (cfg.volumetria.modo !== "oculto" && volumesValidos().length) {
+      entrega.volumes = volumesValidos(); entrega.cubagem_m3 = m3Total(); entrega.peso_cubado_kg = Math.round(m3Total() * cfg.volumetria.fator * 100) / 100; entrega.fator_cubagem = cfg.volumetria.fator;
+    }
+    if (cfg.veiculos.ativo && veiculoEscolhido) { entrega.veiculo = veiculoEscolhido; const vv = cfg.veiculos.lista.find((x) => x.nome === veiculoEscolhido); if (vv) { entrega.veiculo_peso_max = vv.pesoMax; if (vv.volumeMax) entrega.veiculo_volume_max = vv.volumeMax; } }
     const d = {
       nome: val("nome", $("#cot-nome").value.trim()), documento: val("documento", so($("#cot-doc").value)), telefone: val("telefone", so($("#cot-tel").value)), email: val("email", $("#cot-email").value.trim()),
       cep: so($("#cot-cep").value), logradouro: val("logradouro", $("#cot-rua").value.trim()), numero: val("numero", $("#cot-numero").value.trim()), complemento: val("complemento", $("#cot-compl").value.trim()),
@@ -306,19 +365,21 @@
     if (falta("prazo_desejado", !entrega.prazo_desejado)) return erro("Diga para quando precisa.", "#cot-prazo");
     if ((exige("peso") || (!itens.length && mostra("peso"))) && !(peso > 0)) return erro(itens.length ? "Informe o peso total." : "Sem produtos na lista: informe o peso total da carga.", "#cot-peso");
     if (cfg.pesoMaximo.ativo && peso > cfg.pesoMaximo.kg) return erro(`O peso (${fmtKg(peso)}) passa do máximo por cotação (${fmtKg(cfg.pesoMaximo.kg)}). Fale com o vendedor.`, "#cot-peso");
+    if (cfg.volumetria.modo === "obrigatorio" && !volumesValidos().length) return erro("Informe as medidas dos volumes (quantidade, comprimento, largura e altura).", "#cot-vol-linhas input");
     if (cfg.veiculos.ativo && !veiculoEscolhido) return erro("Nenhum veículo cadastrado comporta esse peso. Fale com o vendedor.", "#cot-veiculo");
     erro("");
     const bt = $("#cot-enviar"); bt.disabled = true; bt.textContent = "Cotando…";
     const fimAnim = window.CotacaoAnimacao ? window.CotacaoAnimacao.mostrar() : async () => {};
     try {
       let r;
-      try { r = await C.enviar(d); } catch (errEnvio) { await fimAnim(false); throw errEnvio; }
+      try { r = await C.enviar(d); } catch (errEnvio) { await fimAnim(false); const m = /Aguarde (\d+) segundos/.exec(errEnvio.message || ""); if (m) marcarUltima(+m[1]); throw errEnvio; }
+      marcarUltima();
       await fimAnim(true);
       C.lista.limpar();
       const fr = r.frete && r.frete.zona !== "manual" ? r.frete : freteAtual && freteAtual.valor != null && !C.online ? freteAtual : r.frete;
       mostrarSucesso(Object.assign({}, d, r, { status: r.status || "recebida", itens: r.itens || d.itens, frete: fr, entrega: r.entrega || d.entrega }));
     } catch (err) { erro(err.message); }
-    finally { bt.disabled = false; bt.textContent = "Cotar frete e produtos"; }
+    finally { bt.disabled = false; bt.textContent = "Cotar frete e produtos"; contagem(); }
   });
   function mostrarSucesso(c) {
     $("#cot-form").hidden = true; $("#cot-progresso").hidden = true;
@@ -356,13 +417,17 @@
   /* ---------- minhas ---------- */
   async function desenharMinhas() {
     const box = $("#cot-minhas"), u = window.Conta && window.Conta.usuario;
-    $("#cot-minhas-dica").innerHTML = u ? "As cotações da sua conta e as feitas neste aparelho, dos últimos 7 dias." : `As cotações feitas neste aparelho nos últimos 7 dias. <a href="conta">Entre na sua conta</a> para ver também as feitas em outros aparelhos.`;
+    $("#cot-minhas-dica").innerHTML = u ? `As cotações da sua conta e as feitas neste aparelho, dos últimos 7 dias (até ${C.limiteLista()}; as mais antigas saem da lista).` : `As cotações feitas neste aparelho nos últimos 7 dias. <a href="conta">Entre na sua conta</a> para ver também as feitas em outros aparelhos.`;
     box.innerHTML = `<p class="carregando">Carregando…</p>`;
     try {
       const v = await C.minhas();
-      box.innerHTML = v.length ? v.map((c) => C.htmlCartao(c)).join("") : `<div class="cot-vazio"><strong>Nenhuma cotação nos últimos 7 dias.</strong><span><button type="button" class="btn btn-primario" data-ir-nova>Fazer uma cotação</button></span></div>`;
+      box.innerHTML = v.length ? v.map((c) => C.htmlCartao(c, { excluir: true })).join("") : `<div class="cot-vazio"><strong>Nenhuma cotação nos últimos 7 dias.</strong><span><button type="button" class="btn btn-primario" data-ir-nova>Fazer uma cotação</button></span></div>`;
       C.ligarCopiar(box);
       const b = $("[data-ir-nova]", box); if (b) b.addEventListener("click", () => abrir("nova"));
+      $$("[data-excluir]", box).forEach((x) => x.addEventListener("click", async () => {
+        if (!confirm(`Excluir a cotação ${x.dataset.excluir} da sua lista? O número continua valendo com o vendedor até vencer.`)) return;
+        await C.excluir(x.dataset.excluir); desenharMinhas();
+      }));
       $("#cot-badge").textContent = v.length || "";
     } catch (err) { box.innerHTML = `<p class="erro">${esc(err.message)}</p>`; }
   }

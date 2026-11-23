@@ -24,8 +24,11 @@
     const headers = { apikey: SB.anonKey, "Content-Type": "application/json" };
     if (comLogin) { const t = await tokenSessao(); if (t) headers.Authorization = "Bearer " + t; }
     let r;
-    try { r = await fetch(`${SB.url}/functions/v1/frete`, { method: "POST", headers, body: JSON.stringify(corpo) }); }
-    catch (e) { throw new Error("Não foi possível calcular agora. Verifique a internet ou fale com o vendedor."); }
+    // rotas longas (ex.: outro estado) podem levar alguns segundos; passou de 35 s, desiste com mensagem clara
+    const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), 35000);
+    try { r = await fetch(`${SB.url}/functions/v1/frete`, { method: "POST", headers, body: JSON.stringify(corpo), signal: ctl.signal }); }
+    catch (e) { throw new Error(e.name === "AbortError" ? "O cálculo demorou demais. O vendedor informa o frete na proposta." : "Não foi possível calcular agora. Verifique a internet ou fale com o vendedor."); }
+    finally { clearTimeout(t); }
     let d = {}; try { d = await r.json(); } catch (e) { /* resposta sem JSON */ }
     if (r.status === 404 && !d.erro) throw new Error("A função de frete ainda não foi publicada no Supabase.");
     if (!r.ok) throw new Error(d.erro || "Não foi possível calcular agora.");

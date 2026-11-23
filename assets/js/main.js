@@ -1166,7 +1166,7 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
       let li = $(".menu-painel", m);
       if (!papel) { if (li) li.remove(); return; }
       if (!li) { li = document.createElement("li"); li.className = "menu-painel"; m.appendChild(li); }
-      li.innerHTML = `<a href="admin">${ic("grafico")}${papel === "admin" ? "Painel" : "Pedidos"}</a>`;
+      li.innerHTML = `<a href="admin" title="${papel === "admin" ? "Painel" : "Pedidos"}">${ic("grafico")}<span class="rotulo-painel">${papel === "admin" ? "Painel" : "Pedidos"}</span></a>`;
     });
   }
 

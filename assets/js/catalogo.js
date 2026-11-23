@@ -41,7 +41,8 @@
     return !!(p && typeof p.id === "string" && /^[a-z0-9-]{2,60}$/.test(p.id) && p.nome && typeof p.categoria === "string" && p.categoria &&
       Array.isArray(p.cores) && p.cores.length && p.cores.every((c) => c && c.nome && /^#[0-9a-f]{6}$/i.test(c.hex) &&
         (!c.foto || /^(https:\/\/|data:image\/(jpeg|png|webp);base64,|assets\/)/.test(c.foto))) &&
-      Array.isArray(p.embalagens) && p.embalagens.length && (!p.ficha || /^https:\/\//.test(p.ficha)) &&
+      Array.isArray(p.embalagens) && p.embalagens.length && (!p.ficha || /^https:\/\//.test(p.ficha)) && (!p.fds || /^https:\/\//.test(p.fds)) &&
+      (p.precoKg5 == null || num(p.precoKg5) >= 0) &&
       (p.preco == null || num(p.preco) >= 0) && (p.precoPromo == null || num(p.precoPromo) >= 0) &&
       (p.fotos == null || (Array.isArray(p.fotos) && p.fotos.every(fotoOk))) &&
       (!p.video || (typeof p.video === "string" && /^https:\/\//.test(p.video))));

@@ -47,7 +47,7 @@
       d.offers = CAIXAS.map((emb) => {
         const kg = kgDe(emb), o = {
           "@type": "Offer", sku: `${d.sku}-${kg}KG`, name: `${p.nome} — ${emb}`, url: urlProduto(p, emb),
-          price: (pi.efetivo * kg).toFixed(2), priceCurrency: "BRL", itemCondition: "https://schema.org/NewCondition",
+          price: (CW.precoInfo(p, emb).efetivo * kg).toFixed(2), priceCurrency: "BRL", itemCondition: "https://schema.org/NewCondition",
           availability: "https://schema.org/InStock", seller: { "@type": "Organization", name: "Policoating" },
           hasMerchantReturnPolicy: { "@type": "MerchantReturnPolicy", applicableCountry: "BR", returnPolicyCategory: "https://schema.org/MerchantReturnFiniteReturnWindow", merchantReturnDays: 7, merchantReturnLink: `${SITE}/trocas` }
         };
@@ -128,11 +128,16 @@
         </ul>
       </div>
     </article>
+    ${R && R.disponivel("product_docs_enabled", p) ? `<section class="pp-docs"><h2>Documentos técnicos</h2><div class="pp-docs-lista">
+      ${[["Ficha técnica (boletim técnico)", p.ficha, "Dados de aplicação, cura, rendimento e desempenho."], ["FDS — Ficha de Dados de Segurança", p.fds, "Manuseio, armazenagem, transporte e primeiros socorros."]].map(([t, u, d]) => /^https:\/\//.test(u || "")
+        ? `<a class="pp-doc" href="${esc(u)}" target="_blank" rel="noopener"><span class="pp-doc-ico" aria-hidden="true">PDF</span><span><b>${t}</b><small>${d}</small></span></a>`
+        : `<a class="pp-doc pp-doc-pedir" target="_blank" rel="noopener" href="${esc(CW.linkWhatsApp(`Olá! Gostaria de receber a ${t} do produto *${p.nome}* (código ${p.codigo || p.id}).`))}"><span class="pp-doc-ico" aria-hidden="true">?</span><span><b>${t}</b><small>Pedir pelo WhatsApp</small></span></a>`).join("")}
+    </div></section>` : ""}
     ${ficha.length ? `<section class="pp-ficha"><h2>Ficha do produto</h2><dl>${ficha.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join("")}<div><dt>Cor</dt><dd>${esc(cor.nome)}</dd></div></dl></section>` : ""}`;
 
     const qtd = $("#pp-qtd");
     function atualizar() {
-      const n = Math.max(1, Math.min(9999, parseInt(qtd.value, 10) || 1)), kg = kgDe(emb);
+      const n = Math.max(1, Math.min(9999, parseInt(qtd.value, 10) || 1)), kg = kgDe(emb), pi = CW.precoInfo(p, emb);
       $("#pp-preco").innerHTML = pi.tipo === "combinar"
         ? `<span class="pp-preco-combinar">Preço sob consulta</span><small>Fale com o vendedor ou peça uma cotação.</small>`
         : `<span class="pp-preco-cx">${reais(pi.efetivo * kg)}</span><small>${esc(emb)} · ${reais(pi.efetivo)}/kg${pi.tipo === "promo" ? ` · <s>${reais(pi.preco)}/kg</s> <b class="selo-off">-${pi.desconto}%</b>` : ""}</small>`;

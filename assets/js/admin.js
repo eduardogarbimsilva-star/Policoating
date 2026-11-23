@@ -246,7 +246,7 @@
 
     /* ---------- Formulário ---------- */
     const modal = $("#admin-modal"), form = $("#admin-form");
-    let editando = null, fichaAtual = "", fotos = [], enquadramento = {};
+    let editando = null, fichaAtual = "", fdsAtual = "", fotos = [], enquadramento = {};
     const codigoAtual = () => form.codigo.value.trim().toUpperCase();
     const pastaFotos = () => (codigoAtual() || "novo").toLowerCase();
     function mostrarFicha(url) {
@@ -254,6 +254,12 @@
       const a = $("#ficha-link");
       a.hidden = !fichaAtual; if (fichaAtual) a.href = fichaAtual;
       $("#ficha-remover").hidden = !fichaAtual;
+    }
+    function mostrarFds(url) {
+      fdsAtual = url || "";
+      const a = $("#fds-link");
+      a.hidden = !fdsAtual; if (fdsAtual) a.href = fdsAtual;
+      $("#fds-remover").hidden = !fdsAtual;
     }
     // fotos: no mínimo 3, a primeira é a capa
     let enviando = 0;
@@ -361,6 +367,12 @@
       $("#video-enviar").classList.remove("desativado");
     });
     $("#ficha-remover").addEventListener("click", () => mostrarFicha(""));
+    $("#fds-remover").addEventListener("click", () => mostrarFds(""));
+    $("#fds-arquivo").addEventListener("change", async (e) => {
+      const arq = e.target.files[0]; if (!arq) return;
+      try { mostrarFds(await A.enviarPdf(arq, pastaFotos())); erro(""); } catch (err) { erro(err.message); }
+      e.target.value = "";
+    });
     $("#ficha-arquivo").addEventListener("change", async (e) => {
       const arq = e.target.files[0]; if (!arq) return;
       try { mostrarFicha(await A.enviarPdf(arq, pastaFotos())); erro(""); } catch (err) { erro(err.message); }
@@ -418,12 +430,12 @@
       enquadramento = duplicar ? {} : JSON.parse(JSON.stringify(p.enquadramento || {}));
       enviando = 0; desenharFotos();
       $$("[name=preco-modo]", form).forEach((x) => (x.checked = x.value === (r && (p.precoCombinar || !(+p.preco > 0)) ? "combinar" : "valor")));
-      form.preco.value = p.preco || ""; form.precoPromo.value = p.precoPromo || ""; form.promoAte.value = p.promoAte || "";
+      form.preco.value = p.preco || ""; form.precoPromo.value = p.precoPromo || ""; form.promoAte.value = p.promoAte || ""; form.precoKg5.value = p.precoKg5 || "";
       previaPreco();
       form.ordem.value = r ? r.ordem + (duplicar ? 1 : 0) : (registros.reduce((m, x) => Math.max(m, x.ordem), 0) + 10);
       form.destaque.checked = !!p.destaque && !duplicar;
       form.ativo.checked = r ? r.ativo : true;
-      mostrarFicha(p.ficha);
+      mostrarFicha(p.ficha); mostrarFds(duplicar ? "" : p.fds);
       enviandoVideo = false; mostrarVideo(p.video);
       erro("");
       modal.hidden = false;
@@ -477,11 +489,13 @@
       if (antigo && antigo.dados.familia) dados.familia = antigo.dados.familia;
       if (form.densidade.value) dados.densidade = Number(form.densidade.value);
       if (fichaAtual) dados.ficha = fichaAtual;
+      if (fdsAtual) dados.fds = fdsAtual;
       if (videoAtual) dados.video = videoAtual;
       if (!combinar) {
         dados.preco = Math.round(Number(form.preco.value) * 100) / 100;
         if (form.precoPromo.value) dados.precoPromo = Math.round(Number(form.precoPromo.value) * 100) / 100;
         if (form.promoAte.value && dados.precoPromo) dados.promoAte = form.promoAte.value;
+        if (Number(form.precoKg5.value) > 0) dados.precoKg5 = Math.round(Number(form.precoKg5.value) * 100) / 100;
       }
       const botao = $("#btn-salvar"); botao.disabled = true;
       try {

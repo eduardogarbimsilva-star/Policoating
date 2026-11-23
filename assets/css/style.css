@@ -3296,3 +3296,12 @@ video.video-produto { object-fit: contain; }
 .rec-merchant code { font-size: .78rem; word-break: break-all; background: #fff; padding: 1px 6px; border-radius: 4px; }
 @media (max-width: 700px) { .rec-faltam { columns: 1; } }
 .pp-topo .migalhas { margin: 0; }
+/* ===== Documentos técnicos (E04) ===== */
+.pp-docs { margin-top: 40px; }
+.pp-docs h2 { font-size: 1.3rem; margin-bottom: 12px; }
+.pp-docs-lista { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+.pp-doc { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border: 1px solid var(--borda); border-radius: 12px; background: #fff; text-decoration: none; color: var(--texto); transition: border-color .2s, box-shadow .2s; }
+.pp-doc:hover { border-color: var(--azul); box-shadow: var(--sombra); }
+.pp-doc b { display: block; } .pp-doc small { color: var(--texto-suave); font-size: .8rem; }
+.pp-doc-ico { flex: 0 0 44px; height: 52px; border-radius: 6px; display: grid; place-items: center; background: #fdecec; color: #a11d1d; font-weight: 800; font-size: .78rem; }
+.pp-doc-pedir .pp-doc-ico { background: var(--azul-claro); color: var(--azul); }

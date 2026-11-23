@@ -73,20 +73,28 @@
   const acharProduto = (ref, corNome) => buscarProduto(ref) ||
     PRODUTOS.find((p) => p.familia === ref && (!corNome || p.cores[0].nome === corNome)) || PRODUTOS.find((p) => p.familia === ref);
   const formatarPreco = (v) => (+v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-  /** Preço do produto: "combinar" (a combinar com o vendedor), "normal" ou "promo" (valores por kg) */
-  function precoInfo(p) {
+  /** A caixa de 5 kg tem preço por kg próprio? (E04: recurso "Variações de embalagem" + preço cadastrado) */
+  const temPreco5 = (p) => +p.precoKg5 > 0 && !!(window.Recursos && window.Recursos.disponivel("packaging_variants_enabled", p));
+  /** Preço do produto: "combinar" (a combinar com o vendedor), "normal" ou "promo" (valores por kg).
+      Com a embalagem "Caixa 5 kg" e preço próprio cadastrado, usa esse preço (a promoção vale com o mesmo desconto). */
+  function precoInfo(p, embalagem) {
     const preco = +p.preco || 0, promo = +p.precoPromo || 0;
     if (p.precoCombinar || !(preco > 0)) return { tipo: "combinar", efetivo: 0 };
     const hoje = new Date().toISOString().slice(0, 10);
-    if (promo > 0 && promo < preco && (!p.promoAte || hoje <= p.promoAte))
-      return { tipo: "promo", preco, promo, efetivo: promo, desconto: Math.round((1 - promo / preco) * 100), ate: p.promoAte || "" };
+    const emPromo = promo > 0 && promo < preco && (!p.promoAte || hoje <= p.promoAte);
+    if (embalagem === "Caixa 5 kg" && temPreco5(p)) {
+      const base = +p.precoKg5, fator = emPromo ? promo / preco : 1, efetivo = Math.round(base * fator * 100) / 100;
+      return emPromo ? { tipo: "promo", preco: base, promo: efetivo, efetivo, desconto: Math.round((1 - fator) * 100), ate: p.promoAte || "", proprio5: true }
+        : { tipo: "normal", preco: base, efetivo: base, proprio5: true };
+    }
+    if (emPromo) return { tipo: "promo", preco, promo, efetivo: promo, desconto: Math.round((1 - promo / preco) * 100), ate: p.promoAte || "" };
     return { tipo: "normal", preco, efetivo: preco };
   }
   const dataCurtaBR = (iso) => (iso ? iso.split("-").reverse().join("/") : "");
   function htmlPreco(p, detalhado) {
     const pi = precoInfo(p);
     if (pi.tipo === "combinar") return `<span class="preco preco-combinar"><small>Preço</small>Consulte no WhatsApp</span>`;
-    const caixa = detalhado ? `<small class="preco-caixa">${CAIXAS.map((c) => `${c}: ${formatarPreco(pi.efetivo * kgDaEmbalagem(c))}`).join(" · ")}</small>` : "";
+    const caixa = detalhado ? `<small class="preco-caixa">${CAIXAS.map((c) => `${c}: ${formatarPreco(precoInfo(p, c).efetivo * kgDaEmbalagem(c))}`).join(" · ")}</small>` : "";
     if (pi.tipo === "promo") return `<span class="preco preco-promo"><small><s>${formatarPreco(pi.preco)}</s> <b class="selo-off">-${pi.desconto}%</b></small>${formatarPreco(pi.promo)}<em>/kg</em>${pi.ate && detalhado ? `<small>Promoção até ${dataCurtaBR(pi.ate)}</small>` : ""}${caixa}</span>`;
     return `<span class="preco"><small>Preço</small>${formatarPreco(pi.preco)}<em>/kg</em>${caixa}</span>`;
   }
@@ -249,7 +257,7 @@
   /** Valor estimado do carrinho (preço por kg × kg). Itens "a combinar" ficam de fora e são contados. */
   function totalValor() {
     return carrinho.reduce((t, i) => {
-      const p = buscarProduto(i.id), pi = p ? precoInfo(p) : { tipo: "combinar" };
+      const p = buscarProduto(i.id), pi = p ? precoInfo(p, i.embalagem) : { tipo: "combinar" };
       if (pi.tipo === "combinar") t.combinar++; else t.valor += Math.round(pi.efetivo * kgDoItem(i) * 100) / 100;
       return t;
     }, { valor: 0, combinar: 0 });
@@ -378,7 +386,7 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
     lista.innerHTML = carrinho
       .map((item, idx) => {
         const p = buscarProduto(item.id);
-        const cor = p.cores[0], pi = precoInfo(p);
+        const cor = p.cores[0], pi = precoInfo(p, item.embalagem);
         const sub = pi.tipo === "combinar" ? `<span class="sub-combinar">Valor: consulte no WhatsApp</span>` : `<span class="sub-valor">${formatarPreco(pi.efetivo * kgDoItem(item))}${pi.tipo === "promo" ? ` <b class="selo-off">-${pi.desconto}%</b>` : ""}</span>`;
         return `
 <div class="item-carrinho" data-idx="${idx}">
@@ -451,7 +459,7 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
     const p = Conta.perfil || {}, L = [], tv = totalValor();
     L.push(`Olá! Vim pelo site da *${CFG.empresa}* e gostaria de fazer um pedido.`, `*Pedido nº ${numero}*${salvo ? " (já registrado no site)" : ""}`, "");
     carrinho.forEach((item, i) => {
-      const prod = buscarProduto(item.id), pi = precoInfo(prod);
+      const prod = buscarProduto(item.id), pi = precoInfo(prod, item.embalagem);
       L.push(`*${i + 1}. ${prod.nome}*`, `   Código: ${prod.codigo || prod.id} | Cor: ${item.cor}`, `   Quantidade: ${descreverQtd(item)}`,
         pi.tipo === "combinar" ? "   Valor: a consultar com o vendedor" : `   Valor: ${formatarPreco(pi.efetivo)}/kg${pi.tipo === "promo" ? " (promoção)" : ""} = ${formatarPreco(pi.efetivo * kgDoItem(item))}`);
     });
@@ -611,6 +619,7 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
     <div id="frete-produto"></div>
     <div class="acoes-extra">
       <button type="button" data-extra="ficha">${ic("documento")}Ficha técnica</button>
+      ${p.fds && /^https:\/\//.test(p.fds) && window.Recursos && window.Recursos.disponivel("product_docs_enabled", p) ? `<a class="link-pagina-produto" href="${esc(p.fds)}" target="_blank" rel="noopener">${ic("escudo")}FDS (segurança)</a>` : ""}
       ${window.Cotacao && window.Recursos && window.Recursos.disponivel("b2b_quote_enabled", p) ? `<button type="button" data-extra="cotacao">${ic("documento")}Solicitar cotação</button>` : ""}
       <button type="button" data-extra="orcamento">${ic("conversa")}Pedir orçamento</button>
       <button type="button" data-extra="link">${ic("link")}Copiar link</button>

@@ -1906,3 +1906,14 @@ notify pgrst, 'reload schema';
 update public.recursos set implementado = true, requisito = null
  where chave = 'merchant_center_feed_enabled';
 notify pgrst, 'reload schema';
+
+-- ===========================================================
+-- PARTE X — Embalagens com preço próprio e documentos técnicos (etapa E04)
+--   Rode depois da PARTE W. Os dois recursos continuam DESLIGADOS até você ligar no painel.
+--   • Variações de embalagem: a caixa de 5 kg usa o "Preço por kg na caixa de 5 kg" do produto (se preenchido).
+--   • Documentos técnicos: área com ficha técnica e FDS (PDF) na página do produto.
+--   Desfazer: update public.recursos set implementado = false where chave in ('packaging_variants_enabled', 'product_docs_enabled');
+-- ===========================================================
+update public.recursos set implementado = true, requisito = null
+ where chave in ('packaging_variants_enabled', 'product_docs_enabled');
+notify pgrst, 'reload schema';

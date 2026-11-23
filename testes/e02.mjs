@@ -50,5 +50,24 @@ async function site(viewport) {
   R.add("V31-E02-21", "Celular: página do produto sem rolagem lateral", await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
   await ctx.close();
 }
+{ // E04: preço próprio da caixa de 5 kg e documentos técnicos (recursos ligados)
+  const ctx = await contextoDemo(nav);
+  await ctx.addInitScript((c) => {
+    if (localStorage.getItem("__s")) return; localStorage.setItem("__s", "1");
+    c["pol-0001"].dados.precoKg5 = 34; c["pol-0001"].dados.fds = "https://exemplo.com/fds.pdf"; c["pol-0001"].dados.ficha = "https://exemplo.com/ficha.pdf";
+    localStorage.setItem("policoating_demo_catalogo", JSON.stringify(c));
+    localStorage.setItem("policoating_demo_recursos", JSON.stringify(Object.fromEntries(["packaging_variants_enabled", "product_docs_enabled"].map((k) => [k, { chave: k, ligado: true, implementado: true, alvos: {} }]))));
+  }, sementeCatalogo());
+  const p = await ctx.newPage(); const erros = []; p.on("pageerror", (e) => erros.push(e.message));
+  await p.goto(`${BASE}/produto.html?id=pol-0001&emb=5`); await espera(p, 1000);
+  const ld = await p.evaluate(() => JSON.parse(document.getElementById("pp-jsonld").textContent).offers.map((o) => `${o.sku}=${o.price}`).join());
+  R.add("V31-E04-03", "Caixa 5 kg com preço próprio: R$ 170,00 na página e nos dados do Google; 25 kg segue R$ 750,00", /170,00/.test(await p.textContent(".pp-preco-cx")) && ld === "POL-0001-25KG=750.00,POL-0001-5KG=170.00", ld);
+  await p.click("#pp-add"); await espera(p, 200);
+  R.add("V31-E04-04", "Carrinho usa o preço da caixa de 5 kg (R$ 170,00)", /170,00/.test(await p.textContent("#carrinho-valor")));
+  const docs = await p.$$eval(".pp-docs a.pp-doc", (a) => a.map((x) => x.getAttribute("href")));
+  R.add("V31-E04-05", "Documentos técnicos: ficha e FDS em PDF", docs.join() === "https://exemplo.com/ficha.pdf,https://exemplo.com/fds.pdf", docs.join());
+  R.add("V31-E04-06", "Sem erros de JavaScript", !erros.length, erros.join(" | "));
+  await ctx.close();
+}
 await nav.close();
 process.exitCode = R.imprimir() ? 1 : 0;

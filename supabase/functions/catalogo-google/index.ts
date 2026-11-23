@@ -53,11 +53,14 @@ export function motivoFora(p: Produto) {
 }
 
 /** Linhas do feed para um produto (uma por embalagem) */
-export function linhas(p: Produto): Linha[] {
-  const d = p.dados || {}, pk = precoKg(d)!;
+export function linhas(p: Produto, preco5Proprio = false): Linha[] {
+  const d = p.dados || {}, pk0 = precoKg(d)!;
   const codigo = String(d.codigo || p.id).toUpperCase(), marca = d.marca || "Policoating", cor = d.cores[0]?.nome || "";
   const fotos = (d.fotos as string[]).filter((u) => typeof u === "string" && u).map(absoluta);
   return CAIXAS.map((kg) => {
+    // caixa de 5 kg com preço por kg próprio (recurso "Variações de embalagem"); a promoção aplica o mesmo desconto
+    const pk = kg === 5 && preco5Proprio && Number(d.precoKg5) > 0
+      ? { preco: Number(d.precoKg5), promo: pk0.promo ? Math.round(Number(d.precoKg5) * (pk0.promo / pk0.preco) * 100) / 100 : 0, ate: pk0.ate } : pk0;
     const l: Linha = {
       "g:id": `${codigo}-${kg}KG`, "g:item_group_id": codigo,
       "g:title": `${d.nome} — Caixa ${kg} kg`.slice(0, 150),
@@ -107,18 +110,21 @@ export async function atender(req: Request): Promise<Response> {
   const rec = (await get("recursos?select=ligado,implementado&chave=eq.merchant_center_feed_enabled"))?.[0];
   const ligado = !!(rec && rec.ligado && rec.implementado);
   const produtos: Produto[] = (await get("produtos?select=id,ativo,dados&order=id")) || [];
-  const dentro: Produto[] = [], fora: { id: string; codigo: string; nome: string; motivo: string }[] = [];
+  const dentro: Produto[] = [], var5 = new Set<string>(), fora: { id: string; codigo: string; nome: string; motivo: string }[] = [];
   for (const p of produtos) {
     let motivo = motivoFora(p);
     if (!motivo && ligado && !(await rpc("recurso_disponivel", { p_chave: "merchant_center_feed_enabled", p_produto: p.id, p_categoria: p.dados?.categoria || null })))
       motivo = "feed desligado para este produto (Comércio e Recursos)";
     if (motivo) fora.push({ id: p.id, codigo: String(p.dados?.codigo || p.id).toUpperCase(), nome: p.dados?.nome || p.id, motivo });
-    else dentro.push(p);
+    else {
+      dentro.push(p);
+      if (Number(p.dados?.precoKg5) > 0 && (await rpc("recurso_disponivel", { p_chave: "packaging_variants_enabled", p_produto: p.id, p_categoria: p.dados?.categoria || null }))) var5.add(p.id);
+    }
   }
   if (new URL(req.url).searchParams.has("diagnostico"))
     return Response.json({ ligado, produtos: produtos.length, no_feed: dentro.length, linhas: dentro.length * CAIXAS.length, fora }, { headers: { "access-control-allow-origin": "*", "cache-control": "no-store" } });
   if (!ligado) return texto("Feed desligado. Ligue em Comércio e Recursos → Feed do Google Merchant Center.", 404);
-  return new Response(montarXml(dentro.flatMap(linhas)), { headers: { "content-type": "application/xml; charset=utf-8", "cache-control": "public, max-age=900", "access-control-allow-origin": "*" } });
+  return new Response(montarXml(dentro.flatMap((p) => linhas(p, var5.has(p.id)))), { headers: { "content-type": "application/xml; charset=utf-8", "cache-control": "public, max-age=900", "access-control-allow-origin": "*" } });
 }
 
 if ((globalThis as any).Deno?.serve) (globalThis as any).Deno.serve(atender);

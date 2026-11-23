@@ -19,6 +19,7 @@ export async function contextoDemo(navegador, opcoes = {}) {
     if (sessionStorage.getItem("__teste_ini")) return;
     sessionStorage.setItem("__teste_ini", "1");
     localStorage.setItem("policoating_lgpd", "true");
+    if (!window.__comNovidades) localStorage.setItem("policoating_novidades_ocultar", "*");   // janela de novidades (testada à parte)
     if (!window.__comAnimacao) localStorage.setItem("policoating_teste_sem_espera", "1");   // animação da cotação sem os 6 s (testada à parte)
     localStorage.setItem("policoating_cookies", JSON.stringify("essenciais"));   // o site grava em JSON
   });

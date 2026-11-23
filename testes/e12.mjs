@@ -20,7 +20,7 @@ const cartoes = (p) => p.$$eval("#novidades .novidade h3", (h) => h.map((x) => x
 { const { ctx, p, erros } = await site(REC(["new_home_banners_enabled", "b2b_quote_enabled", "freight_estimate_enabled"]));
   await p.goto(`${BASE}/index.html`); await espera(p, 900);
   const c = await cartoes(p);
-  R.add("V31-E12-01", "Sem compra direta: banners só da cotação e do frete, e a página não fala em Pix", c.join("|") === "Cotação online com número|Frete na hora pelo CEP" && !/\bpix\b/i.test(await p.innerText("body")), c.join("|"));
+  R.add("V31-E12-01", "Sem compra direta: banners só da cotação e do frete, e a página não fala em Pix", c.join("|") === "Peça um orçamento pelo site|Simule o frete antes de pedir" && !/\bpix\b/i.test(await p.innerText("body")), c.join("|"));
   await p.evaluate(async () => { for (let y = 0; y < document.body.scrollHeight; y += 700) { scrollTo(0, y); await new Promise((r) => setTimeout(r, 100)); } });
   await espera(p, 500);
   const cls = await p.evaluate(() => window.__cls);

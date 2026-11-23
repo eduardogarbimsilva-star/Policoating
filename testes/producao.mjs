@@ -30,6 +30,7 @@ if (SB) {
 const nav = await chromium.launch();
 const pags = ["/", "/produtos", "/cotacao", "/trocas", "/sobre", "/aplicacao", "/galeria", "/privacidade"];
 const ctx = await nav.newContext({ viewport: { width: 1280, height: 860 } });
+await ctx.addInitScript(() => { try { localStorage.setItem("policoating_novidades_ocultar", "*"); } catch (e) { /* */ } });
 const p = await ctx.newPage();
 let falhas = [];
 for (const pg of pags) {

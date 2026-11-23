@@ -9,9 +9,11 @@
   if (!caixa) return;
   const ic = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
   const CARTOES = [
-    { chave: "b2b_quote_enabled", titulo: "Cotação online com número", texto: "Monte a lista, informe o CEP e receba o número da cotação para acompanhar a resposta.", link: "cotacao", acao: "Fazer cotação",
+    { chave: "b2b_quote_enabled", titulo: "Peça um orçamento pelo site", texto: "Receba na hora um número de cotação (ex.: COT-AB12-CD34-EF) e acompanhe a resposta do vendedor, com preço e frete, sem precisar ligar.",
+      passos: ["Escolha os produtos ou informe só o peso", "Digite o CEP de entrega e seus dados", "Guarde o número: vale por 7 dias"], link: "cotacao", acao: "Fazer orçamento",
       icone: ic('<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/>') },
-    { chave: "freight_estimate_enabled", titulo: "Frete na hora pelo CEP", texto: "Veja o frete estimado saindo de Matão-SP direto na página do produto.", link: "produtos", acao: "Ver produtos",
+    { chave: "freight_estimate_enabled", titulo: "Simule o frete antes de pedir", texto: "Na página de cada produto, digite o seu CEP e veja quanto custa e quantos dias leva a entrega saindo de Matão-SP.",
+      passos: ["Abra um produto do catálogo", "Digite o CEP no campo \"Calcular frete\"", "Veja valor e prazo estimados (o valor final vem no orçamento)"], link: "produtos", acao: "Abrir o catálogo",
       icone: ic('<path d="M3 6h11v10H3zM14 9h4l3 3v4h-7"/><circle cx="7" cy="17.5" r="1.8"/><circle cx="17" cy="17.5" r="1.8"/>') },
     { chave: "direct_checkout_enabled", titulo: "Compra com Pix e cartão", texto: "Pague no site e acompanhe o pedido. O atendimento pelo WhatsApp continua.", link: "produtos", acao: "Comprar agora",
       icone: ic('<rect x="3" y="6" width="18" height="12" rx="2"/><path d="M3 10h18M7 15h4"/>') },
@@ -29,6 +31,7 @@
     caixa.querySelector(".novidades-grade").innerHTML = ativos.map((c) => `<article class="novidade revelar visivel">
         <span class="novidade-ic">${c.icone}</span>
         <h3>${esc(c.titulo)}</h3><p>${esc(c.texto)}</p>
+        ${c.passos ? `<ol class="novidade-passos">${c.passos.map((x) => `<li>${esc(x)}</li>`).join("")}</ol>` : ""}
         <a class="novidade-link" href="${esc(c.link)}"${c.app ? " data-instalar-app" : ""}>${esc(c.acao)} <span aria-hidden="true">→</span></a>
       </article>`).join("");
     const app = caixa.querySelector("[data-instalar-app]");

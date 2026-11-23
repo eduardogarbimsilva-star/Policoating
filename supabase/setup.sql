@@ -1541,3 +1541,12 @@ revoke all on function public.alterar_recurso(text, boolean, jsonb, text) from p
 grant execute on function public.alterar_recurso(text, boolean, jsonb, text) to authenticated;
 
 notify pgrst, 'reload schema';
+
+-- ===========================================================
+-- PARTE S — Libera as bolinhas das redes (E10) e o app instalável (E11) em Comércio e Recursos
+--   Rode depois da PARTE R. Os recursos continuam DESLIGADOS: só passam a poder ser ligados.
+--   Desfazer: update public.recursos set implementado = false where chave in
+--             ('floating_social_enabled','social_click_metrics_enabled','pwa_install_invite_enabled');
+-- ===========================================================
+update public.recursos set implementado = true, requisito = null
+ where chave in ('floating_social_enabled', 'social_click_metrics_enabled', 'pwa_install_invite_enabled');

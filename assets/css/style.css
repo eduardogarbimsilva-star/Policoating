@@ -2749,3 +2749,65 @@ video.video-produto { object-fit: contain; }
 .rec-add input { width: 100%; margin-top: 8px; padding: 8px 10px; border: 1px solid var(--borda); border-radius: 6px; font: inherit; }
 .rec-hist-titulo { margin: 34px 0 10px; }
 @media (max-width: 760px) { .rec-colunas { grid-template-columns: 1fr; } }
+
+/* ---------- Painel: ordem das bolinhas flutuantes ---------- */
+.flu-redes { list-style: none; margin: 14px 0 0; padding: 0; max-width: 420px; border: 1px solid var(--borda); border-radius: 8px; }
+.flu-redes li { display: flex; align-items: center; justify-content: space-between; padding: 6px 12px; border-bottom: 1px solid #f0f2f5; }
+.flu-redes li:last-child { border-bottom: 0; }
+.flu-redes button { margin-left: 4px; min-width: 30px; }
+
+/* ---------- Bolinhas flutuantes das redes (E10) ---------- */
+.redes-flutuantes { position: fixed; z-index: 70; }
+.redes-flutuantes ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.rf-rede { position: relative; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; color: #fff;
+  box-shadow: 0 6px 18px rgba(11, 20, 36, .22); transition: transform .2s var(--fluido, ease), box-shadow .2s; }
+.rf-rede svg { width: 22px; height: 22px; }
+.rf-rede:hover, .rf-rede:focus-visible { transform: scale(1.08); box-shadow: 0 10px 24px rgba(11, 20, 36, .3); }
+.rf-rede:focus-visible { outline: 3px solid #fff; outline-offset: 2px; box-shadow: 0 0 0 5px var(--azul); }
+.rf-instagram { background: radial-gradient(circle at 30% 107%, #fdf497 0%, #fd5949 45%, #d6249f 60%, #285aeb 90%); }
+.rf-facebook { background: #1877f2; }
+.rf-whatsappBusiness { background: #25d366; }
+.rf-linkedin { background: #0a66c2; }
+.rf-youtube { background: #ff0000; }
+.rf-tiktok { background: #111; }
+.rf-dica { position: absolute; top: 50%; transform: translateY(-50%); white-space: nowrap; padding: 5px 10px; border-radius: 6px;
+  background: #0b1424; color: #fff; font-size: .78rem; font-weight: 600; opacity: 0; pointer-events: none; transition: opacity .15s; }
+.rf-direita .rf-dica { right: calc(100% + 10px); }
+.rf-esquerda .rf-dica { left: calc(100% + 10px); }
+.rf-rede:hover .rf-dica, .rf-rede:focus-visible .rf-dica { opacity: 1; }
+.rf-alternar { display: none; }
+/* computador: coluna no meio da lateral */
+@media (min-width: 901px) {
+  .redes-flutuantes { top: 50%; transform: translateY(-50%); }
+  .rf-direita { right: 18px; }
+  .rf-esquerda { left: 18px; }
+  .rf-em-celular { display: none; }
+}
+/* celular: um botão que abre as redes para cima, acima do Assistente */
+@media (max-width: 900px) {
+  .rf-em-computador { display: none; }
+  /* direita: ao lado da bolinha do Assistente (o balão de convite dele fica acima, sem conflito) */
+  .redes-flutuantes { bottom: calc(14px + env(safe-area-inset-bottom)); }
+  .rf-direita { right: 76px; }
+  /* esquerda: acima do botão "voltar ao topo" */
+  .rf-esquerda { left: 18px; bottom: calc(80px + env(safe-area-inset-bottom)); }
+  .rf-alternar { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 50%; border: 0; cursor: pointer;
+    background: #0b1424; color: #fff; box-shadow: 0 6px 18px rgba(11, 20, 36, .3); }
+  .rf-alternar svg { width: 22px; height: 22px; }
+  .rf-alternar:focus-visible { outline: 3px solid var(--azul); outline-offset: 2px; }
+  .redes-flutuantes ul { position: absolute; bottom: 58px; left: 2px; visibility: hidden; opacity: 0; transform: translateY(10px);
+    transition: opacity .2s, transform .2s, visibility .2s; }
+  .redes-flutuantes.aberta ul { visibility: visible; opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) { .rf-rede, .redes-flutuantes ul { transition: none; } }
+
+/* ---------- Convite para instalar o app (E11) ---------- */
+.convite-app { position: fixed; z-index: 95; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom)); width: min(520px, calc(100% - 32px));
+  transform: translate(-50%, 20px); opacity: 0; transition: opacity .3s, transform .3s; display: grid; grid-template-columns: 48px 1fr; gap: 12px 14px;
+  align-items: center; padding: 16px 18px; background: #fff; border: 1px solid var(--borda); border-radius: 14px; box-shadow: var(--sombra-forte); }
+.convite-app.visivel { opacity: 1; transform: translate(-50%, 0); }
+.convite-app img { border-radius: 12px; }
+.convite-app-texto strong { display: block; margin-bottom: 2px; }
+.convite-app-texto span { font-size: .88rem; color: var(--texto-suave); }
+.convite-app-botoes { grid-column: 1 / -1; display: flex; gap: 10px; justify-content: flex-end; }
+@media (prefers-reduced-motion: reduce) { .convite-app { transition: none; } }

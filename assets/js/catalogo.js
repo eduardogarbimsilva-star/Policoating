@@ -105,6 +105,14 @@
     }
     o.redes = {}; REDES.forEach((k) => { const u = https((d.redes || {})[k]); if (u) o.redes[k] = u; });
     o.lojas = {}; LOJAS.forEach((k) => { const u = https((d.lojas || {})[k]); if (u) o.lojas[k] = u; });
+    if (d.flutuante && typeof d.flutuante === "object") {
+      const f = d.flutuante;
+      o.flutuante = {
+        posicao: f.posicao === "esquerda" ? "esquerda" : "direita",
+        dispositivos: ["computador", "celular"].includes(f.dispositivos) ? f.dispositivos : "todos",
+        redes: Array.isArray(f.redes) ? [...new Set(f.redes.filter((k) => REDES.includes(k)))] : REDES.slice()
+      };
+    }
     if (Array.isArray(d.marcas)) o.marcas = [...new Set(d.marcas.map((m) => String(m || "").replace(/\s+/g, " ").trim().slice(0, 40)).filter(Boolean))].slice(0, 100);
     if (Array.isArray(d.tipos)) {
       const vistos = new Set();
@@ -124,8 +132,9 @@
   let galeriaPainel = null;
   function aplicarConfig(bruto) {
     const d = limparConfig(bruto);
-    const antes = JSON.stringify([CFG.whatsapp, CFG.email, CFG.redes, CFG.lojas, TEXTO.map((k) => CFG[k]), galeriaPainel]);
+    const antes = JSON.stringify([CFG.whatsapp, CFG.email, CFG.redes, CFG.lojas, CFG.flutuante, TEXTO.map((k) => CFG[k]), galeriaPainel]);
     ["whatsapp", "email"].concat(TEXTO).forEach((k) => { if (d[k]) CFG[k] = d[k]; });
+    if (d.flutuante) CFG.flutuante = d.flutuante;
     CFG.redes = Object.assign({}, CFG.redes, d.redes);
     CFG.lojas = Object.assign({}, CFG.lojas, d.lojas);
     if (d.galeria && d.galeria.length) galeriaPainel = d.galeria;
@@ -133,7 +142,7 @@
     CFG.marcas = d.marcas || CFG.marcas || [];
     CFG.tipos = d.tipos || CFG.tipos || [];
     aplicarTipos(CFG.tipos);
-    return antes !== JSON.stringify([CFG.whatsapp, CFG.email, CFG.redes, CFG.lojas, TEXTO.map((k) => CFG[k]), galeriaPainel]) || antesListas !== JSON.stringify([CFG.marcas, CFG.tipos]);
+    return antes !== JSON.stringify([CFG.whatsapp, CFG.email, CFG.redes, CFG.lojas, CFG.flutuante, TEXTO.map((k) => CFG[k]), galeriaPainel]) || antesListas !== JSON.stringify([CFG.marcas, CFG.tipos]);
   }
   aplicarConfig(ONLINE ? (ler(CHAVE_CFG) || {}).dados : ler(CHAVE_CFG_DEMO));
 
@@ -493,6 +502,7 @@
         galeria: atual.galeria || ((window.MIDIA || {}).galeria || []).map((g) => ({ src: g.src, titulo: g.titulo || "", descricao: g.descricao || "" })),
         marcas: atual.marcas && atual.marcas.length ? atual.marcas : ["Policoating"],
         tipos: atual.tipos || [],
+        flutuante: atual.flutuante || { posicao: "direita", dispositivos: "todos", redes: REDES.slice() },
       };
     },
     /** Marcas e tipos de produto: cadastro rápido pelo formulário de produto (administrador) */

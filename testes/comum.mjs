@@ -19,7 +19,7 @@ export async function contextoDemo(navegador, opcoes = {}) {
     if (sessionStorage.getItem("__teste_ini")) return;
     sessionStorage.setItem("__teste_ini", "1");
     localStorage.setItem("policoating_lgpd", "true");
-    localStorage.setItem("policoating_cookies", "essenciais");
+    localStorage.setItem("policoating_cookies", JSON.stringify("essenciais"));   // o site grava em JSON
   });
   await ctx.route(/fonts\.g|pexels|jsdelivr|youtube|ytimg|googletagmanager|supabase\.co/, (r) => r.abort());
   await ctx.route("**/assets/js/config.js*", async (r) => {

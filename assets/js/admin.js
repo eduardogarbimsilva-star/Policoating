@@ -807,16 +807,35 @@
     /* ---------- Contato e links ---------- */
     const formCfg = $("#form-config");
     let cfgAtual = null;
+    const NOMES_REDES = { instagram: "Instagram", facebook: "Facebook", whatsappBusiness: "WhatsApp Business", youtube: "YouTube", tiktok: "TikTok", linkedin: "LinkedIn" };
+    function desenharFlutuante(f) {
+      const marcadas = f.redes || [], ordem = marcadas.concat(Object.keys(NOMES_REDES).filter((k) => !marcadas.includes(k)));
+      $("#flu-posicao").value = f.posicao || "direita";
+      $("#flu-dispositivos").value = f.dispositivos || "todos";
+      $("#flu-redes").innerHTML = ordem.map((k) => `<li data-rede="${k}"><label><input type="checkbox"${marcadas.includes(k) ? " checked" : ""}> ${NOMES_REDES[k]}</label>
+        <span><button type="button" class="cor-sem-foto" data-subir aria-label="Subir ${NOMES_REDES[k]}">↑</button><button type="button" class="cor-sem-foto" data-descer aria-label="Descer ${NOMES_REDES[k]}">↓</button></span></li>`).join("");
+    }
+    $("#flu-redes").addEventListener("click", (e) => {
+      const li = e.target.closest("li"), bt = e.target.closest("button"); if (!li || !bt) return;
+      if (bt.hasAttribute("data-subir") && li.previousElementSibling) li.parentNode.insertBefore(li, li.previousElementSibling);
+      if (bt.hasAttribute("data-descer") && li.nextElementSibling) li.parentNode.insertBefore(li.nextElementSibling, li);
+      bt.focus();
+    });
+    const lerFlutuante = () => ({ posicao: $("#flu-posicao").value, dispositivos: $("#flu-dispositivos").value,
+      redes: $$("#flu-redes li").filter((li) => $("input", li).checked).map((li) => li.dataset.rede) });
     async function carregarConfig() {
       try { cfgAtual = await A.lerConfig(); } catch (e) { $("#cfg-erro").textContent = e.message; return; }
       $$("input[name]", formCfg).forEach((i) => {
         const [grupo, chave] = i.name.split(".");
         i.value = (chave ? (cfgAtual[grupo] || {})[chave] : cfgAtual[grupo]) || "";
       });
+      desenharFlutuante(cfgAtual.flutuante || {});
     }
     formCfg.addEventListener("submit", async (e) => {
       e.preventDefault();
-      const d = { redes: {}, lojas: {}, galeria: cfgAtual ? cfgAtual.galeria : undefined };
+      // mantém o que este formulário não mostra (galeria, marcas e classes cadastradas)
+      const d = { redes: {}, lojas: {}, galeria: cfgAtual ? cfgAtual.galeria : undefined,
+        marcas: cfgAtual ? cfgAtual.marcas : undefined, tipos: cfgAtual ? cfgAtual.tipos : undefined, flutuante: lerFlutuante() };
       const ruins = [];
       $$("input[name]", formCfg).forEach((i) => {
         const [grupo, chave] = i.name.split("."), v = i.value.trim();

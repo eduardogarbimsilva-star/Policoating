@@ -21,6 +21,7 @@ Cada linha mostra `PASS` ou `FAIL` com o código do cenário da matriz V3.1 (ex.
 
 ```
 node testes/e03.mjs                    # E03: Comércio e Recursos (aba do painel, requisito, exceções, histórico)
+node testes/e10_e11.mjs                # E10: bolinhas das redes · E11: app instalável (manifesto, service worker, convite, cache)
 ```
 
 ## Testes do banco (`testes/sql/`)

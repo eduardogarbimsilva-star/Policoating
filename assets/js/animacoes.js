@@ -198,10 +198,15 @@
     if (!els.length) return;
     const animar = (el) => {
       const fim = parseFloat(el.dataset.contar), pre = el.dataset.prefixo || "", suf = el.dataset.sufixo || "";
-      const t0 = performance.now(), dur = 1400;
+      // começa perto do valor final (nunca mostra número enganoso no meio da contagem, como 60–14 µm)
+      // e deixa o valor final para leitores de tela
+      if (menosMovimento) { el.textContent = pre + fim + suf; return; }
+      const ini = el.dataset.contarDe != null ? parseFloat(el.dataset.contarDe) : Math.round(fim * 0.75);
+      if (!el.hasAttribute("aria-label")) el.setAttribute("aria-label", pre + fim + suf);
+      const t0 = performance.now(), dur = 1100;
       const passo = (t) => {
         const p = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - p, 3);
-        el.textContent = pre + Math.round(fim * e) + suf;
+        el.textContent = pre + Math.round(ini + (fim - ini) * e) + suf;
         if (p < 1) requestAnimationFrame(passo);
       };
       requestAnimationFrame(passo);

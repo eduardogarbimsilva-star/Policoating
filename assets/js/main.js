@@ -625,13 +625,18 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
     </div>
     <p class="resumo-qtd" id="resumo-qtd"></p>
     <div id="frete-produto"></div>
+    <a class="btn-pagina-produto" href="produto?id=${encodeURIComponent(p.id)}">
+      <span class="bpp-ic">${ic("documento")}</span>
+      <span class="bpp-txt"><b>Ver página completa do produto</b><small>Fotos, ficha completa, frete e link para compartilhar</small></span>
+      <span class="bpp-seta" aria-hidden="true">→</span>
+    </a>
     <div class="acoes-extra">
       <button type="button" data-extra="ficha">${ic("documento")}Ficha técnica</button>
       ${p.fds && /^https:\/\//.test(p.fds) && window.Recursos && window.Recursos.disponivel("product_docs_enabled", p) ? `<a class="link-pagina-produto" href="${esc(p.fds)}" target="_blank" rel="noopener">${ic("escudo")}FDS (segurança)</a>` : ""}
       ${window.Cotacao && window.Recursos && window.Recursos.disponivel("b2b_quote_enabled", p) ? `<button type="button" data-extra="cotacao">${ic("documento")}Solicitar cotação</button>` : ""}
       <button type="button" data-extra="orcamento">${ic("conversa")}Pedir orçamento</button>
       <button type="button" data-extra="link">${ic("link")}Copiar link</button>
-      <a class="link-pagina-produto" href="produto?id=${encodeURIComponent(p.id)}">${ic("documento")}Página completa do produto</a>
+
     </div>
   </div>
 </div>`;
@@ -1060,14 +1065,22 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
         <a href="privacidade">Política de Privacidade</a>.</p>
         <div class="aviso-botoes"><button class="btn btn-contorno-azul" type="button" data-cookies="essenciais">Só o essencial</button><button class="btn btn-primario" type="button" data-cookies="todos">Aceitar</button></div></div>`);
     }
+    alturaAviso();
     $$(".aviso-lgpd [data-cookies]").forEach((b) => b.addEventListener("click", () => {
       const anterior = lerStorage(CHAVE_COOKIES, "");
       gravarStorage(CHAVE_LGPD, true); gravarStorage(CHAVE_COOKIES, b.dataset.cookies);
       $(".aviso-lgpd").remove();
+      alturaAviso();
       if (b.dataset.cookies === "todos") ligarAnalytics();
       else if (anterior === "todos" && window.gtag) location.reload();   // retirou a permissão: para de medir na hora
     }));
   }
+  // enquanto o aviso de privacidade estiver na tela, os botões flutuantes (Assistente, redes) sobem acima dele no celular
+  function alturaAviso() {
+    const av = $(".aviso-lgpd");
+    document.documentElement.style.setProperty("--aviso-alt", av ? av.offsetHeight + 12 + "px" : "0px");
+  }
+  window.addEventListener("resize", alturaAviso);
   // "Altere suas preferências de privacidade" (Política de Privacidade)
   document.addEventListener("click", (e) => { if (e.target.closest("[data-preferencias-cookies]")) { e.preventDefault(); avisoLgpd(true); } });
 

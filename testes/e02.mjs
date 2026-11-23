@@ -38,7 +38,7 @@ async function site(viewport) {
   await p.goto(`${BASE}/produtos.html`); await espera(p, 900);
   R.add("V31-E02-18", "Cartões do catálogo têm link para a página do produto", (await p.$$('.cartao-produto a.link-produto[href^="produto?id="]')).length >= 2);
   await p.click('.cartao-produto .vitrine'); await espera(p, 500);
-  R.add("V31-E02-19", "Janela do produto tem 'Página completa do produto'", !!(await p.$('#modal-produto a.link-pagina-produto[href="produto?id=pol-0001"]')) || !!(await p.$('#modal-produto a.link-pagina-produto')));
+  R.add("V31-E02-19", "Janela do produto tem o botão Ver página completa do produto", !!(await p.$('#modal-produto a.btn-pagina-produto[href^="produto?id="]')));
   await p.goto(`${BASE}/trocas.html`); await espera(p, 600);
   const t = await p.textContent("main");
   R.add("V31-E02-20", "Página de trocas: arrependimento em 7 dias, defeito, reembolso e como solicitar", /7 \(sete\) dias corridos/.test(t) && /art\. 49/.test(t) && /Reembolso/.test(t) && /Como solicitar/.test(t));

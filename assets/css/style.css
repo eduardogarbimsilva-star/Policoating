@@ -3332,3 +3332,17 @@ video.video-produto { object-fit: contain; }
   .novidade:hover { transform: none; }
   .sel-painel, .cot-ok, .cot-ok-faixa, .cot-cep-info, .frete-card { animation: none !important; }
 }
+/* botão "Ver página completa do produto" na janela do produto */
+.btn-pagina-produto { display: flex; align-items: center; gap: 12px; margin: 14px 0 10px; padding: 12px 14px; border: 1.5px solid var(--azul); border-radius: 12px; background: var(--azul-claro); color: var(--azul-escuro); text-decoration: none; transition: background .2s, transform .2s; }
+.btn-pagina-produto:hover { background: #dbe7fd; transform: translateY(-1px); }
+.bpp-ic { flex: 0 0 38px; height: 38px; border-radius: 10px; display: grid; place-items: center; background: var(--azul); color: #fff; }
+.bpp-ic svg { width: 20px; height: 20px; }
+.bpp-txt { flex: 1; display: grid; line-height: 1.3; }
+.bpp-txt b { font-size: .95rem; } .bpp-txt small { font-size: .78rem; color: var(--texto-suave); }
+.bpp-seta { font-size: 1.2rem; font-weight: 700; transition: transform .2s; }
+.btn-pagina-produto:hover .bpp-seta { transform: translateX(4px); }
+@media (prefers-reduced-motion: reduce) { .btn-pagina-produto, .bpp-seta { transition: none; } .btn-pagina-produto:hover { transform: none; } }
+/* celular: Assistente e botão das redes sobem acima do aviso de privacidade (sem cobrir botões) */
+@media (max-width: 700px) {
+  .assist-botao, .rf-alternar, .whats-flutuante { bottom: calc(14px + var(--aviso-alt, 0px)) !important; transition: bottom .25s ease; }
+}

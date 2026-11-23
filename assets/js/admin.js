@@ -983,12 +983,72 @@
       try {
         const lista = await R.auditoria(30);
         const txt = (x) => !x ? "—" : (x.ligado ? "ligado" : "desligado") + (x.alvos && Object.keys(x.alvos).length ? " (com exceções)" : "");
-        tb.innerHTML = lista.length ? lista.map((l) => `<tr><td>${dataHora(l.em)}</td><td>${esc(l.ator_email || "—")}</td><td>${esc((R.definicao(l.chave) || {}).titulo || l.chave)}</td><td>${txt(l.antigo)} → ${txt(l.novo)}</td><td>${esc(l.motivo || "")}</td></tr>`).join("")
+        const mudanca = (l) => l.chave === "frete_config"
+          ? `endereço/tarifas atualizados (versão ${(l.antigo || {}).versao || "?"} → ${(l.novo || {}).versao || "?"})`
+          : `${txt(l.antigo)} → ${txt(l.novo)}`;
+        tb.innerHTML = lista.length ? lista.map((l) => `<tr><td>${dataHora(l.em)}</td><td>${esc(l.ator_email || "—")}</td><td>${esc(l.chave === "frete_config" ? "Frete (saída e tarifas)" : (R.definicao(l.chave) || {}).titulo || l.chave)}</td><td>${mudanca(l)}</td><td>${esc(l.motivo || "")}</td></tr>`).join("")
           : `<tr><td colspan="5">Nenhuma alteração ainda.</td></tr>`;
       } catch (e) { tb.innerHTML = `<tr><td colspan="5">${esc(e.message)}</td></tr>`; }
     }
     function erroRecursos(msg) { const el = $("#recursos-erro"); el.textContent = msg || ""; el.hidden = !msg; }
+    /* ---------- Frete: saída e tarifas (E05) ---------- */
+    const FR = window.Frete;
+    let freteLocal = null;   // coordenadas achadas no mapa e ainda não salvas
+    const fc = (id) => $("#fc-" + id);
+    async function carregarFrete() {
+      fc("erro").textContent = "";
+      let c; try { c = await FR.admin.ler(); } catch (e) { fc("erro").textContent = e.message; return; }
+      fc("cep").value = (c.origem_cep || "").replace(/^(\d{5})(\d{3})$/, "$1-$2");
+      ["logradouro", "numero", "complemento", "bairro", "cidade", "uf"].forEach((k) => (fc(k).value = c["origem_" + k] || ""));
+      fc("tarifa-local").value = c.tarifa_local; fc("raio").value = (c.raio_local_m || 0) / 1000;
+      fc("tarifa-km").value = c.tarifa_km; fc("minimo").value = c.minimo_externo;
+      freteLocal = null;
+      fc("mapa-res").innerHTML = c.origem_lat != null ? `Localizado: ${esc(c.origem_rotulo || "")} · <a href="https://www.openstreetmap.org/?mlat=${c.origem_lat}&mlon=${c.origem_lng}#map=17/${c.origem_lat}/${c.origem_lng}" target="_blank" rel="noopener">ver no mapa</a>` : "<b>Ainda não localizado</b> — o frete só pode ser ligado depois disso.";
+      fc("versao").textContent = c.atualizado_por ? `Versão ${c.versao} · alterado por ${c.atualizado_por} em ${dataHora(c.atualizado_em)}` : "";
+    }
+    fc("cep").addEventListener("input", async (e) => {
+      const cep = BR.so(e.target.value); e.target.value = BR.mascaras.cep(e.target.value);
+      if (cep.length !== 8) return;
+      try { const end = await BR.buscarCep(cep); if (end.logradouro) fc("logradouro").value = end.logradouro; if (end.bairro) fc("bairro").value = end.bairro; fc("cidade").value = end.cidade; fc("uf").value = end.uf; } catch (err) { /* preenche à mão */ }
+    });
+    ["logradouro", "numero", "cidade", "uf", "cep"].forEach((k) => fc(k).addEventListener("change", () => { if (freteLocal !== null) { freteLocal = null; fc("mapa-res").textContent = "Endereço mudou: localize de novo."; } }));
+    fc("localizar").addEventListener("click", async () => {
+      fc("erro").textContent = ""; fc("mapa-res").textContent = "Procurando…";
+      try {
+        const r = await FR.admin.localizar({ cep: BR.so(fc("cep").value), logradouro: fc("logradouro").value.trim(), numero: fc("numero").value.trim(), cidade: fc("cidade").value.trim(), uf: fc("uf").value.trim().toUpperCase() });
+        freteLocal = { origem_lat: r.lat, origem_lng: r.lng, origem_rotulo: r.rotulo || "" };
+        fc("mapa-res").innerHTML = `Encontrado: ${esc(r.rotulo || "")} · <a href="https://www.openstreetmap.org/?mlat=${r.lat}&mlon=${r.lng}#map=17/${r.lat}/${r.lng}" target="_blank" rel="noopener">confira no mapa</a>. Se estiver certo, clique em Salvar frete.`;
+      } catch (e) { fc("mapa-res").textContent = ""; fc("erro").textContent = e.message; }
+    });
+    fc("salvar").addEventListener("click", async () => {
+      fc("erro").textContent = "";
+      const n = (id) => { const v = parseFloat(String(fc(id).value).replace(",", ".")); return isFinite(v) && v >= 0 ? v : null; };
+      const dados = { origem_cep: BR.so(fc("cep").value) || null, origem_logradouro: fc("logradouro").value.trim(), origem_numero: fc("numero").value.trim(),
+        origem_complemento: fc("complemento").value.trim(), origem_bairro: fc("bairro").value.trim(), origem_cidade: fc("cidade").value.trim(), origem_uf: fc("uf").value.trim().toUpperCase(),
+        tarifa_local: n("tarifa-local"), raio_local_m: n("raio") == null ? null : Math.round(n("raio") * 1000), tarifa_km: n("tarifa-km"), minimo_externo: n("minimo") };
+      if (dados.origem_cep && dados.origem_cep.length !== 8) return (fc("erro").textContent = "CEP de saída deve ter 8 números.");
+      if (!dados.origem_cidade || !/^[A-Z]{2}$/.test(dados.origem_uf)) return (fc("erro").textContent = "Informe a cidade e a UF da saída.");
+      if ([dados.tarifa_local, dados.raio_local_m, dados.tarifa_km, dados.minimo_externo].some((v) => v == null)) return (fc("erro").textContent = "Preencha todas as tarifas com números (pode ser 0).");
+      Object.keys(dados).forEach((k) => dados[k] === null && delete dados[k]);
+      if (freteLocal) Object.assign(dados, freteLocal);
+      const motivo = prompt("Salvar o frete? Motivo da alteração (opcional):", ""); if (motivo === null) return;
+      dados.motivo = motivo;
+      fc("salvar").disabled = true;
+      try { await FR.admin.salvar(dados); CW.mostrarToast("Frete salvo."); await carregarFrete(); desenharHistorico(); }
+      catch (e) { fc("erro").textContent = e.message; }
+      finally { fc("salvar").disabled = false; }
+    });
+    fc("sim-cep").addEventListener("input", (e) => (e.target.value = BR.mascaras.cep(e.target.value)));
+    fc("simular").addEventListener("click", async () => {
+      const cep = BR.so(fc("sim-cep").value), res = fc("sim-res");
+      if (cep.length !== 8) { res.textContent = "Informe o CEP com 8 números."; return; }
+      res.textContent = "Calculando…";
+      try { res.innerHTML = FR.admin.htmlResultado(await FR.admin.simular(cep, fc("sim-num").value), cep); }
+      catch (e) { res.textContent = e.message; }
+    });
+
     async function carregarRecursos() {
+      carregarFrete();
       erroRecursos("");
       try { await R.recarregar(); } catch (e) {
         erroRecursos(/TABELA_AUSENTE/.test(e.message) ? "O banco ainda não tem a parte de recursos. Rode a PARTE R do supabase/setup.sql no SQL Editor do Supabase. Até lá, tudo fica desligado." : e.message);

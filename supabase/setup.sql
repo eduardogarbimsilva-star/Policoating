@@ -1550,3 +1550,145 @@ notify pgrst, 'reload schema';
 -- ===========================================================
 update public.recursos set implementado = true, requisito = null
  where chave in ('floating_social_enabled', 'social_click_metrics_enabled', 'pwa_install_invite_enabled');
+
+-- ===========================================================
+-- PARTE T — Frete por CEP saindo de Matão (etapa E05). Rode depois da PARTE R.
+--   • frete_config: endereço de saída (só a equipe vê; nunca aparece no site) e tarifas.
+--     Regra: R$ 500 na cidade de Matão OU até 10 km da saída; fora disso R$ 3 por km rodado
+--     (só ida, rota de caminhão), mínimo de R$ 500. Tudo editável no painel, com histórico.
+--   • frete_estimativas: registro de cada cálculo (CEP, cidade, distância, valor; sem nome nem CPF).
+--   • O recurso "Estimativa de frete por CEP" só pode ser ligado com a saída localizada no mapa.
+--   • Desfazer: drop function public.salvar_frete_config(jsonb); drop table public.frete_estimativas;
+--               drop table public.frete_config; update public.recursos set implementado = false
+--               where chave = 'freight_estimate_enabled';
+-- ===========================================================
+create table if not exists public.frete_config (
+  id                 int primary key default 1 check (id = 1),
+  origem_cep         text,
+  origem_logradouro  text,
+  origem_numero      text,
+  origem_complemento text,
+  origem_bairro      text,
+  origem_cidade      text not null default 'Matão',
+  origem_uf          text not null default 'SP',
+  origem_lat         double precision check (origem_lat is null or origem_lat between -35 and 6),
+  origem_lng         double precision check (origem_lng is null or origem_lng between -75 and -33),
+  origem_rotulo      text,
+  raio_local_m       int           not null default 10000 check (raio_local_m between 0 and 100000),
+  tarifa_local       numeric(10,2) not null default 500  check (tarifa_local >= 0),
+  tarifa_km          numeric(10,2) not null default 3    check (tarifa_km >= 0),
+  minimo_externo     numeric(10,2) not null default 500  check (minimo_externo >= 0),
+  versao             int           not null default 1,
+  atualizado_em      timestamptz   not null default now(),
+  atualizado_por     text
+);
+insert into public.frete_config (id) values (1) on conflict (id) do nothing;
+alter table public.frete_config enable row level security;
+drop policy if exists "equipe ve frete" on public.frete_config;
+create policy "equipe ve frete" on public.frete_config for select to authenticated using (public.eh_equipe());
+
+create table if not exists public.frete_estimativas (
+  id                 bigserial primary key,
+  em                 timestamptz not null default now(),
+  ip_hash            text,
+  cep                text check (cep is null or cep ~ '^\d{8}$'),
+  cidade             text,
+  uf                 text,
+  zona               text not null check (zona in ('local', 'externo', 'manual')),
+  distancia_radial_m int,
+  distancia_rota_m   int,
+  peso_kg            numeric(10,2),
+  valor              numeric(10,2),
+  versao             int,
+  motivo             text,
+  simulacao          boolean not null default false
+);
+alter table public.frete_estimativas enable row level security;
+drop policy if exists "equipe ve estimativas de frete" on public.frete_estimativas;
+create policy "equipe ve estimativas de frete" on public.frete_estimativas for select to authenticated using (public.eh_equipe());
+create index if not exists frete_estimativas_ip_em on public.frete_estimativas (ip_hash, em desc);
+
+/** Salva endereço de saída e tarifas (só administrador com 2 etapas); grava o histórico */
+create or replace function public.salvar_frete_config(p jsonb)
+returns public.frete_config language plpgsql security definer set search_path = public
+as $$
+declare v_antes public.frete_config; v_depois public.frete_config;
+begin
+  if not public.eh_admin() then raise exception 'Só o administrador (com as 2 etapas) pode alterar o frete.'; end if;
+  select * into v_antes from public.frete_config where id = 1 for update;
+  if (p ->> 'origem_cep') is not null and (p ->> 'origem_cep') !~ '^\d{8}$' then raise exception 'CEP de saída inválido.'; end if;
+  if (p ? 'origem_lat') <> (p ? 'origem_lng') then raise exception 'Informe latitude e longitude juntas.'; end if;
+  update public.frete_config set
+    origem_cep         = coalesce(p ->> 'origem_cep', origem_cep),
+    origem_logradouro  = coalesce(left(p ->> 'origem_logradouro', 150), origem_logradouro),
+    origem_numero      = coalesce(left(p ->> 'origem_numero', 20), origem_numero),
+    origem_complemento = case when p ? 'origem_complemento' then left(p ->> 'origem_complemento', 80) else origem_complemento end,
+    origem_bairro      = coalesce(left(p ->> 'origem_bairro', 80), origem_bairro),
+    origem_cidade      = coalesce(left(p ->> 'origem_cidade', 80), origem_cidade),
+    origem_uf          = coalesce(upper(left(p ->> 'origem_uf', 2)), origem_uf),
+    origem_lat         = case when p ? 'origem_lat' then (p ->> 'origem_lat')::double precision else origem_lat end,
+    origem_lng         = case when p ? 'origem_lng' then (p ->> 'origem_lng')::double precision else origem_lng end,
+    origem_rotulo      = case when p ? 'origem_rotulo' then left(p ->> 'origem_rotulo', 200) else origem_rotulo end,
+    raio_local_m       = coalesce((p ->> 'raio_local_m')::int, raio_local_m),
+    tarifa_local       = coalesce((p ->> 'tarifa_local')::numeric, tarifa_local),
+    tarifa_km          = coalesce((p ->> 'tarifa_km')::numeric, tarifa_km),
+    minimo_externo     = coalesce((p ->> 'minimo_externo')::numeric, minimo_externo),
+    versao = versao + 1, atualizado_em = now(), atualizado_por = lower(auth.jwt() ->> 'email')
+  where id = 1 returning * into v_depois;
+  insert into public.recursos_auditoria (ator, ator_email, chave, antigo, novo, motivo)
+  values (auth.uid(), lower(auth.jwt() ->> 'email'), 'frete_config',
+          to_jsonb(v_antes) - 'atualizado_em', to_jsonb(v_depois) - 'atualizado_em', nullif(left(trim(coalesce(p ->> 'motivo', '')), 300), ''));
+  return v_depois;
+end $$;
+revoke all on function public.salvar_frete_config(jsonb) from public, anon;
+grant execute on function public.salvar_frete_config(jsonb) to authenticated;
+
+-- alterar_recurso: o frete só liga com a saída localizada no mapa
+create or replace function public.alterar_recurso(p_chave text, p_ligado boolean, p_alvos jsonb default null, p_motivo text default null)
+returns public.recursos language plpgsql security definer set search_path = public
+as $$
+declare
+  v_antes public.recursos;
+  v_depois public.recursos;
+  v_alvos jsonb := coalesce(p_alvos, '{}'::jsonb);
+begin
+  if not public.eh_admin() then raise exception 'Só o administrador (com as 2 etapas) pode alterar recursos.'; end if;
+  select * into v_antes from public.recursos where chave = p_chave for update;
+  if not found then raise exception 'Recurso desconhecido.'; end if;
+  if p_ligado and not v_antes.ligado and not v_antes.implementado then
+    raise exception 'REQUISITO: %', coalesce(v_antes.requisito, 'Este recurso ainda não está pronto.');
+  end if;
+  if p_ligado and p_chave = 'freight_estimate_enabled'
+     and not exists (select 1 from public.frete_config where id = 1 and origem_lat is not null and origem_lng is not null) then
+    raise exception 'REQUISITO: localize o endereço de saída no mapa (Comércio e Recursos → Frete) antes de ligar.';
+  end if;
+  if jsonb_typeof(v_alvos) <> 'object'
+     or (v_alvos ? 'padrao' and v_alvos ->> 'padrao' not in ('todos', 'escolhidos'))
+     or (v_alvos ? 'categorias' and jsonb_typeof(v_alvos -> 'categorias') <> 'object')
+     or (v_alvos ? 'produtos' and jsonb_typeof(v_alvos -> 'produtos') <> 'object')
+     or exists (select 1 from jsonb_each(coalesce(v_alvos -> 'categorias', '{}') || coalesce(v_alvos -> 'produtos', '{}')) e
+                where jsonb_typeof(e.value) <> 'boolean' or e.key !~ '^[a-z0-9-]{2,60}$')
+     or length(v_alvos::text) > 20000 then
+    raise exception 'Exceções em formato inválido.';
+  end if;
+  update public.recursos
+     set ligado = coalesce(p_ligado, ligado),
+         alvos = case when p_alvos is null then alvos else v_alvos end,
+         atualizado_em = now(), atualizado_por = lower(auth.jwt() ->> 'email')
+   where chave = p_chave
+   returning * into v_depois;
+  insert into public.recursos_auditoria (ator, ator_email, chave, antigo, novo, motivo)
+  values (auth.uid(), lower(auth.jwt() ->> 'email'), p_chave,
+          jsonb_build_object('ligado', v_antes.ligado, 'alvos', v_antes.alvos),
+          jsonb_build_object('ligado', v_depois.ligado, 'alvos', v_depois.alvos),
+          nullif(left(trim(coalesce(p_motivo, '')), 300), ''));
+  return v_depois;
+end $$;
+revoke all on function public.alterar_recurso(text, boolean, jsonb, text) from public, anon;
+grant execute on function public.alterar_recurso(text, boolean, jsonb, text) to authenticated;
+
+update public.recursos set implementado = true,
+       requisito = 'Localize o endereço de saída no mapa (Comércio e Recursos → Frete) e publique a função "frete" no Supabase.'
+ where chave = 'freight_estimate_enabled';
+
+notify pgrst, 'reload schema';

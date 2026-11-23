@@ -10,3 +10,5 @@ insert into public.admins values ('dono@policoatingtintas.com.br', 'admin'), ('v
 create or replace function public.dois_fatores_ok() returns boolean language sql stable as $$ select coalesce(auth.jwt() ->> 'aal', 'aal1') = 'aal2' $$;
 create or replace function public.eh_admin() returns boolean language sql stable security definer set search_path = public
 as $$ select public.dois_fatores_ok() and exists (select 1 from public.admins where lower(email) = lower(auth.jwt() ->> 'email') and papel = 'admin') $$;
+create or replace function public.eh_equipe() returns boolean language sql stable security definer set search_path = public
+as $$ select public.dois_fatores_ok() and exists (select 1 from public.admins where lower(email) = lower(auth.jwt() ->> 'email')) $$;

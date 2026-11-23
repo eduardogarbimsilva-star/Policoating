@@ -2801,6 +2801,31 @@ video.video-produto { object-fit: contain; }
 }
 @media (prefers-reduced-motion: reduce) { .rf-rede, .redes-flutuantes ul { transition: none; } }
 
+/* ---------- Estimativa de frete (E05) ---------- */
+.frete-box { margin: 14px 0 4px; padding: 14px 16px; border: 1px solid var(--borda); border-radius: 10px; background: var(--fundo-alt, #f4f7fa); }
+.frete-box .campo-titulo { margin-top: 0; }
+.frete-form { display: flex; gap: 8px; flex-wrap: wrap; }
+.frete-form input { flex: 1 1 140px; min-width: 0; padding: 10px 12px; border: 1px solid var(--borda); border-radius: 6px; font: inherit; background: #fff; }
+.frete-form input#frete-num, .frete-form input#fc-sim-num { flex: 0 1 80px; }
+.frete-form .btn { padding: 10px 16px; }
+.frete-resultado { margin: 10px 0 4px; font-size: .92rem; min-height: 1.2em; }
+.frete-valor { font-size: 1.15rem; color: var(--texto); margin-right: 6px; }
+.frete-onde { color: var(--texto-suave); }
+.frete-regra { display: block; margin-top: 3px; color: var(--texto-suave); font-size: .8rem; }
+.frete-manual { color: #8a5a00; }
+.frete-whats { font-weight: 700; color: #1f9d55; white-space: nowrap; }
+.frete-erro { color: #b42318; }
+.frete-calculando { color: var(--texto-suave); }
+.frete-nota { color: var(--texto-suave); font-size: .78rem; }
+.frete-cfg { margin: 8px 0 30px; padding: 18px 20px; border: 1px solid #9cc3ff; border-radius: 10px; background: #fff; }
+.frete-cfg h3 { margin: 0 0 6px; }
+.frete-mapa { margin: 6px 0 16px; font-size: .88rem; }
+.frete-mapa .btn { margin-right: 8px; }
+.frete-acoes { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-top: 6px; }
+.frete-acoes small { color: var(--texto-suave); }
+.frete-sim { margin-top: 18px; padding-top: 14px; border-top: 1px dashed var(--borda); }
+.frete-sim h4 { margin: 0 0 8px; font-size: .92rem; }
+
 /* ---------- Convite para instalar o app (E11) ---------- */
 .convite-app { position: fixed; z-index: 95; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom)); width: min(520px, calc(100% - 32px));
   transform: translate(-50%, 20px); opacity: 0; transition: opacity .3s, transform .3s; display: grid; grid-template-columns: 48px 1fr; gap: 12px 14px;

@@ -27,7 +27,7 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Barlow:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/style.css?v=d0d58126">
+  <link rel="stylesheet" href="assets/css/style.css?v=5d56011b">
 </head>
 <body>
   <a class="pular" href="#conteudo">Pular para o conteúdo</a>
@@ -395,6 +395,33 @@
           <div class="admin-aba" data-conteudo="recursos" hidden>
             <p class="dica">Liga e desliga os recursos novos do site. Tudo começa <strong>desligado</strong>: cada recurso só pode ser ligado quando a etapa que o constrói estiver pronta e testada. Desligar não apaga pedidos nem cotações já feitos. Cada mudança fica registrada no histórico abaixo.</p>
             <p class="erro" id="recursos-erro" role="alert" hidden></p>
+            <section class="frete-cfg" id="frete-cfg" aria-labelledby="frete-cfg-titulo">
+              <h3 id="frete-cfg-titulo">Frete — endereço de saída e tarifas</h3>
+              <p class="dica">O endereço de saída fica <strong>só no servidor</strong> (o site nunca mostra). Preencha, clique em <strong>Localizar no mapa</strong>, confira o ponto e salve. Regra: valor fixo na cidade de saída ou até o raio; fora disso, valor por km rodado (só ida), com mínimo.</p>
+              <div class="grade-campos">
+                <label>CEP de saída<input id="fc-cep" inputmode="numeric" maxlength="9" placeholder="00000-000"></label>
+                <label class="largo">Rua<input id="fc-logradouro" maxlength="150"></label>
+                <label>Número<input id="fc-numero" maxlength="20"></label>
+                <label>Complemento<input id="fc-complemento" maxlength="80"></label>
+                <label>Bairro<input id="fc-bairro" maxlength="80"></label>
+                <label>Cidade<input id="fc-cidade" maxlength="80"></label>
+                <label>UF<input id="fc-uf" maxlength="2"></label>
+              </div>
+              <div class="frete-mapa"><button type="button" class="btn btn-contorno-azul" id="fc-localizar">Localizar no mapa</button> <span id="fc-mapa-res" aria-live="polite"></span></div>
+              <div class="grade-campos">
+                <label>Valor fixo local (R$)<input id="fc-tarifa-local" type="number" min="0" step="0.01"></label>
+                <label>Raio local (km)<input id="fc-raio" type="number" min="0" max="100" step="0.1"></label>
+                <label>Valor por km rodado (R$)<input id="fc-tarifa-km" type="number" min="0" step="0.01"></label>
+                <label>Mínimo fora do raio (R$)<input id="fc-minimo" type="number" min="0" step="0.01"></label>
+              </div>
+              <div class="frete-acoes"><button type="button" class="btn btn-primario" id="fc-salvar">Salvar frete</button> <small id="fc-versao"></small></div>
+              <p class="erro" id="fc-erro" role="alert"></p>
+              <div class="frete-sim">
+                <h4>Simular um frete</h4>
+                <div class="frete-form"><input id="fc-sim-cep" inputmode="numeric" maxlength="9" placeholder="CEP de destino" aria-label="CEP de destino"><input id="fc-sim-num" inputmode="numeric" maxlength="6" placeholder="Nº" aria-label="Número"><button type="button" class="btn btn-contorno-azul" id="fc-simular">Simular</button></div>
+                <p class="frete-resultado" id="fc-sim-res" aria-live="polite"></p>
+              </div>
+            </section>
             <div id="recursos-lista" aria-live="polite"></div>
             <h3 class="rec-hist-titulo">Histórico de alterações</h3>
             <div class="tabela-rolagem"><table class="admin-tabela rec-hist">
@@ -637,16 +664,18 @@
   <script src="assets/js/recursos.js?v=3c367689"></script>
   <script src="assets/js/flutuante.js?v=9645d8eb"></script>
   <script src="assets/js/pwa.js?v=eaafcbcb"></script>
+  <script src="assets/js/frete.js?v=240aa6be"></script>
   <script src="assets/js/icones.js?v=3b2cf7da"></script>
   <script src="assets/js/midia.js?v=89a07a7d"></script>
   <script src="assets/js/fotos-reais.js?v=cd443528"></script>
   <script src="assets/js/fotos.js?v=48f81340"></script>
   <script src="assets/js/auth.js?v=4e4f2f6a"></script>
   <script src="assets/js/loja.js?v=67be2651"></script>
-  <script src="assets/js/main.js?v=0436d3ee"></script>
+  <script src="assets/js/main.js?v=46c4cf81"></script>
   <script src="assets/js/animacoes.js?v=75e1f9fd"></script>
   <script src="assets/js/secoes.js?v=47af24e3"></script>
   <script src="assets/js/assistente.js?v=892a15e6"></script>
-  <script src="assets/js/admin.js?v=6f2bee67"></script>
+  <script src="assets/js/br.js?v=848f13ba"></script>
+  <script src="assets/js/admin.js?v=f1b20160"></script>
 </body>
 </html>

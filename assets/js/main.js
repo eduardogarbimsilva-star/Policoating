@@ -600,6 +600,7 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
       <button class="btn btn-primario" id="modal-add" style="flex:1">Adicionar ao carrinho</button>
     </div>
     <p class="resumo-qtd" id="resumo-qtd"></p>
+    <div id="frete-produto"></div>
     <div class="acoes-extra">
       <button type="button" data-extra="ficha">${ic("documento")}Ficha técnica</button>
       <button type="button" data-extra="orcamento">${ic("conversa")}Pedir orçamento</button>
@@ -777,6 +778,8 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
     $("#abrir-calc").addEventListener("click", () => { const c = $("#calc-area"); c.hidden = !c.hidden; if (!c.hidden) $("#calc-m2").focus(); });
     $("#calc-m2").addEventListener("input", calcular);
     atualizarQtd();
+    // estimativa de frete (só se o recurso valer para este produto); o peso vem da embalagem e da quantidade escolhidas
+    if (window.Frete) window.Frete.montar($("#frete-produto"), p, () => [{ id: p.id, embalagem: embSel, qtd: limitarQtd(embSel, qtd.value) }]);
     $$("[data-extra]", modal).forEach((b) =>
       b.addEventListener("click", () => {
         const tipo = b.dataset.extra;

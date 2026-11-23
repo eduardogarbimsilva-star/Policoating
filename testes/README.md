@@ -31,6 +31,10 @@ node testes/catalogo_google.mjs        # E02: feed do Google Merchant Center (fu
 node testes/e12.mjs                    # E12: banners de novidades (só o que está ligado), foco ao fechar janelas, contraste, menos movimento, CLS
 node testes/cotacao_config.mjs         # cotação configurável no painel (campos, produto opcional, veículos, peso máximo, volumetria, intervalo, lista e exclusão), animação ao cotar e avisos
 node testes/cabecalho.mjs              # cabeçalho e barra superior sem sobreposição em várias larguras (deslogado e dono)
+node testes/novidades.mjs              # janela "O que mudou no site" (10 s, X/Esc, não mostrar novamente, itens da equipe)
+node testes/ajuda.mjs                  # botão ? do painel: fotos antes/depois das configurações
+node testes/celular.mjs                # celular sem vazar/sobrepor/cortar texto (SITE=https://policoatingtintas.com.br para o site ao vivo)
+node testes/celular_painel.mjs         # painel no celular, todas as abas
 node testes/e13_e14.mjs                # E13/E14: sitemap/robots sem páginas privadas, recursos desligados por padrão, desfazer no SQL, saúde do sistema
 node testes/producao.mjs               # site NO AR, só leitura: versão publicada, páginas sem erro, funções e recursos (rode depois de publicar)
 ```

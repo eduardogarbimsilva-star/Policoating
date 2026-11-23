@@ -27,7 +27,7 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Barlow:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/style.css?v=dde02b4a">
+  <link rel="stylesheet" href="assets/css/style.css?v=342d7d9d">
 </head>
 <body>
   <a class="pular" href="#conteudo">Pular para o conteúdo</a>
@@ -237,7 +237,7 @@
               <p class="dica">Escolha, campo a campo, o que o cliente <strong>precisa</strong> preencher (obrigatório), o que ele <strong>pode</strong> preencher (opcional) e o que <strong>não aparece</strong> (oculto). O CEP é sempre obrigatório, porque é dele que sai o frete. O servidor confere as mesmas regras.</p>
               <div id="cot-cfg-campos"></div>
               <fieldset class="cot-cfg-bloco">
-                <legend>Veículos da entrega</legend>
+                <legend data-ajuda="cot-veiculos">Veículos da entrega</legend>
                 <label class="cot-cfg-liga"><input type="checkbox" id="cot-cfg-veic-ativo"> Mostrar a escolha do veículo na cotação (o site sugere o menor que leva o peso e o volume)</label>
                 <div id="cot-cfg-veiculos"></div>
                 <button type="button" class="btn btn-contorno-azul" id="cot-cfg-veic-add">+ Adicionar veículo</button>
@@ -245,14 +245,14 @@
                 <small class="cot-cfg-nota">Volume máximo (m³) é opcional: use para carga volumosa não ir num veículo pequeno, mesmo leve. Deixe em branco para não limitar.</small>
               </fieldset>
               <fieldset class="cot-cfg-bloco">
-                <legend>Volumetria (medidas e cubagem)</legend>
+                <legend data-ajuda="cot-volumetria">Volumetria (medidas e cubagem)</legend>
                 <div class="cot-cfg-linha"><span>Pedir as medidas dos volumes (comprimento × largura × altura)</span>
                   <div class="cot-seg" role="radiogroup" aria-label="Volumetria" id="cot-cfg-vol-modo">
                     <button type="button" data-vol="obrigatorio" aria-pressed="false">Obrigatório</button><button type="button" data-vol="opcional" aria-pressed="false">Opcional</button><button type="button" data-vol="oculto" aria-pressed="true">Oculto</button></div></div>
                 <label class="cot-cfg-liga">Fator de cubagem: <input type="number" id="cot-cfg-vol-fator" min="1" max="2000" step="1" aria-label="Fator de cubagem em kg por metro cúbico"> kg por m³ <small>(padrão rodoviário: 300)</small></label>
               </fieldset>
               <fieldset class="cot-cfg-bloco">
-                <legend>Intervalo e lista do cliente</legend>
+                <legend data-ajuda="cot-intervalo">Intervalo e lista do cliente</legend>
                 <label class="cot-cfg-liga">Esperar <input type="number" id="cot-cfg-intervalo" min="0" max="60" step="1" aria-label="Minutos entre cotações"> minuto(s) entre uma cotação e outra do mesmo aparelho <small>(0 = sem espera; o site mostra a contagem regressiva)</small></label>
                 <label class="cot-cfg-liga">Guardar as <input type="number" id="cot-cfg-limite" min="1" max="50" step="1" aria-label="Quantidade de cotações na lista do cliente"> cotações mais recentes na lista do cliente <small>(as mais antigas saem da lista dele; a equipe continua vendo até vencer)</small></label>
               </fieldset>
@@ -333,7 +333,7 @@
               </div>
             </fieldset>
             <fieldset id="cfg-flutuante">
-              <legend>Bolinhas flutuantes das redes</legend>
+              <legend data-ajuda="floating_social_enabled">Bolinhas flutuantes das redes</legend>
               <p class="dica">Aparecem no site só quando o recurso estiver ligado em <strong>Comércio e Recursos</strong>, com os links acima. Marque as redes e use as setas para mudar a ordem.</p>
               <div class="grade-campos">
                 <label>Lado da tela<select id="flu-posicao"><option value="direita">Direita</option><option value="esquerda">Esquerda</option></select></label>
@@ -739,12 +739,13 @@
   <script src="assets/js/auth.js?v=4e4f2f6a"></script>
   <script src="assets/js/loja.js?v=67be2651"></script>
   <script src="assets/js/main.js?v=c02e13b2"></script>
-  <script src="assets/js/novidades-janela.js?v=aa810bd1" defer></script>
+  <script src="assets/js/novidades-janela.js?v=870b7952" defer></script>
   <script src="assets/js/animacoes.js?v=d2c27710"></script>
   <script src="assets/js/secoes.js?v=7befe6f9"></script>
   <script src="assets/js/assistente.js?v=bb8498c5"></script>
   <script src="assets/js/br.js?v=848f13ba"></script>
   <script src="assets/js/seletor.js?v=00ee7cd3"></script>
   <script src="assets/js/admin.js?v=0a8b0067"></script>
+  <script src="assets/js/ajuda-config.js?v=2a10df1b" defer></script>
 </body>
 </html>

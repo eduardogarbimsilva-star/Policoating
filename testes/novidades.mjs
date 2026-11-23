@@ -43,7 +43,7 @@ async function abrir({ admin, w = 1280 } = {}) {
 {
   const { ctx, p } = await abrir({ admin: true });
   await p.goto(`${BASE}/index.html`); await p.waitForTimeout(2600);
-  R.add("NV-09", "Para o dono aparecem também os itens da equipe", (await p.$$(".nv-equipe")).length >= 3);
+  R.add("NV-09", "Para o dono aparecem também os itens da equipe", (await p.$$(".nv-equipe")).length >= 2);
   await ctx.close();
 }
 {

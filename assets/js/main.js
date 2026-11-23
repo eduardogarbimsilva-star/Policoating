@@ -410,21 +410,29 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
       .join("");
   }
 
+  /* foco: ao abrir uma janela (produto ou carrinho) o foco vai para ela; ao fechar, volta para onde estava */
+  let focoAntes = null;
+  const guardarFoco = () => { const algoAberto = $("#carrinho.aberto") || $("#modal-produto.aberto"); if (!algoAberto) focoAntes = document.activeElement; };
+  const devolverFoco = () => { const f = focoAntes; focoAntes = null; if (f && f.isConnected && typeof f.focus === "function") try { f.focus({ preventScroll: true }); } catch (e) { /* ignora */ } };
   function abrirCarrinho() {
+    guardarFoco();
     fecharModal();
     $("#toast").classList.remove("visivel");
     $("#carrinho").classList.add("aberto");
     $("#carrinho").setAttribute("aria-hidden", "false");
     $("#sobreposicao").classList.add("aberto");
     document.body.style.overflow = "hidden";
+    const f = $("[data-fechar-carrinho]"); if (f) setTimeout(() => f.focus({ preventScroll: true }), 30);
   }
 
   function fecharTudo() {
+    const tinhaAberto = !!($("#carrinho.aberto") || $("#modal-produto.aberto"));
     $("#carrinho").classList.remove("aberto");
     $("#carrinho").setAttribute("aria-hidden", "true");
     fecharModal();
     $("#sobreposicao").classList.remove("aberto");
     document.body.style.overflow = "";
+    if (tinhaAberto) devolverFoco();
   }
 
   /* ---------- Dados do cliente no carrinho ---------- */
@@ -830,10 +838,12 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
       if (adicionarAoCarrinho(p.id, corSel.nome, embSel, qtd.value)) fecharTudo();
     });
 
+    guardarFoco();
     modal.classList.add("aberto");
     modal.setAttribute("aria-hidden", "false");
     $("#sobreposicao").classList.add("aberto");
     document.body.style.overflow = "hidden";
+    setTimeout(() => { const f = $(".fechar", modal); if (f) f.focus({ preventScroll: true }); }, 30);
   }
 
   function fecharModal() {

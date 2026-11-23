@@ -3305,3 +3305,30 @@ video.video-produto { object-fit: contain; }
 .pp-doc b { display: block; } .pp-doc small { color: var(--texto-suave); font-size: .8rem; }
 .pp-doc-ico { flex: 0 0 44px; height: 52px; border-radius: 6px; display: grid; place-items: center; background: #fdecec; color: #a11d1d; font-weight: 800; font-size: .78rem; }
 .pp-doc-pedir .pp-doc-ico { background: var(--azul-claro); color: var(--azul); }
+
+/* ===== E12: acessibilidade e novidades ===== */
+/* botão do WhatsApp com contraste AA (texto branco ≥ 4,5:1); o verde claro da marca segue nos ícones */
+.btn-whats { background: #15803d; color: #fff; }
+.btn-whats:hover { background: #116a32; }
+:focus-visible { outline: 3px solid var(--azul); outline-offset: 2px; }
+.secao-escura :focus-visible, .slider :focus-visible, .cot-resumo :focus-visible { outline-color: var(--destaque); }
+.novidades { padding: 56px 0; background: linear-gradient(180deg, var(--fundo-alt), #fff); }
+.novidades-topo { text-align: center; margin-bottom: 26px; }
+.novidades-topo h2 { font-size: clamp(1.4rem, 3vw, 2rem); margin-top: 6px; }
+.novidades-grade { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 16px; }
+.novidade { position: relative; padding: 22px 20px; border-radius: 16px; background: #fff; border: 1px solid var(--borda); box-shadow: 0 4px 18px rgba(10, 31, 58, .05); transition: transform .3s var(--suave, ease), box-shadow .3s; overflow: hidden; }
+.novidade::before { content: ""; position: absolute; inset: 0 0 auto; height: 4px; background: var(--arco-iris); }
+.novidade:hover { transform: translateY(-4px); box-shadow: var(--sombra-forte); }
+.novidade-ic { width: 46px; height: 46px; border-radius: 12px; display: grid; place-items: center; background: var(--azul-claro); color: var(--azul); margin-bottom: 12px; }
+.novidade-ic svg { width: 24px; height: 24px; }
+.novidade h3 { font-size: 1.05rem; margin-bottom: 6px; }
+.novidade p { font-size: .9rem; color: var(--texto-suave); margin-bottom: 12px; }
+.novidade-link { font-weight: 700; font-size: .9rem; color: var(--azul); text-decoration: none; }
+.novidade-link::after { content: ""; position: absolute; inset: 0; }
+.novidade-link span { display: inline-block; transition: transform .25s; }
+.novidade:hover .novidade-link span { transform: translateX(4px); }
+@media (prefers-reduced-motion: reduce) {
+  .novidade, .novidade-link span { transition: none; }
+  .novidade:hover { transform: none; }
+  .sel-painel, .cot-ok, .cot-ok-faixa, .cot-cep-info, .frete-card { animation: none !important; }
+}

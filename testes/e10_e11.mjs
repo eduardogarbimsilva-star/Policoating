@@ -143,8 +143,13 @@ async function site({ recursos, config, viewport, admin } = {}) {
   R.add("V31-E11-05", "Cache só com páginas e arquivos públicos (nada de conta/painel)", guardado.length > 0 && !privado.length, `${guardado.length} itens; privados: ${privado.join(",") || "nenhum"}`);
   // desligar o recurso remove o service worker e o cache
   await p.evaluate(() => { localStorage.setItem("policoating_demo_recursos", "{}"); });
-  await p.goto(`${BASE}/index.html`); await espera(p, 1500);
-  const sobrou = await p.evaluate(async () => (await navigator.serviceWorker.getRegistrations()).length + (await caches.keys()).length);
+  await p.goto(`${BASE}/index.html`);
+  // espera a limpeza terminar (até 6 s) em vez de um tempo fixo
+  const sobrou = await p.evaluate(async () => {
+    const conta = async () => (await navigator.serviceWorker.getRegistrations()).length + (await caches.keys()).length;
+    for (let i = 0; i < 30; i++) { if (!(await conta())) return 0; await new Promise((r) => setTimeout(r, 200)); }
+    return conta();
+  });
   R.add("V31-E11-06", "Desligar o recurso remove o service worker e o cache", sobrou === 0, `${sobrou} restante(s)`);
   await ctx.close();
 }

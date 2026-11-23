@@ -28,6 +28,7 @@ node testes/frete.mjs                  # E05/E06: função "frete" do Supabase (
 node testes/e06_e08.mjs                # E06–E08: página de cotação, botão no produto, consulta pelo código, Minhas cotações e painel da equipe
 node testes/e02.mjs                    # E02: página própria do produto, dados para o Google, trocas e devoluções
 node testes/catalogo_google.mjs        # E02: feed do Google Merchant Center (função catalogo-google) — não precisa do servidor local
+node testes/e12.mjs                    # E12: banners de novidades (só o que está ligado), foco ao fechar janelas, contraste, menos movimento, CLS
 ```
 
 ## Testes do banco (`testes/sql/`)

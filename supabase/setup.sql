@@ -1919,3 +1919,13 @@ notify pgrst, 'reload schema';
 update public.recursos set implementado = true, requisito = null
  where chave in ('packaging_variants_enabled', 'product_docs_enabled');
 notify pgrst, 'reload schema';
+
+-- ===========================================================
+-- PARTE Y — Banners de novidades da página inicial (etapa E12)
+--   Rode depois da PARTE X. Continua DESLIGADO até você ligar; cada banner só aparece
+--   se o recurso que ele anuncia estiver ligado (ex.: "Pix e cartão" só com a compra direta).
+--   Desfazer: update public.recursos set implementado = false where chave = 'new_home_banners_enabled';
+-- ===========================================================
+update public.recursos set implementado = true, requisito = null
+ where chave = 'new_home_banners_enabled';
+notify pgrst, 'reload schema';

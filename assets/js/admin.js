@@ -593,7 +593,7 @@
         const c = p.cliente || {}, tel = String(c.telefone || "").replace(/\D/g, ""), valor = valorPedido(p), combinar = (p.itens || []).some((i) => i.preco_kg == null);
         return `<article class="adm-pedido" data-numero="${esc(p.numero)}">
           <header>
-            <div><strong>${esc(p.numero)}</strong><small>${esc(dataBR(p.criado_em))}</small></div>
+            <div><strong>${esc(p.numero)}</strong><small>${esc(dataBR(p.criado_em))}</small>${window.Pagamento ? window.Pagamento.chip(p) : ""}</div>
             <button type="button" class="btn-copiar" data-copiar="${esc(p.numero)}" title="Copiar código">${window.Icone ? window.Icone("link") : ""}Copiar código</button>
           </header>
           <div class="adm-pedido-corpo">

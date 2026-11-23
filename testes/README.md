@@ -37,6 +37,8 @@ node testes/celular.mjs                # celular sem vazar/sobrepor/cortar texto
 node testes/celular_painel.mjs         # painel no celular, todas as abas
 node testes/chat.mjs                   # função "chat" no Node (banco imitado): assistente, equipe entra/sai, limites
 node testes/chat_e2e.mjs               # chat de ponta a ponta (cliente e painel ao mesmo tempo, modo demonstração)
+node testes/pagamento.mjs              # função "pagamento" no Node (Mercado Pago imitado): valores do servidor, assinatura, aprovado/recusado/estorno
+node testes/pagamento_e2e.mjs          # compra direta no site: botão só quando permitido, janela, volta do Mercado Pago, selo no pedido
 node testes/e13_e14.mjs                # E13/E14: sitemap/robots sem páginas privadas, recursos desligados por padrão, desfazer no SQL, saúde do sistema
 node testes/producao.mjs               # site NO AR, só leitura: versão publicada, páginas sem erro, funções e recursos (rode depois de publicar)
 ```

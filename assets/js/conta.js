@@ -313,7 +313,7 @@
     }).join("");
     return `<article class="pedido">
       <header>
-        <div><strong>Pedido ${esc(p.numero)}</strong><small>${dataHora(p.criado_em)} · ${itens.length} ${itens.length === 1 ? "produto" : "produtos"}${kg ? ` · ${kg.toLocaleString("pt-BR")} kg` : ""}${valor ? ` · ${R(valor)}${combinar ? " + itens sob consulta" : ""}` : ""}</small></div>
+        <div><strong>Pedido ${esc(p.numero)}</strong>${window.Pagamento ? window.Pagamento.chip(p) : ""}<small>${dataHora(p.criado_em)} · ${itens.length} ${itens.length === 1 ? "produto" : "produtos"}${kg ? ` · ${kg.toLocaleString("pt-BR")} kg` : ""}${valor ? ` · ${R(valor)}${combinar ? " + itens sob consulta" : ""}` : ""}</small></div>
         <span class="status">Enviado ao vendedor</span>
       </header>
       <ul>${lista}</ul>

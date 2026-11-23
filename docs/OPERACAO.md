@@ -22,7 +22,7 @@ com as 2 etapas; cada mudança fica no histórico, com quem, quando e o motivo).
 | Documentos técnicos | E04 | Ficha técnica e FDS em PDF na página do produto |
 | Feed do Google Merchant Center | E02 | Feed de produtos para o Google Shopping — **só ligar com a E09 pronta** |
 | Novos banners da página inicial | E12 | "Novidades no site" — só anuncia o que estiver ligado |
-| Compra direta (Pix/cartão) | E09 | **Pendente** (Mercado Pago, última etapa) |
+| Compra direta (Pix/cartão) | E09 | Pronta e **desligada**: precisa da conta de vendedor da empresa no Mercado Pago |
 
 Outras configurações:
 - **Painel → Cotações → Configurar formulário**: cada campo da cotação obrigatório/opcional/oculto,
@@ -36,11 +36,12 @@ Outras configurações:
 ## 2. Banco (Supabase → SQL Editor)
 
 Rodar **na ordem**, cada parte uma vez (todas podem ser rodadas de novo sem quebrar):
-R → S → T → U → V → W → X → Y → Z → AA → AB → AC. Cada parte tem, no começo, o que faz e como **desfazer**.
+R → S → T → U → V → W → X → Y → Z → AA → AB → AC → AD. Cada parte tem, no começo, o que faz e como **desfazer**.
 
 - A PARTE AA exige a função `frete` nova publicada **antes** (a consulta pelo número passa por ela).
 - A PARTE AB (cliente excluir/aparar a própria lista) vem depois da AA e da função `frete` atualizada.
 - A PARTE AC (chat da cotação aprovada) vem depois de publicar a função `chat`; o recurso começa **desligado**.
+- A PARTE AD (compra direta com Mercado Pago) vem depois de publicar a função `pagamento`; o recurso continua **desligado**.
 - A limpeza das cotações vencidas usa a extensão **pg_cron** (Database → Extensions).
 
 Testado num Postgres local: o `setup.sql` inteiro roda duas vezes seguidas sem erro; todas as 21 tabelas
@@ -52,6 +53,7 @@ têm RLS; toda função com privilégio tem `search_path` fixo; o visitante só 
 |---|---|---|---|
 | `frete` | `supabase/functions/frete/index.ts` | frete, cotação, consulta pelo número | `ORS_API_KEY` |
 | `catalogo-google` | `supabase/functions/catalogo-google/index.ts` | feed do Merchant Center + diagnóstico | — |
+| `pagamento` | `supabase/functions/pagamento/index.ts` | compra direta: cobrança no Mercado Pago + aviso (webhook) assinado | `MP_ACCESS_TOKEN`, `MP_WEBHOOK_SECRET` |
 | `chat` | `supabase/functions/chat/index.ts` | chat da cotação aprovada (cliente ↔ equipe, assistente de recepção) | `ANTHROPIC_API_KEY` (opcional; sem ela o assistente responde só com os dados da cotação) |
 
 Limites por IP: 30 fretes/10 min, 6 cotações/hora, 60 consultas e 15 números errados/10 min.
@@ -111,4 +113,19 @@ Nenhum registro guarda IP aberto, nome ou CPF (só hash do IP e contagens).
 - Equipe: Painel → Cotações → "Conversas com clientes" (com não lidas) ou "Abrir chat com o cliente" dentro da cotação aprovada.
 - Limites: 20 mensagens do cliente a cada 10 min por conversa, 30 respostas do assistente por conversa, 15 números errados por IP a cada 10 min.
 - As mensagens saem junto com a cotação quando ela vence (7 dias).
+
+## Compra direta com Pix ou cartão (PARTE AD — Mercado Pago)
+
+1. Crie (ou use) a conta de **vendedor da empresa** no Mercado Pago (CNPJ da Policoating), nunca uma conta pessoal.
+2. Em Mercado Pago → Suas integrações → crie uma aplicação (Checkout Pro). Copie o **Access Token de produção**.
+3. Supabase → Edge Functions → nova função `pagamento` (cole `supabase/functions/pagamento/index.ts`), **Verify JWT desligado**.
+4. Supabase → Edge Functions → Secrets: `MP_ACCESS_TOKEN` = Access Token de produção. (Nunca coloque a chave no site nem no chat.)
+5. Na aplicação do Mercado Pago → Webhooks: URL `https://miakoeajctykqdjkkczo.supabase.co/functions/v1/pagamento?acao=webhook`, evento **Pagamentos**.
+   Copie a **assinatura secreta** e salve no Secret `MP_WEBHOOK_SECRET`.
+6. Rode a PARTE AD. Teste com um pedido pequeno de verdade (Pix), confira no painel o selo "Pago · Pix" e estorne pelo Mercado Pago.
+7. Só então ligue "Compra direta (Pix ou cartão)" em Comércio e Recursos (pode liberar só alguns produtos).
+
+Regras: o valor vem sempre do servidor (preços do catálogo + frete estimado); sem preço publicado ou sem frete calculável, o botão não aparece
+ou a cobrança é recusada (o cliente envia pelo WhatsApp). O pedido só vira "Pago" com o aviso assinado do Mercado Pago **e** valor igual
+ao cobrado. Boleto fica de fora (só Pix e cartão, até 12×). A nota fiscal continua sendo emitida pela equipe.
 

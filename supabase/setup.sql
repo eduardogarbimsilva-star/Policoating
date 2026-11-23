@@ -2102,3 +2102,112 @@ insert into public.recursos (chave, ligado, requisito) values
 on conflict (chave) do nothing;
 update public.recursos set implementado = true, requisito = null where chave = 'quote_chat_enabled';
 notify pgrst, 'reload schema';
+
+-- ===========================================================
+-- PARTE AD — Compra direta com Pix ou cartão (Mercado Pago) — etapa E09
+--   Rode depois da PARTE AC e DEPOIS de publicar a função "pagamento" (supabase/functions/pagamento).
+--   • O cliente paga no Mercado Pago (Pix ou cartão): o site nunca vê dados de cartão.
+--   • Valor sempre calculado no servidor: preços do catálogo (com a caixa de 5 kg, se o recurso valer)
+--     + frete estimado pela função "frete". Sem preço publicado ou sem frete calculável, não há pagamento online.
+--   • O pedido só fica "pago" quando o Mercado Pago avisa (webhook assinado) e o valor confere.
+--   • O recurso "Compra direta" continua DESLIGADO até você testar pagamento, frete e nota fiscal.
+--   Secrets da função: MP_ACCESS_TOKEN (conta de vendedor da EMPRESA) e MP_WEBHOOK_SECRET.
+--   Desfazer: drop table public.pagamentos;
+--             alter table public.pedidos drop column pagamento_status, drop column pagamento_valor,
+--               drop column frete_valor, drop column pago_em, drop column pagamento_metodo;
+--             update public.recursos set implementado = false where chave = 'direct_checkout_enabled';
+--             (o criar_pedido volta a ignorar o preço próprio da caixa de 5 kg se rodar a parte antiga)
+-- ===========================================================
+alter table public.pedidos add column if not exists pagamento_status text;
+alter table public.pedidos drop constraint if exists pedidos_pagamento_status_valido;
+alter table public.pedidos add constraint pedidos_pagamento_status_valido
+  check (pagamento_status is null or pagamento_status in ('pendente', 'aprovado', 'recusado', 'estornado', 'expirado'));
+alter table public.pedidos add column if not exists pagamento_valor numeric(14, 2);
+alter table public.pedidos add column if not exists frete_valor numeric(14, 2);
+alter table public.pedidos add column if not exists pago_em timestamptz;
+alter table public.pedidos add column if not exists pagamento_metodo text;
+
+create table if not exists public.pagamentos (
+  id               bigserial primary key,
+  pedido_numero    text not null references public.pedidos(numero) on delete cascade,
+  cliente_id       uuid references auth.users(id) on delete set null,
+  mp_preferencia   text,
+  mp_pagamento     text unique,
+  status           text not null default 'pendente' check (status in ('pendente', 'aprovado', 'recusado', 'estornado', 'expirado')),
+  valor_produtos   numeric(14, 2) not null check (valor_produtos > 0),
+  valor_frete      numeric(14, 2) not null check (valor_frete >= 0),
+  valor_total      numeric(14, 2) not null check (valor_total > 0),
+  metodo           text,
+  detalhe          jsonb,
+  criado_em        timestamptz not null default now(),
+  atualizado_em    timestamptz not null default now()
+);
+create index if not exists pagamentos_pedido on public.pagamentos (pedido_numero, criado_em desc);
+alter table public.pagamentos enable row level security;
+drop policy if exists "cliente ve seus pagamentos" on public.pagamentos;
+create policy "cliente ve seus pagamentos" on public.pagamentos for select to authenticated using (cliente_id = auth.uid());
+drop policy if exists "equipe ve pagamentos" on public.pagamentos;
+create policy "equipe ve pagamentos" on public.pagamentos for select to authenticated using (public.eh_equipe());
+-- (sem insert/update pelo site: só a função "pagamento", com a chave de servidor)
+
+-- Pedido com o mesmo preço que o site mostra (caixa de 5 kg com preço próprio)
+create or replace function public.criar_pedido(p_itens jsonb, p_obs text default null)
+returns text language plpgsql security definer set search_path = public as $$
+declare
+  v_uid uuid := auth.uid(); v_cli public.clientes; v_prod public.produtos; it jsonb; d jsonb;
+  v_emb text; v_qtd int; v_kg numeric; v_preco numeric; v_promo numeric; v_efetivo numeric;
+  v_itens jsonb := '[]'; v_total numeric := 0; v_total_kg numeric := 0; v_combinar boolean := false;
+  v_numero text; v_prazo record; v_envio date; v_hoje date := (now() at time zone 'America/Sao_Paulo')::date;
+begin
+  if v_uid is null then raise exception 'Entre na sua conta para comprar.'; end if;
+  select * into v_cli from public.clientes where id = v_uid;
+  if not found or coalesce(v_cli.cep, '') = '' or coalesce(v_cli.uf, '') = '' then
+    raise exception 'Complete o seu cadastro (endereço de entrega) antes de comprar.';
+  end if;
+  select * into v_prazo from public.prazo_regiao(v_cli.uf, v_cli.cep);
+  if not found then raise exception 'Não atendemos este endereço pelo site. Fale com a gente.'; end if;
+  if jsonb_typeof(p_itens) <> 'array' or jsonb_array_length(p_itens) not between 1 and 50 then raise exception 'Carrinho inválido.'; end if;
+
+  for it in select * from jsonb_array_elements(p_itens) loop
+    select * into v_prod from public.produtos where id = it ->> 'id' and ativo;
+    if not found then raise exception 'Um dos produtos não está mais disponível. Atualize o carrinho.'; end if;
+    d := v_prod.dados; v_emb := it ->> 'embalagem'; v_qtd := (it ->> 'qtd')::int;
+    if v_emb <> 'Sob medida' and not (d -> 'embalagens') ? v_emb then raise exception 'Embalagem inválida para %.', d ->> 'nome'; end if;
+    if v_qtd is null or v_qtd < 1 or (v_emb <> 'Sob medida' and v_qtd > 2000) or v_qtd > 50000 then raise exception 'Quantidade inválida para %.', d ->> 'nome'; end if;
+    v_kg := case when v_emb = 'Sob medida' then v_qtd
+            else v_qtd * coalesce(replace(substring(v_emb from '(\d+(?:[.,]\d+)?)\s*kg'), ',', '.')::numeric, 0) end;
+    if v_kg <= 0 then raise exception 'Quantidade inválida para %.', d ->> 'nome'; end if;
+    v_preco := nullif(d ->> 'preco', '')::numeric; v_promo := nullif(d ->> 'precoPromo', '')::numeric;
+    if coalesce((d ->> 'precoCombinar')::boolean, false) or coalesce(v_preco, 0) <= 0 then v_efetivo := null;
+    elsif v_promo > 0 and v_promo < v_preco and (d ->> 'promoAte' is null or v_hoje <= (d ->> 'promoAte')::date) then v_efetivo := v_promo;
+    else v_efetivo := v_preco; end if;
+    -- caixa de 5 kg com preço por kg próprio (recurso "Variações de embalagem" valendo para o produto): igual ao site
+    if v_efetivo is not null and v_emb = 'Caixa 5 kg' and coalesce(nullif(d ->> 'precoKg5', '')::numeric, 0) > 0
+       and public.recurso_disponivel('packaging_variants_enabled', v_prod.id, d ->> 'categoria') then
+      v_efetivo := round((d ->> 'precoKg5')::numeric * (v_efetivo / v_preco), 2);
+    end if;
+    if v_efetivo is null then v_combinar := true; else v_total := v_total + round(v_efetivo * v_kg, 2); end if;
+    v_total_kg := v_total_kg + v_kg;
+    v_itens := v_itens || jsonb_build_object('id', v_prod.id, 'codigo', d ->> 'codigo', 'nome', d ->> 'nome', 'cor', d -> 'cores' -> 0 ->> 'nome',
+      'embalagem', v_emb, 'qtd', v_qtd, 'kg', v_kg, 'preco_kg', v_efetivo, 'subtotal', case when v_efetivo is null then null else round(v_efetivo * v_kg, 2) end,
+      'foto', coalesce(d -> 'fotos' ->> 0, d -> 'cores' -> 0 ->> 'foto'));
+  end loop;
+
+  loop
+    v_numero := 'PC-' || to_char(now() at time zone 'America/Sao_Paulo', 'YYMMDD') || '-' || upper(substr(md5(random()::text || clock_timestamp()::text), 1, 5));
+    exit when not exists (select 1 from public.pedidos where numero = v_numero);
+  end loop;
+  v_envio := public.dia_de_envio(now());
+  insert into public.pedidos (numero, cliente_id, itens, observacoes, status, total, total_kg, tem_combinar,
+    destino_uf, destino_cep, destino_cidade, previsao_envio, previsao_entrega_min, previsao_entrega_max)
+  values (v_numero, v_uid, v_itens, left(nullif(btrim(p_obs), ''), 500), 'recebido', v_total, v_total_kg, v_combinar,
+    v_cli.uf, v_cli.cep, v_cli.cidade, v_envio, public.somar_dias_uteis(v_envio, v_prazo.dias_min), public.somar_dias_uteis(v_envio, v_prazo.dias_max));
+
+  return v_numero;
+end $$;
+revoke all on function public.criar_pedido(jsonb, text) from public;
+grant execute on function public.criar_pedido(jsonb, text) to authenticated;
+
+update public.recursos set implementado = true, requisito = 'Precisa da conta de vendedor da empresa no Mercado Pago (Secrets MP_ACCESS_TOKEN e MP_WEBHOOK_SECRET), do frete ligado e da emissão de nota fiscal combinada.'
+  where chave = 'direct_checkout_enabled';
+notify pgrst, 'reload schema';

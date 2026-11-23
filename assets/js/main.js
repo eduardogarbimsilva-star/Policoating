@@ -313,6 +313,7 @@
       <textarea id="cliente-obs" rows="2" maxlength="500" placeholder="Observações (opcional)"></textarea>
     </div>
     <button class="btn btn-whats btn-bloco" id="btn-finalizar">${iconeWhats()} Enviar pedido</button>
+    <button class="btn btn-primario btn-bloco btn-pagar" id="btn-pagar" hidden><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M3 10h18M7 15h4"/></svg> Pagar com Pix ou cartão</button>
     <button class="btn btn-contorno-azul btn-bloco" id="btn-cotar-carrinho" hidden>Pedir cotação com estes itens</button>
     <p class="aviso">O pedido é registrado e chega ao vendedor na hora, mesmo que a mensagem do WhatsApp não seja enviada. O WhatsApp abre com todos os dados para agilizar. Frete e pagamento você combina com o vendedor.
       <button class="limpar" id="btn-limpar">Esvaziar carrinho</button></p>
@@ -328,6 +329,7 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
     $("#sobreposicao").addEventListener("click", fecharTudo);
     $("[data-fechar-carrinho]").addEventListener("click", fecharTudo);
     $("#btn-finalizar").addEventListener("click", finalizarPedido);
+    $("#btn-pagar").addEventListener("click", pagarOnline);
     $("#btn-cotar-carrinho").addEventListener("click", () => {
       carrinho.forEach((i) => window.Cotacao.lista.adicionar({ id: i.id, embalagem: i.embalagem, cor: i.cor, qtd: i.qtd }));
       location.href = "cotacao";
@@ -375,6 +377,8 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
         (tv.combinar ? `<small>${tv.valor ? "+ " : ""}${tv.combinar} ${tv.combinar === 1 ? "item" : "itens"} com o valor consultado no WhatsApp com o vendedor</small>` : `<small>Valores dos produtos. Condições são combinadas com o vendedor.</small>`);
     }
     $("#btn-finalizar").disabled = carrinho.length === 0;
+    const btPag = $("#btn-pagar");
+    if (btPag) btPag.hidden = !(carrinho.length && window.Pagamento && !totalValor().combinar && window.Pagamento.disponivel(carrinho.map((i) => ({ item: i, prod: acharProduto(i.id) }))));
     const btCot = $("#btn-cotar-carrinho");
     if (btCot) btCot.hidden = !(carrinho.length && window.Cotacao && window.Recursos && carrinho.every((i) => window.Recursos.disponivel("b2b_quote_enabled", acharProduto(i.id) || { id: i.id })));
     renderClienteCarrinho();
@@ -486,6 +490,23 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
     return L.join("\n");
   }
   const numeroLocal = () => { const d = new Date(); return "PC-" + String(d.getFullYear()).slice(2) + String(d.getMonth() + 1).padStart(2, "0") + String(d.getDate()).padStart(2, "0") + "-" + Math.random().toString(36).slice(2, 7).toUpperCase(); };
+
+  /* compra direta (E09): registra o pedido e leva ao Mercado Pago */
+  function pagarOnline() {
+    if (!carrinho.length || !window.Pagamento) return;
+    if (!logado()) {
+      try { sessionStorage.setItem(CHAVE_VOLTAR, location.pathname.split("/").pop() || "./"); } catch (e) { /* ignora */ }
+      location.href = "conta?voltar=carrinho"; return;
+    }
+    if (!Conta.perfilCompleto()) { location.href = "conta#dados"; return; }
+    const obs = $("#cliente-obs").value.replace(/\s+/g, " ").trim().slice(0, 500);
+    const itensWhats = carrinho.slice();
+    window.Pagamento.iniciar({
+      itens: carrinho.map((i) => ({ id: i.id, embalagem: i.embalagem, qtd: i.qtd })), obs,
+      aoRedirecionar: () => { carrinho = []; $("#cliente-obs").value = ""; salvarCarrinho(); },
+      aoErroWhats: (numero) => { const c = carrinho; carrinho = itensWhats; const link = linkWhatsApp(mensagemPedido(numero || numeroLocal(), obs, !!numero)); carrinho = c; window.open(link, "_blank", "noopener"); }
+    });
+  }
 
   async function finalizarPedido() {
     if (!carrinho.length) return;

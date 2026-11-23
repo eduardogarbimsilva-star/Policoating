@@ -29,6 +29,7 @@ const ORS = "https://api.openrouteservice.org";
 type Config = {
   origem_lat: number | null; origem_lng: number | null; origem_cidade: string; origem_uf: string;
   raio_local_m: number; tarifa_local: number; tarifa_km: number; minimo_externo: number; versao: number;
+  prazo_base_dias?: number | null; km_por_dia?: number | null;
 };
 type Ponto = { lat: number; lng: number; confianca?: number; rotulo?: string };
 type Item = { id: string; embalagem?: string; qtd?: number; cor?: string };
@@ -68,6 +69,13 @@ export function calcularValor(cfg: Config, destino: { cidade: string; uf: string
   const porKm = Math.round(km * Number(cfg.tarifa_km) * 100) / 100;
   const minimo = Number(cfg.minimo_externo);
   return { zona: "externo" as const, valor: Math.max(porKm, minimo), km, minimoAplicado: porKm < minimo, motivo: "km" };
+}
+
+/** Prazo estimado em dias úteis (só se o dono configurou no painel; senão null = o vendedor informa) */
+export function prazoDias(cfg: Config, zona: string, km: number | null) {
+  const base = cfg.prazo_base_dias, porDia = cfg.km_por_dia;
+  if (base == null || !porDia || zona === "manual") return null;
+  return Math.max(1, Number(base) + (zona === "externo" && km ? Math.ceil(km / Number(porDia)) : 0));
 }
 
 /* ---------- serviços externos ---------- */
@@ -241,7 +249,7 @@ async function calcularFrete(db: Banco, cfg: Config, ors: string, cep: string, n
   if (normalizar(end.cidade) === normalizar(cfg.origem_cidade) && normalizar(end.uf) === normalizar(cfg.origem_uf)) {
     const r = calcularValor(cfg, end, 0, null);
     await registrar({ zona: r.zona, cidade: end.cidade, uf: end.uf, valor: r.valor, motivo: r.motivo });
-    return { zona: "local", estimativa: true, valor: r.valor, cidade: end.cidade, uf: end.uf, versao: cfg.versao, regra: `Entrega em ${cfg.origem_cidade}: valor fixo.` } as Record<string, unknown>;
+    return { zona: "local", estimativa: true, valor: r.valor, cidade: end.cidade, uf: end.uf, versao: cfg.versao, prazo_dias: prazoDias(cfg, "local", null), origem: `${cfg.origem_cidade}/${cfg.origem_uf}`, regra: `Entrega em ${cfg.origem_cidade}: valor fixo.` } as Record<string, unknown>;
   }
   if (!ors) return manual("sem_chave_rotas", destinoTxt);
   // Destino: rua + número quando houver; CEP geral da cidade = centro da cidade (estimativa pela cidade)
@@ -259,6 +267,7 @@ async function calcularFrete(db: Banco, cfg: Config, ors: string, cep: string, n
     zona: r.zona, estimativa: true, valor: r.valor, km: r.km, minimo_aplicado: r.minimoAplicado, cidade: end.cidade, uf: end.uf, versao: cfg.versao,
     pela_cidade: !end.logradouro || !numero,
     tarifa_km: Number(cfg.tarifa_km), minimo: Number(cfg.minimo_externo),
+    prazo_dias: prazoDias(cfg, r.zona, r.km), origem: `${cfg.origem_cidade}/${cfg.origem_uf}`,
     regra: r.zona === "local" ? `Até ${kmTxt(cfg.raio_local_m / 1000)} km de ${cfg.origem_cidade}: valor fixo.` : r.minimoAplicado ? `Valor mínimo para fora de ${cfg.origem_cidade}.` : `R$ ${Number(cfg.tarifa_km).toFixed(2).replace(".", ",")} por km rodado (só ida).`
   } as Record<string, unknown>;
 }
@@ -283,6 +292,20 @@ export function documentoValido(doc: string) {
   }
   const q1 = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2], q2 = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
   return dv(d, q1) === Number(d[12]) && dv(d, q2) === Number(d[13]);
+}
+const OPCOES_ENTREGA: Record<string, string[]> = {
+  tipo_local: ["comercial", "industrial", "residencial", "obra", "rural"],
+  horario: ["comercial", "manha", "tarde", "combinar"],
+  descarga: ["empilhadeira", "manual", "nao_sei"],
+  prazo_desejado: ["urgente", "semana", "quinzena", "mes", "sem_pressa"]
+};
+/** Detalhes da entrega (opções fixas; o que vier fora delas é ignorado) */
+export function lerEntrega(e: any) {
+  const r: Record<string, unknown> = {};
+  for (const [k, ops] of Object.entries(OPCOES_ENTREGA)) if (ops.includes(String(e?.[k] ?? ""))) r[k] = String(e[k]);
+  if (typeof e?.agendamento === "boolean") r.agendamento = e.agendamento;
+  const ref = texto(e?.referencia, 120); if (ref) r.referencia = ref;
+  return r;
 }
 const texto = (v: unknown, max: number) => String(v ?? "").replace(/[\u0000-\u001f\u007f]+/g, " ").replace(/\s+/g, " ").trim().slice(0, max);
 
@@ -333,13 +356,13 @@ async function cotar(req: Request, db: Banco, ors: string, corpo: any, token: st
   const linha = {
     cliente_id: cliente?.id || null, ip_hash: ipHash, nome, documento, telefone, email, cep,
     logradouro, numero, complemento: texto(corpo.complemento, 80) || null, bairro: bairro || null, cidade: end.cidade, uf: end.uf,
-    descricao, itens: itensGravados, peso_kg: peso, frete
+    descricao, itens: itensGravados, peso_kg: peso, frete, entrega: lerEntrega(corpo.entrega)
   };
   for (let tentativa = 0; tentativa < 3; tentativa++) {
     const r = await db.inserirRetornando("cotacoes", { ...linha, protocolo: gerarProtocolo() });
     if (r.ok) {
       const c = r.dados;
-      return responder({ protocolo: c.protocolo, emitida_em: c.emitida_em, expira_em: c.expira_em, status: c.status, frete, peso_kg: peso, cidade: end.cidade, uf: end.uf, itens: itensGravados });
+      return responder({ protocolo: c.protocolo, emitida_em: c.emitida_em, expira_em: c.expira_em, status: c.status, frete, peso_kg: peso, cidade: end.cidade, uf: end.uf, bairro, logradouro, numero, cep, itens: itensGravados, entrega: linha.entrega });
     }
     if (r.status !== 409) return responder({ erro: "Não foi possível registrar a cotação agora. Tente de novo ou fale com o vendedor." }, 500);
   }

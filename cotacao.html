@@ -26,7 +26,7 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Barlow:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/style.css?v=79cc03e9">
+  <link rel="stylesheet" href="assets/css/style.css?v=9136364e">
 </head>
 <body>
   <a class="pular" href="#conteudo">Pular para o conteúdo</a>
@@ -91,11 +91,14 @@
   </header>
 
   <main id="conteudo">
-    <section class="cabecalho-pagina">
+    <section class="cabecalho-pagina cot-cabecalho">
       <div class="container">
         <div class="migalhas"><a href="./">Início</a> / Cotação</div>
-        <h1>Cotação</h1>
-        <p>Monte a lista de produtos, informe o endereço de entrega e receba um <strong>código de cotação</strong>. Com ele você acompanha a resposta da equipe por 7 dias.</p>
+        <h1>Cotação de tintas e frete</h1>
+        <p>Escolha os produtos, informe o CEP de entrega e receba na hora o <strong>frete estimado</strong> e o <strong>número da cotação</strong> para acompanhar a resposta do vendedor.</p>
+        <ul class="cot-selos">
+          <li>Saída de Matão-SP</li><li>Frete estimado na hora</li><li>Resposta do vendedor pelo número da cotação</li><li>Válida por 7 dias</li>
+        </ul>
       </div>
     </section>
 
@@ -108,8 +111,8 @@
           <p>Fale com o vendedor pelo WhatsApp: ele monta a cotação com você.</p>
           <p><a class="btn btn-whats" data-whats-cotacao target="_blank" rel="noopener" href="#">Pedir cotação no WhatsApp</a></p>
           <form class="cot-consulta-form" id="cot-off-consulta" novalidate>
-            <label for="cot-off-codigo">Já tem um código?</label>
-            <div class="cot-linha-campos"><input id="cot-off-codigo" placeholder="COT-XXXX-XXXX-XX" autocomplete="off" maxlength="16"><button class="btn btn-contorno-azul" type="submit">Consultar</button></div>
+            <label for="cot-off-codigo">Já tem o número da cotação?</label>
+            <div class="cot-linha-campos"><input id="cot-off-codigo" placeholder="COT-XXXX-XXXX-XX" autocomplete="off" maxlength="16"><button class="btn btn-contorno-azul" type="submit">Acompanhar</button></div>
           </form>
           <div id="cot-off-res" aria-live="polite"></div>
         </div>
@@ -117,83 +120,128 @@
         <div id="cot-app" hidden>
           <div class="cot-abas" role="tablist" aria-label="Cotação">
             <button type="button" role="tab" data-cot-aba="nova" aria-selected="true">Nova cotação</button>
-            <button type="button" role="tab" data-cot-aba="consultar" aria-selected="false">Consultar código</button>
+            <button type="button" role="tab" data-cot-aba="consultar" aria-selected="false">Acompanhar cotação</button>
             <button type="button" role="tab" data-cot-aba="minhas" aria-selected="false">Minhas cotações <em class="badge" id="cot-badge"></em></button>
           </div>
 
           <!-- Nova cotação -->
           <div class="cot-painel" data-cot-painel="nova">
+            <ol class="cot-progresso" id="cot-progresso" aria-label="Etapas">
+              <li data-etapa="produtos"><a href="#cot-e-produtos"><span>1</span>Produtos</a></li>
+              <li data-etapa="entrega"><a href="#cot-e-entrega"><span>2</span>Entrega</a></li>
+              <li data-etapa="dados"><a href="#cot-e-dados"><span>3</span>Seus dados</a></li>
+              <li data-etapa="detalhes"><a href="#cot-e-detalhes"><span>4</span>Detalhes</a></li>
+            </ol>
             <form class="cot-form" id="cot-form" novalidate>
               <div class="cot-colunas">
                 <div class="cot-etapas">
-                  <fieldset class="cot-etapa">
-                    <legend><span class="cot-num">1</span> Produtos</legend>
+                  <!-- 1. Produtos -->
+                  <section class="cot-etapa" id="cot-e-produtos" aria-labelledby="cot-t1">
+                    <header class="cot-etapa-topo"><span class="cot-num">1</span><div><h2 id="cot-t1">Produtos</h2><p>Busque pelo código, nome, cor ou classe. Ajuste cor, embalagem e quantidade.</p></div></header>
+                    <div class="cot-busca-linha">
+                      <label class="sr" for="cot-busca">Buscar produto</label>
+                      <input type="search" id="cot-busca" placeholder="Ex.: branco 9003, POL-0009, epóxi, texturizado…">
+                      <a class="cot-catalogo" href="produtos">Ver catálogo</a>
+                    </div>
                     <div id="cot-itens" aria-live="polite"></div>
-                    <div class="cot-add">
-                      <label class="cot-add-busca">Adicionar produto
-                        <input type="search" id="cot-busca" list="cot-produtos" placeholder="Código ou nome do produto" autocomplete="off"></label>
-                      <datalist id="cot-produtos"></datalist>
-                      <button type="button" class="btn btn-contorno-azul" id="cot-add">Adicionar</button>
-                      <button type="button" class="link-calc" id="cot-do-carrinho" hidden>Trazer os itens do carrinho</button>
-                    </div>
-                  </fieldset>
+                    <div class="cot-totais" id="cot-totais" hidden></div>
+                    <button type="button" class="link-calc" id="cot-do-carrinho" hidden>Trazer os itens do carrinho</button>
+                  </section>
 
-                  <fieldset class="cot-etapa">
-                    <legend><span class="cot-num">2</span> Seus dados</legend>
-                    <div class="grade-campos">
-                      <label class="largo">Nome completo ou razão social<input id="cot-nome" name="nome" autocomplete="name" maxlength="150" required></label>
-                      <label>CPF ou CNPJ<input id="cot-doc" name="documento" inputmode="numeric" maxlength="18" required></label>
-                      <label>Telefone / WhatsApp<input id="cot-tel" name="telefone" inputmode="tel" autocomplete="tel" maxlength="15" required></label>
-                      <label class="largo">E-mail <small>(opcional)</small><input id="cot-email" name="email" type="email" autocomplete="email" maxlength="150"></label>
+                  <!-- 2. Entrega -->
+                  <section class="cot-etapa" id="cot-e-entrega" aria-labelledby="cot-t2">
+                    <header class="cot-etapa-topo"><span class="cot-num">2</span><div><h2 id="cot-t2">Entrega</h2><p>Com o CEP calculamos a distância por estrada saindo de Matão-SP e o frete estimado.</p></div></header>
+                    <div class="cot-rota">
+                      <div class="cot-rota-ponto"><span class="cot-rota-rot">Origem</span><strong>Matão/SP</strong><small>Fábrica Policoating</small></div>
+                      <div class="cot-rota-linha" aria-hidden="true"><span id="cot-rota-km"></span></div>
+                      <div class="cot-rota-ponto"><span class="cot-rota-rot">Destino</span><strong id="cot-rota-destino">informe o CEP</strong><small id="cot-rota-bairro"></small></div>
                     </div>
-                  </fieldset>
-
-                  <fieldset class="cot-etapa">
-                    <legend><span class="cot-num">3</span> Endereço de entrega</legend>
-                    <div class="grade-campos">
-                      <label>CEP<input id="cot-cep" name="cep" inputmode="numeric" autocomplete="postal-code" maxlength="9" placeholder="00000-000" required><small class="cot-cep-dica" id="cot-cep-dica"></small></label>
-                      <label class="largo">Rua<input id="cot-rua" name="logradouro" autocomplete="address-line1" maxlength="150" required></label>
+                    <div class="cot-cep-linha">
+                      <label>CEP de entrega<input id="cot-cep" name="cep" inputmode="numeric" autocomplete="postal-code" maxlength="9" placeholder="00000-000" required></label>
+                      <a class="cot-nao-sei" href="https://buscacepinter.correios.com.br/app/endereco/index.php" target="_blank" rel="noopener">Não sei meu CEP</a>
+                    </div>
+                    <div class="cot-cep-info" id="cot-cep-info" aria-live="polite" hidden></div>
+                    <div class="grade-campos cot-grade-3">
+                      <label class="largo">Rua / avenida<input id="cot-rua" name="logradouro" autocomplete="address-line1" maxlength="150" required></label>
                       <label>Número<input id="cot-numero" name="numero" maxlength="20" placeholder="ou S/N" required></label>
-                      <label>Complemento<input id="cot-compl" name="complemento" maxlength="80"></label>
+                      <label><span>Complemento <span class="cot-opc">opcional</span></span><input id="cot-compl" name="complemento" maxlength="80" placeholder="Galpão, sala, bloco…"></label>
                       <label>Bairro<input id="cot-bairro" name="bairro" maxlength="80"></label>
-                      <label>Cidade/UF<input id="cot-cidade" readonly tabindex="-1" placeholder="pelo CEP"></label>
+                      <label class="largo"><span>Ponto de referência <span class="cot-opc">opcional</span></span><input id="cot-ref" maxlength="120" placeholder="Ex.: ao lado do posto, portão azul"></label>
                     </div>
-                  </fieldset>
+                    <fieldset class="cot-opcoes">
+                      <legend>Tipo de local</legend>
+                      <div class="cot-chips" data-grupo="tipo_local">
+                        <label><input type="radio" name="tipo_local" value="industrial"><span>Indústria / galpão</span></label>
+                        <label><input type="radio" name="tipo_local" value="comercial"><span>Comércio / loja</span></label>
+                        <label><input type="radio" name="tipo_local" value="obra"><span>Obra</span></label>
+                        <label><input type="radio" name="tipo_local" value="residencial"><span>Residência</span></label>
+                        <label><input type="radio" name="tipo_local" value="rural"><span>Zona rural</span></label>
+                      </div>
+                    </fieldset>
+                    <div class="grade-campos cot-grade-3">
+                      <label>Horário de recebimento<select id="cot-horario"><option value="comercial">Horário comercial (8h–18h)</option><option value="manha">Só de manhã</option><option value="tarde">Só à tarde</option><option value="combinar">Combinar com o vendedor</option></select></label>
+                      <label>Descarga no local<select id="cot-descarga"><option value="manual">Descarga manual (caixas)</option><option value="empilhadeira">Tem empilhadeira ou doca</option><option value="nao_sei">Não sei</option></select></label>
+                      <label>Agendar a entrega?<select id="cot-agenda"><option value="nao">Não precisa</option><option value="sim">Sim, precisa agendar</option></select></label>
+                    </div>
+                  </section>
 
-                  <fieldset class="cot-etapa">
-                    <legend><span class="cot-num">4</span> Detalhes do serviço</legend>
-                    <label class="cot-desc-label" for="cot-desc">Descrição detalhada <small>(o que vai pintar, quantidade de peças ou área em m², cor e acabamento, prazo desejado)</small></label>
-                    <textarea id="cot-desc" name="descricao" rows="5" maxlength="2000" required placeholder="Ex.: 200 portões de aço galvanizado, cerca de 400 m² no total, cor branco liso, entrega em até 15 dias."></textarea>
+                  <!-- 3. Dados -->
+                  <section class="cot-etapa" id="cot-e-dados" aria-labelledby="cot-t3">
+                    <header class="cot-etapa-topo"><span class="cot-num">3</span><div><h2 id="cot-t3">Seus dados</h2><p>Para o vendedor preparar a proposta e falar com você.</p></div></header>
+                    <div class="grade-campos">
+                      <label>CPF ou CNPJ<input id="cot-doc" name="documento" inputmode="numeric" maxlength="18" required><small id="cot-doc-tipo"></small></label>
+                      <label>Telefone / WhatsApp<input id="cot-tel" name="telefone" inputmode="tel" autocomplete="tel" maxlength="15" required></label>
+                      <label class="largo"><span id="cot-nome-rot">Nome completo ou razão social</span><input id="cot-nome" name="nome" autocomplete="name" maxlength="150" required></label>
+                      <label class="largo"><span>E-mail <span class="cot-opc">opcional</span></span><input id="cot-email" name="email" type="email" autocomplete="email" maxlength="150"></label>
+                    </div>
+                  </section>
+
+                  <!-- 4. Detalhes -->
+                  <section class="cot-etapa" id="cot-e-detalhes" aria-labelledby="cot-t4">
+                    <header class="cot-etapa-topo"><span class="cot-num">4</span><div><h2 id="cot-t4">Detalhes do serviço</h2><p>Quanto mais detalhe, mais certeira a proposta.</p></div></header>
+                    <label class="cot-desc-label" for="cot-desc">Descrição detalhada</label>
+                    <div class="cot-sugestoes" aria-label="Sugestões para a descrição">
+                      <button type="button" data-sug="Peças: ">+ Tipo de peça</button>
+                      <button type="button" data-sug="Quantidade de peças: ">+ Quantidade de peças</button>
+                      <button type="button" data-sug="Área total: m². ">+ Área (m²)</button>
+                      <button type="button" data-sug="Material: (aço, alumínio, galvanizado…). ">+ Material</button>
+                      <button type="button" data-sug="Uso: (interno/externo). ">+ Uso interno/externo</button>
+                    </div>
+                    <textarea id="cot-desc" name="descricao" rows="5" maxlength="2000" required placeholder="Ex.: 200 portões de aço galvanizado, uso externo, cerca de 400 m² no total, cor branco liso."></textarea>
                     <small class="cot-contador" id="cot-contador">0 / 2000 · mínimo de 20 letras</small>
                     <div class="grade-campos">
-                      <label>Peso total (kg)<input id="cot-peso" name="peso_kg" inputmode="decimal" maxlength="10"><small>Calculado pelas embalagens; ajuste se precisar.</small></label>
+                      <label>Para quando precisa?<select id="cot-prazo"><option value="semana">Em até 1 semana</option><option value="urgente">Urgente (até 3 dias)</option><option value="quinzena">Em até 15 dias</option><option value="mes">Em até 30 dias</option><option value="sem_pressa">Sem pressa</option></select></label>
+                      <label>Peso total (kg)<input id="cot-peso" name="peso_kg" inputmode="decimal" maxlength="10"><small>Somado pelas embalagens; ajuste se precisar.</small></label>
                     </div>
-                  </fieldset>
+                  </section>
                 </div>
 
                 <aside class="cot-resumo" aria-label="Resumo da cotação">
-                  <h3>Resumo</h3>
+                  <h3>Resumo da cotação</h3>
+                  <div class="cot-resumo-rota"><span>Matão/SP</span><i aria-hidden="true">→</i><span id="cot-r-destino">—</span></div>
                   <dl>
-                    <div><dt>Produtos</dt><dd id="cot-r-itens">0</dd></div>
+                    <div><dt>Produtos</dt><dd id="cot-r-itens">nenhum</dd></div>
+                    <div><dt>Volumes</dt><dd id="cot-r-volumes">—</dd></div>
                     <div><dt>Peso total</dt><dd id="cot-r-peso">—</dd></div>
-                    <div><dt>Entrega</dt><dd id="cot-r-entrega">—</dd></div>
-                    <div><dt>Frete</dt><dd id="cot-r-frete">calculado ao gerar</dd></div>
+                    <div><dt>Distância</dt><dd id="cot-r-km">—</dd></div>
+                    <div><dt>Prazo estimado</dt><dd id="cot-r-prazo">—</dd></div>
                   </dl>
-                  <button type="submit" class="btn btn-primario btn-bloco" id="cot-enviar">Gerar código da cotação</button>
+                  <div class="cot-r-frete"><span>Frete estimado</span><strong id="cot-r-frete">informe o CEP</strong><small id="cot-r-frete-obs"></small></div>
+                  <button type="submit" class="btn btn-primario btn-bloco cot-enviar" id="cot-enviar">Cotar frete e produtos</button>
                   <p class="erro" id="cot-erro" role="alert"></p>
-                  <p class="cot-lgpd">Os dados desta cotação ficam guardados por 7 dias e depois são apagados. Veja a <a href="privacidade">Política de Privacidade</a>.</p>
+                  <p class="cot-lgpd">Ao cotar você recebe o número da cotação. Os dados ficam guardados por 7 dias e depois são apagados. <a href="privacidade">Privacidade</a>.</p>
                 </aside>
               </div>
             </form>
             <div id="cot-sucesso" aria-live="polite" tabindex="-1"></div>
           </div>
 
-          <!-- Consultar -->
+          <!-- Acompanhar -->
           <div class="cot-painel" data-cot-painel="consultar" hidden>
             <form class="cot-consulta-form" id="cot-consulta" novalidate>
-              <label for="cot-codigo">Código da cotação</label>
-              <div class="cot-linha-campos"><input id="cot-codigo" placeholder="COT-XXXX-XXXX-XX" autocomplete="off" maxlength="16"><button class="btn btn-primario" type="submit">Consultar</button></div>
-              <small>O código vale 7 dias desde a emissão. Depois disso a cotação é apagada.</small>
+              <label for="cot-codigo">Número da cotação</label>
+              <div class="cot-linha-campos"><input id="cot-codigo" placeholder="COT-XXXX-XXXX-XX" autocomplete="off" maxlength="16"><button class="btn btn-primario" type="submit">Acompanhar</button></div>
+              <small>Vale 7 dias desde a emissão. Depois disso a cotação é apagada.</small>
             </form>
             <div id="cot-consulta-res" aria-live="polite"></div>
           </div>
@@ -277,8 +325,8 @@
   <script src="assets/js/recursos.js?v=3c367689"></script>
   <script src="assets/js/flutuante.js?v=9645d8eb"></script>
   <script src="assets/js/pwa.js?v=eaafcbcb"></script>
-  <script src="assets/js/frete.js?v=1c82be9c"></script>
-  <script src="assets/js/cotacao.js?v=c18f864c"></script>
+  <script src="assets/js/frete.js?v=95bfc42e"></script>
+  <script src="assets/js/cotacao.js?v=434081fb"></script>
   <script src="assets/js/icones.js?v=3b2cf7da"></script>
   <script src="assets/js/midia.js?v=89a07a7d"></script>
   <script src="assets/js/fotos-reais.js?v=cd443528"></script>
@@ -289,7 +337,8 @@
   <script src="assets/js/animacoes.js?v=75e1f9fd"></script>
   <script src="assets/js/secoes.js?v=47af24e3"></script>
   <script src="assets/js/assistente.js?v=7567cfc9"></script>
+  <script src="assets/js/seletor.js?v=00ee7cd3"></script>
   <script src="assets/js/br.js?v=848f13ba"></script>
-  <script src="assets/js/cotacao-pagina.js?v=b3e448e4"></script>
+  <script src="assets/js/cotacao-pagina.js?v=0030c2f7"></script>
 </body>
 </html>

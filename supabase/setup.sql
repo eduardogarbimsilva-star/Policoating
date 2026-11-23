@@ -1828,3 +1828,71 @@ update public.recursos set implementado = true, requisito = null
  where chave in ('b2b_quote_enabled', 'b2b_whatsapp_shortcut_enabled', 'manual_quote_approval');
 
 notify pgrst, 'reload schema';
+
+-- ===========================================================
+-- PARTE V — Cotação completa (detalhes da entrega) e prazo estimado do frete
+--   Rode depois da PARTE U.
+--   • cotacoes.entrega: tipo de local, horário de recebimento, agendamento, descarga, referência e prazo desejado.
+--   • frete_config: prazo estimado (dias úteis) = dias para separar + km rodados ÷ km por dia.
+--     Em branco = o site não mostra prazo (o vendedor informa).
+--   • A consulta pelo código mostra também o endereço e os detalhes da entrega (o código não dá para adivinhar).
+--   • Desfazer: alter table public.cotacoes drop column entrega;
+--               alter table public.frete_config drop column prazo_base_dias, drop column km_por_dia;
+-- ===========================================================
+alter table public.cotacoes add column if not exists entrega jsonb;
+alter table public.frete_config add column if not exists prazo_base_dias int check (prazo_base_dias is null or prazo_base_dias between 0 and 60);
+alter table public.frete_config add column if not exists km_por_dia int check (km_por_dia is null or km_por_dia between 50 and 2000);
+
+create or replace function public.salvar_frete_config(p jsonb)
+returns public.frete_config language plpgsql security definer set search_path = public
+as $$
+declare v_antes public.frete_config; v_depois public.frete_config;
+begin
+  if not public.eh_admin() then raise exception 'Só o administrador (com as 2 etapas) pode alterar o frete.'; end if;
+  select * into v_antes from public.frete_config where id = 1 for update;
+  if (p ->> 'origem_cep') is not null and (p ->> 'origem_cep') !~ '^\d{8}$' then raise exception 'CEP de saída inválido.'; end if;
+  if (p ? 'origem_lat') <> (p ? 'origem_lng') then raise exception 'Informe latitude e longitude juntas.'; end if;
+  update public.frete_config set
+    origem_cep         = coalesce(p ->> 'origem_cep', origem_cep),
+    origem_logradouro  = coalesce(left(p ->> 'origem_logradouro', 150), origem_logradouro),
+    origem_numero      = coalesce(left(p ->> 'origem_numero', 20), origem_numero),
+    origem_complemento = case when p ? 'origem_complemento' then left(p ->> 'origem_complemento', 80) else origem_complemento end,
+    origem_bairro      = coalesce(left(p ->> 'origem_bairro', 80), origem_bairro),
+    origem_cidade      = coalesce(left(p ->> 'origem_cidade', 80), origem_cidade),
+    origem_uf          = coalesce(upper(left(p ->> 'origem_uf', 2)), origem_uf),
+    origem_lat         = case when p ? 'origem_lat' then (p ->> 'origem_lat')::double precision else origem_lat end,
+    origem_lng         = case when p ? 'origem_lng' then (p ->> 'origem_lng')::double precision else origem_lng end,
+    origem_rotulo      = case when p ? 'origem_rotulo' then left(p ->> 'origem_rotulo', 200) else origem_rotulo end,
+    raio_local_m       = coalesce((p ->> 'raio_local_m')::int, raio_local_m),
+    tarifa_local       = coalesce((p ->> 'tarifa_local')::numeric, tarifa_local),
+    tarifa_km          = coalesce((p ->> 'tarifa_km')::numeric, tarifa_km),
+    minimo_externo     = coalesce((p ->> 'minimo_externo')::numeric, minimo_externo),
+    prazo_base_dias    = case when p ? 'prazo_base_dias' then nullif(p ->> 'prazo_base_dias', '')::int else prazo_base_dias end,
+    km_por_dia         = case when p ? 'km_por_dia' then nullif(p ->> 'km_por_dia', '')::int else km_por_dia end,
+    versao = versao + 1, atualizado_em = now(), atualizado_por = lower(auth.jwt() ->> 'email')
+  where id = 1 returning * into v_depois;
+  insert into public.recursos_auditoria (ator, ator_email, chave, antigo, novo, motivo)
+  values (auth.uid(), lower(auth.jwt() ->> 'email'), 'frete_config',
+          to_jsonb(v_antes) - 'atualizado_em', to_jsonb(v_depois) - 'atualizado_em', nullif(left(trim(coalesce(p ->> 'motivo', '')), 300), ''));
+  return v_depois;
+end $$;
+revoke all on function public.salvar_frete_config(jsonb) from public, anon;
+grant execute on function public.salvar_frete_config(jsonb) to authenticated;
+
+
+drop function if exists public.consultar_cotacao(text);
+create function public.consultar_cotacao(p_protocolo text)
+returns table (protocolo text, status text, emitida_em timestamptz, expira_em timestamptz, cidade text, uf text,
+               itens jsonb, peso_kg numeric, frete jsonb, resposta text, valor_proposta numeric, descricao text,
+               primeiro_nome text, cep text, logradouro text, numero text, bairro text, entrega jsonb, atualizado_em timestamptz)
+language sql stable security definer set search_path = public
+as $$
+  select c.protocolo, c.status, c.emitida_em, c.expira_em, c.cidade, c.uf, c.itens, c.peso_kg, c.frete, c.resposta, c.valor_proposta, c.descricao,
+         split_part(c.nome, ' ', 1), c.cep, c.logradouro, c.numero, c.bairro, c.entrega, c.atualizado_em
+    from public.cotacoes c
+   where c.protocolo = upper(trim(p_protocolo)) and c.expira_em > now()
+$$;
+revoke all on function public.consultar_cotacao(text) from public;
+grant execute on function public.consultar_cotacao(text) to anon, authenticated;
+
+notify pgrst, 'reload schema';

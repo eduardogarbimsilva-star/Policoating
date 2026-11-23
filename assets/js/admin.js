@@ -977,6 +977,10 @@
                 ${c.email ? `<dt>E-mail</dt><dd><a href="mailto:${esc(c.email)}">${esc(c.email)}</a></dd>` : ""}
                 <dt>Entrega</dt><dd>${end}</dd>
                 <dt>Conta</dt><dd>${c.cliente_id ? "cliente com cadastro no site" : "sem login"}</dd>
+                ${(() => { const e = c.entrega || {}, R2 = COT.ROT || {}; return [
+                  ["Tipo de local", (R2.tipo_local || {})[e.tipo_local]], ["Recebimento", (R2.horario || {})[e.horario]], ["Descarga", (R2.descarga || {})[e.descarga]],
+                  ["Agendamento", e.agendamento == null ? "" : e.agendamento ? "Precisa agendar" : "Não precisa"], ["Referência", e.referencia], ["Precisa para", (R2.prazo_desejado || {})[e.prazo_desejado]]
+                ].filter(([, v]) => v).map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join(""); })()}
               </dl>
               <h5>Produtos</h5><ul class="cot-itens">${itens}</ul>
               <p class="cot-linha">${c.peso_kg ? `Peso total: <b>${Number(c.peso_kg).toLocaleString("pt-BR")} kg</b> · ` : ""}${COT.htmlFrete(c.frete)}${c.frete && c.frete.cidade && c.frete.zona !== "manual" ? ` <small>(${esc(c.frete.regra || "")})</small>` : ""}</p>
@@ -1060,7 +1064,7 @@
           <div><h5>Por classe</h5>${cats.map((k) => `<label class="rec-linha"><span>${esc(nomeCat(k))}</span><select data-cat="${esc(k)}">${opc((a.categorias || {})[k])}</select></label>`).join("") || "<p class='dica'>Sem classes com produtos.</p>"}</div>
           <div><h5>Por produto <small>(vale mais que a classe)</small></h5>
             <div class="rec-prod-lista">${prods.map(([id, v]) => linhaProduto(id, v)).join("")}</div>
-            <label class="rec-add"><input type="search" list="rec-prods" placeholder="Código ou nome do produto" data-add-prod aria-label="Adicionar exceção de produto"></label>
+            <label class="rec-add"><input type="search" placeholder="Buscar produto por código, nome ou cor" data-add-prod aria-label="Adicionar exceção de produto"></label>
           </div>
         </div>
         <button type="button" class="btn btn-primario" data-salvar-alvos>Salvar onde vale</button>
@@ -1074,7 +1078,7 @@
     }
     function desenharRecursos() {
       const est = R.todos(), grupos = [...new Set(R.DEF.map((d) => d.grupo))];
-      $("#recursos-lista").innerHTML = `<datalist id="rec-prods">${(window.PRODUTOS || []).map((p) => `<option value="${esc((p.codigo || p.id.toUpperCase()) + " — " + p.nome)}">`).join("")}</datalist>` +
+      $("#recursos-lista").innerHTML =
         grupos.map((g) => `<section class="rec-grupo"><h3>${esc(g)}</h3>${R.DEF.filter((d) => d.grupo === g).map((d) => {
           const r = est[d.chave] || {}, pronto = !!r.implementado, on = !!r.ligado;
           const selo = !pronto ? `<span class="rec-selo rec-espera">Aguardando etapa ${esc(d.etapa)}</span>` : on ? `<span class="rec-selo rec-on">Ligado</span>` : `<span class="rec-selo">Desligado</span>`;
@@ -1088,12 +1092,23 @@
           </article>`;
         }).join("")}</section>`).join("");
       injetarHistoricos();
+      // seletor de produto das exceções (no lugar da lista preta do navegador)
+      if (window.Seletor) $$("#recursos-lista [data-add-prod]").forEach((inp) => window.Seletor.produtos(inp, {
+        lista: () => window.PRODUTOS || [],
+        aoEscolher: (p) => {
+          const card = inp.closest(".rec-card");
+          if (!$(`[data-prod="${CSS.escape(p.id)}"]`, card)) $(".rec-prod-lista", card).insertAdjacentHTML("beforeend", linhaProduto(p.id, true));
+          erroRecursos("");
+          const d = R.definicao(card.dataset.chave), res = $("[data-resumo]", card);
+          if (res && d) res.textContent = resumoAlvos(d, { alvos: alvosDoCartao(card) }) + " (não salvo)";
+        }
+      }));
     }
     /* ---------- histórico junto de cada configuração ---------- */
     let ultimaAuditoria = null;
     const CAMPOS_FRETE = { origem_cep: "CEP de saída", origem_logradouro: "Rua", origem_numero: "Número", origem_complemento: "Complemento", origem_bairro: "Bairro",
       origem_cidade: "Cidade", origem_uf: "UF", origem_lat: "Ponto no mapa", origem_rotulo: "Endereço no mapa", tarifa_local: "Valor fixo local", raio_local_m: "Raio local",
-      tarifa_km: "Valor por km", minimo_externo: "Mínimo fora do raio" };
+      tarifa_km: "Valor por km", minimo_externo: "Mínimo fora do raio", prazo_base_dias: "Dias para separar", km_por_dia: "Km por dia útil" };
     function valorCampo(k, v) {
       if (v == null || v === "") return "vazio";
       if (k === "raio_local_m") return `${(Number(v) / 1000).toLocaleString("pt-BR")} km`;
@@ -1161,6 +1176,7 @@
       ["logradouro", "numero", "complemento", "bairro", "cidade", "uf"].forEach((k) => (fc(k).value = c["origem_" + k] || ""));
       fc("tarifa-local").value = c.tarifa_local; fc("raio").value = (c.raio_local_m || 0) / 1000;
       fc("tarifa-km").value = c.tarifa_km; fc("minimo").value = c.minimo_externo;
+      fc("prazo-base").value = c.prazo_base_dias == null ? "" : c.prazo_base_dias; fc("km-dia").value = c.km_por_dia == null ? "" : c.km_por_dia;
       freteLocal = null;
       const temPonto = c.origem_lat != null && c.origem_lat !== "" && c.origem_lng != null && c.origem_lng !== "";
       fc("mapa-res").innerHTML = temPonto
@@ -1192,6 +1208,12 @@
       if (!dados.origem_cidade || !/^[A-Z]{2}$/.test(dados.origem_uf)) return (fc("erro").textContent = "Informe a cidade e a UF da saída.");
       if ([dados.tarifa_local, dados.raio_local_m, dados.tarifa_km, dados.minimo_externo].some((v) => v == null)) return (fc("erro").textContent = "Preencha todas as tarifas com números (pode ser 0).");
       Object.keys(dados).forEach((k) => dados[k] === null && delete dados[k]);
+      // prazo: em branco apaga (o site passa a dizer "o vendedor informa"); os dois andam juntos
+      const pb = String(fc("prazo-base").value).trim(), kd = String(fc("km-dia").value).trim();
+      if (!!pb !== !!kd) return (fc("erro").textContent = "Para mostrar o prazo, preencha os dois campos de prazo (ou deixe os dois em branco).");
+      if (kd && (+kd < 50 || +kd > 2000)) return (fc("erro").textContent = "Km por dia útil deve ficar entre 50 e 2000.");
+      if (pb && (+pb < 0 || +pb > 60)) return (fc("erro").textContent = "Dias para separar deve ficar entre 0 e 60.");
+      Object.assign(dados, { prazo_base_dias: pb ? String(Math.round(+pb)) : "", km_por_dia: kd ? String(Math.round(+kd)) : "" });
       if (freteLocal) Object.assign(dados, freteLocal);
       const motivo = prompt("Salvar o frete? Motivo da alteração (opcional):", ""); if (motivo === null) return;
       dados.motivo = motivo;
@@ -1393,6 +1415,8 @@
       catch (e) { notas = []; $("#notas-erro").textContent = e.message; }
       const fornecedores = [...new Set(notas.map((n) => n.fornecedor))].sort((a, b) => a.localeCompare(b, "pt-BR"));
       $("#notas-fornecedores").innerHTML = fornecedores.map((x) => `<option value="${esc(x)}">`).join("");
+      const campoForn = $('[name="fornecedor"]');
+      if (window.Seletor && campoForn) window.Seletor.sugestoes(campoForn, () => [...$("#notas-fornecedores").options].map((o) => o.value));
       desenharNotas();
     }
     function desenharNotas() {

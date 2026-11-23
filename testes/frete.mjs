@@ -122,4 +122,11 @@ R.add("V31-E06-10", "Peso total informado pelo cliente prevalece sobre o calcula
 const prot = new Set(Array.from({ length: 2000 }, () => F.gerarProtocolo()));
 R.add("V31-E06-11", "2.000 códigos sorteados, nenhum repetido", prot.size === 2000);
 
+x = await chamar({ ...COT, entrega: { tipo_local: "industrial", horario: "manha", agendamento: true, descarga: "empilhadeira", referencia: "Portão azul", prazo_desejado: "semana", invasor: "x", horario2: 1 } });
+R.add("V31-E06-12", "Detalhes da entrega gravados só com as opções válidas", JSON.stringify(x.log.cotacoes[0].entrega) === JSON.stringify({ tipo_local: "industrial", horario: "manha", descarga: "empilhadeira", prazo_desejado: "semana", agendamento: true, referencia: "Portão azul" }), JSON.stringify(x.log.cotacoes[0].entrega));
+R.add("V31-E06-13", "Prazo: sem configuração não mostra; com 2 dias + 400 km/dia, 33,1 km = 3 dias úteis; local = 2",
+  F.prazoDias(CFG, "externo", 33.1) === null && F.prazoDias({ ...CFG, prazo_base_dias: 2, km_por_dia: 400 }, "externo", 33.1) === 3 && F.prazoDias({ ...CFG, prazo_base_dias: 2, km_por_dia: 400 }, "local", null) === 2 && F.prazoDias({ ...CFG, prazo_base_dias: 2, km_por_dia: 400 }, "externo", 900) === 5);
+x = await chamar({ cep: "14801-000", numero: "500", itens }, { cfg: { ...CFG, prazo_base_dias: 1, km_por_dia: 300 } });
+R.add("V31-E06-14", "Estimativa devolve prazo e origem quando configurado", x.d.prazo_dias === 2 && x.d.origem === "Matão/SP", JSON.stringify(x.d));
+
 process.exitCode = R.imprimir() ? 1 : 0;

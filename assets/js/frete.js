@@ -52,6 +52,7 @@
       if (d.tarifa_km != null) linhas.push(["Cálculo", `${km(d.km)} km × ${reais(d.tarifa_km)} = ${reais(Math.round(d.km * d.tarifa_km * 100) / 100)}`]);
       if (d.minimo_aplicado) linhas.push(["Valor mínimo fora da região", `${d.minimo != null ? reais(d.minimo) : reais(d.valor)} <em class="frete-tag">aplicado</em>`, "frete-aplicado"]);
     }
+    if (d.prazo_dias) linhas.push(["Prazo estimado", `até ${d.prazo_dias} ${d.prazo_dias === 1 ? "dia útil" : "dias úteis"}`]);
     if (d.peso_kg) linhas.push(["Peso considerado", `${Number(d.peso_kg).toLocaleString("pt-BR")} kg`]);
     return `<div class="frete-card">
       <div class="frete-card-topo">
@@ -128,5 +129,7 @@
     htmlResultado
   };
 
-  window.Frete = { montar, admin, online: ONLINE };
+  /** Estimativa direta (página de cotação) */
+  const estimar = (cep, numero, itens) => chamar({ acao: "estimar", cep: so(cep), numero: so(numero), itens });
+  window.Frete = { montar, estimar, htmlResultado, admin, online: ONLINE };
 })();

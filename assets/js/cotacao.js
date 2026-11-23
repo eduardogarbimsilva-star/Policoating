@@ -124,8 +124,10 @@
     if (ONLINE && u) {
       try {
         const sb = await window.Conta.cliente();
-        const { data, error } = await sb.from("cotacoes").select("protocolo,status,emitida_em,expira_em,cidade,uf,itens,peso_kg,frete,resposta,valor_proposta,descricao")
-          .eq("cliente_id", u.id).order("emitida_em", { ascending: false }).limit(50);
+        const campos = "protocolo,status,emitida_em,expira_em,cidade,uf,itens,peso_kg,frete,resposta,valor_proposta,descricao,nome,cep,logradouro,numero,bairro,atualizado_em";
+        const buscar = (c) => sb.from("cotacoes").select(c).eq("cliente_id", u.id).order("emitida_em", { ascending: false }).limit(50);
+        let { data, error } = await buscar(campos + ",entrega");
+        if (error && /entrega/.test(error.message || "")) ({ data, error } = await buscar(campos));   // banco sem a PARTE V
         if (error) throw error;
         (data || []).forEach((c) => porCodigo.set(c.protocolo, Object.assign(c, { daConta: true })));
       } catch (e) { if (!/JWT|session/i.test(e.message || "")) throw traduzir(e); }
@@ -170,54 +172,121 @@
     }
   };
 
-  /* ---------- desenho do cartão (cliente) ---------- */
+  /* ---------- comprovante da cotação (resultado, acompanhamento, histórico) ---------- */
+  const ROT = {
+    tipo_local: { industrial: "Indústria / galpão", comercial: "Comércio / loja", obra: "Obra", residencial: "Residência", rural: "Zona rural" },
+    horario: { comercial: "Horário comercial (8h–18h)", manha: "Só de manhã", tarde: "Só à tarde", combinar: "Combinar com o vendedor" },
+    descarga: { empilhadeira: "Tem empilhadeira ou doca", manual: "Descarga manual (caixas)", nao_sei: "Não informado" },
+    prazo_desejado: { urgente: "Urgente (até 3 dias)", semana: "Em até 1 semana", quinzena: "Em até 15 dias", mes: "Em até 30 dias", sem_pressa: "Sem pressa" }
+  };
+  const kgItem = (i) => { const m = /(\d+(?:[.,]\d+)?)\s*kg/i.exec(i.embalagem || ""); return m ? i.qtd * Number(m[1].replace(",", ".")) : Number(i.qtd) || 0; };
+  const ehSob = (i) => !/\d\s*kg/i.test(i.embalagem || "");
+  /** Volumes = caixas; itens sob medida entram como "a definir" */
+  function volumes(itens) {
+    const cx = (itens || []).filter((i) => !ehSob(i)).reduce((t, i) => t + (Number(i.qtd) || 0), 0);
+    const sob = (itens || []).some(ehSob);
+    return { caixas: cx, sob, texto: cx ? `${cx} ${cx === 1 ? "caixa" : "caixas"}${sob ? " + sob medida" : ""}` : sob ? "a definir (sob medida)" : "—" };
+  }
+  const kg = (n) => `${Number(n).toLocaleString("pt-BR", { maximumFractionDigits: 2 })} kg`;
+  const km = (n) => `${Number(n).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} km`;
   function restante(iso) {
     const h = Math.max(0, Math.round((new Date(iso).getTime() - Date.now()) / 3600000));
-    return h >= 48 ? `${Math.floor(h / 24)} dias` : h >= 1 ? `${h} h` : "menos de 1 h";
+    return h >= 48 ? `faltam ${Math.floor(h / 24)} dias` : h >= 1 ? `faltam ${h} h` : "vence em menos de 1 h";
   }
   function htmlFrete(f) {
     if (!f) return "";
     if (f.zona === "manual" || f.valor == null) return `<span class="cot-frete-manual">Frete: o vendedor informa na proposta</span>`;
-    return `<span class="cot-frete">Frete estimado <strong>${reais(f.valor)}</strong>${f.km ? ` · ${Number(f.km).toLocaleString("pt-BR")} km` : ""}</span>`;
+    return `<span class="cot-frete">Frete estimado <strong>${reais(f.valor)}</strong>${f.km ? ` · ${km(f.km)}` : ""}</span>`;
   }
+  const prazoTxt = (f) => (f && f.prazo_dias ? `até ${f.prazo_dias} ${f.prazo_dias === 1 ? "dia útil" : "dias úteis"}` : "o vendedor informa");
   const ETAPAS = ["recebida", "em_analise", "proposta_enviada", "aprovada"];
   function htmlLinhaTempo(status) {
     if (status === "recusada") return `<p class="cot-encerrada">${esc(STATUS.recusada.dica)}</p>`;
     const at = status === "aguardando_dados" ? 1 : ETAPAS.indexOf(status);
-    return `<ol class="cot-tempo">${ETAPAS.map((e, i) => `<li class="${i < at ? "feito" : i === at ? "atual" : ""}">${esc(STATUS[e].nome)}</li>`).join("")}</ol>`;
+    return `<ol class="cot-tempo">${ETAPAS.map((e, i) => `<li class="${i < at ? "feito" : i === at ? "atual" : ""}">${esc(i === 1 && status === "aguardando_dados" ? STATUS.aguardando_dados.nome : STATUS[e].nome)}</li>`).join("")}</ol>`;
   }
-  function htmlCartao(c, opcoes) {
+  const linha = (k, v) => (v ? `<div><dt>${k}</dt><dd>${v}</dd></div>` : "");
+  function linkAcompanhar(c) { return location.origin + location.pathname.replace(/[^/]*$/, "") + "cotacao#codigo=" + encodeURIComponent(c.protocolo); }
+  function htmlComprovante(c, opcoes) {
     opcoes = opcoes || {};
-    const st = STATUS[c.status] || STATUS.recebida;
-    const itens = (c.itens || []).map((i) => `<li><span>${esc(i.nome || i.id)}${i.cor ? ` · ${esc(i.cor)}` : ""}</span><b>${esc(i.qtd)} × ${esc(i.embalagem || "kg")}</b></li>`).join("");
-    return `<article class="cot-cartao" data-protocolo="${esc(c.protocolo)}">
-      <header class="cot-cartao-topo">
-        <div><span class="cot-rotulo">Código</span><strong class="cot-codigo">${esc(c.protocolo)}</strong>
-          <button type="button" class="cot-copiar" data-copiar="${esc(c.protocolo)}" aria-label="Copiar código ${esc(c.protocolo)}">Copiar</button></div>
+    const st = STATUS[c.status] || STATUS.recebida, f = c.frete || {}, e = c.entrega || {}, itens = c.itens || [];
+    const vol = volumes(itens), peso = c.peso_kg != null ? Number(c.peso_kg) : itens.reduce((t, i) => t + kgItem(i), 0);
+    const temFrete = f.zona && f.zona !== "manual" && f.valor != null;
+    const destaques = [
+      ["Frete estimado", temFrete ? reais(f.valor) : "a informar", temFrete ? (f.zona === "local" ? "entrega local" : f.minimo_aplicado ? "valor mínimo" : "por km rodado") : "pelo vendedor"],
+      ["Prazo estimado", f.prazo_dias ? `${f.prazo_dias} ${f.prazo_dias === 1 ? "dia útil" : "dias úteis"}` : "a informar", f.prazo_dias ? "após a confirmação" : "pelo vendedor"],
+      ["Peso total", peso ? kg(peso) : "—", "pelas embalagens"],
+      ["Volumes", vol.caixas ? String(vol.caixas) : "—", vol.sob ? "+ sob medida" : vol.caixas === 1 ? "caixa" : "caixas"]
+    ];
+    const end = [c.logradouro ? `${esc(c.logradouro)}${c.numero ? ", " + esc(c.numero) : ""}` : "", c.bairro ? esc(c.bairro) : "", c.cep ? "CEP " + esc(String(c.cep).replace(/^(\d{5})(\d{3})$/, "$1-$2")) : ""].filter(Boolean).join(" · ");
+    const calc = !temFrete ? `<p class="cot-dica">${f.zona === "manual" && f.mensagem ? esc(f.mensagem) : "O frete será informado pelo vendedor na proposta."}</p>`
+      : `<dl class="cot-dl">
+          ${linha("Regra", esc(f.regra || ""))}
+          ${f.km != null ? linha("Distância por estrada", `${km(f.km)} (só ida)`) : ""}
+          ${f.km != null && f.tarifa_km != null ? linha("Cálculo", `${km(f.km)} × ${reais(f.tarifa_km)} = ${reais(Math.round(f.km * f.tarifa_km * 100) / 100)}`) : ""}
+          ${f.minimo_aplicado ? linha("Mínimo aplicado", f.minimo != null ? reais(f.minimo) : reais(f.valor)) : ""}
+          ${linha("Frete estimado", `<b>${reais(f.valor)}</b>`)}
+        </dl>${f.pela_cidade ? `<p class="cot-dica">Calculado até o centro da cidade.</p>` : ""}`;
+    const tabela = itens.length ? `<div class="cot-tabela"><table>
+        <thead><tr><th>Código</th><th>Produto</th><th>Cor</th><th>Embalagem</th><th class="n">Qtd.</th><th class="n">Peso</th></tr></thead>
+        <tbody>${itens.map((i) => `<tr><td data-rot="Código">${esc(i.codigo || String(i.id || "").toUpperCase())}</td><td data-rot="Produto" class="cot-td-prod">${esc(i.nome || i.id)}</td><td data-rot="Cor">${esc(i.cor || "—")}</td><td data-rot="Embalagem">${esc(ehSob(i) ? "Sob medida" : i.embalagem)}</td><td data-rot="Qtd." class="n">${esc(i.qtd)}${ehSob(i) ? " kg" : ""}</td><td data-rot="Peso" class="n">${kg(kgItem(i))}</td></tr>`).join("")}</tbody>
+        <tfoot><tr><td colspan="4">Total</td><td data-rot="Volumes" class="n">${esc(vol.texto)}</td><td data-rot="Peso total" class="n">${peso ? kg(peso) : "—"}</td></tr></tfoot>
+      </table></div>` : "";
+    const corpo = `
+      <div class="cot-comp-grade">
+        <section class="cot-comp-bloco"><h4>Rota</h4>
+          <div class="cot-comp-rota"><div><span>Origem</span><b>${esc(f.origem || "Matão/SP")}</b></div><i aria-hidden="true"></i><div><span>Destino</span><b>${esc(c.cidade || "—")}${c.uf ? "/" + esc(c.uf) : ""}</b></div></div>
+          <dl class="cot-dl">${linha("Endereço", end)}${linha("Distância", f.km != null ? `${km(f.km)} por estrada` : f.zona === "local" ? "entrega local" : "")}${linha("Recebedor", c.primeiro_nome ? esc(c.primeiro_nome) : c.nome ? esc(c.nome) : "")}</dl>
+        </section>
+        <section class="cot-comp-bloco"><h4>Entrega</h4>
+          <dl class="cot-dl">${linha("Tipo de local", esc(ROT.tipo_local[e.tipo_local] || ""))}${linha("Recebimento", esc(ROT.horario[e.horario] || ""))}${linha("Descarga", esc(ROT.descarga[e.descarga] || ""))}${e.agendamento != null ? linha("Agendamento", e.agendamento ? "Precisa agendar" : "Não precisa") : ""}${linha("Referência", esc(e.referencia || ""))}${linha("Precisa para", esc(ROT.prazo_desejado[e.prazo_desejado] || ""))}</dl>
+          ${!Object.keys(e).length ? `<p class="cot-dica">Sem detalhes de entrega.</p>` : ""}
+        </section>
+        <section class="cot-comp-bloco cot-comp-largo"><h4>Carga</h4>${tabela}</section>
+        <section class="cot-comp-bloco"><h4>Frete</h4>${calc}</section>
+        <section class="cot-comp-bloco"><h4>Descrição do serviço</h4>${c.descricao ? `<p class="cot-desc">${esc(c.descricao)}</p>` : `<p class="cot-dica">—</p>`}</section>
+      </div>`;
+    return `<article class="cot-comp${opcoes.resumido ? " cot-comp-resumido" : ""}" data-protocolo="${esc(c.protocolo)}">
+      <header class="cot-comp-topo">
+        <div class="cot-comp-num"><span>Número da cotação</span><strong>${esc(c.protocolo)}</strong>
+          <button type="button" class="cot-copiar" data-copiar="${esc(c.protocolo)}" aria-label="Copiar o número ${esc(c.protocolo)}">Copiar</button></div>
+        <div class="cot-comp-val"><span>Válida até</span><strong>${dataHora(c.expira_em)}</strong><small>${restante(c.expira_em)}</small></div>
         <span class="cot-status cot-st-${esc(c.status)}">${esc(st.nome)}</span>
       </header>
       ${htmlLinhaTempo(c.status)}
-      <p class="cot-meta">Emitida em ${dataHora(c.emitida_em)} · ${c.cidade ? `${esc(c.cidade)}/${esc(c.uf)} · ` : ""}válida por mais ${restante(c.expira_em)} (até ${dataHora(c.expira_em)})</p>
-      ${c.valor_proposta != null || c.resposta ? `<div class="cot-proposta"><span class="cot-rotulo">Resposta da equipe</span>${c.valor_proposta != null ? `<strong>${reais(c.valor_proposta)}</strong>` : ""}${c.resposta ? `<p>${esc(c.resposta)}</p>` : ""}</div>` : `<p class="cot-dica">${esc(st.dica)}</p>`}
-      <details class="cot-detalhes"${opcoes.aberto ? " open" : ""}><summary>Itens e detalhes</summary>
-        <ul class="cot-itens">${itens}</ul>
-        <p class="cot-linha">${c.peso_kg ? `Peso total: <b>${Number(c.peso_kg).toLocaleString("pt-BR")} kg</b> · ` : ""}${htmlFrete(c.frete)}</p>
-        ${c.descricao ? `<p class="cot-desc">${esc(c.descricao)}</p>` : ""}
-      </details>
-      <div class="cot-acoes">${opcoes.whats !== false ? `<a class="btn btn-whats" target="_blank" rel="noopener" href="${esc(linkWhats(c))}">Falar sobre esta cotação</a>` : ""}</div>
+      <div class="cot-comp-kpis">${destaques.map(([k, v, s]) => `<div><span>${k}</span><strong>${esc(v)}</strong><small>${esc(s)}</small></div>`).join("")}</div>
+      ${c.valor_proposta != null || c.resposta ? `<div class="cot-proposta"><span class="cot-rotulo">Proposta do vendedor</span>${c.valor_proposta != null ? `<strong>${reais(c.valor_proposta)}</strong>` : ""}${c.resposta ? `<p>${esc(c.resposta)}</p>` : ""}</div>` : `<p class="cot-dica cot-dica-st">${esc(st.dica)}</p>`}
+      ${opcoes.resumido ? `<details class="cot-detalhes"><summary>Ver cotação completa</summary>${corpo}</details>` : corpo}
+      <footer class="cot-comp-rodape">
+        <small>Emitida em ${dataHora(c.emitida_em)}${c.atualizado_em && c.atualizado_em !== c.emitida_em ? ` · atualizada em ${dataHora(c.atualizado_em)}` : ""} · Frete e prazo são estimativas; o vendedor confirma na proposta.</small>
+        <div class="cot-acoes">
+          <button type="button" class="btn btn-contorno-azul" data-imprimir>Imprimir / salvar PDF</button>
+          <button type="button" class="btn btn-contorno-azul" data-copiar-link="${esc(linkAcompanhar(c))}">Copiar link de acompanhamento</button>
+          ${opcoes.whats !== false ? `<a class="btn btn-whats" target="_blank" rel="noopener" href="${esc(linkWhats(c))}">Falar com o vendedor</a>` : ""}
+        </div>
+      </footer>
     </article>`;
   }
+  const htmlCartao = (c, opcoes) => htmlComprovante(c, Object.assign({ resumido: !(opcoes && opcoes.aberto) }, opcoes));
   function linkWhats(c) {
     const msg = `Olá! Fiz a cotação *${c.protocolo}* pelo site${c.cidade ? ` (entrega em ${c.cidade}/${c.uf})` : ""}. Pode me ajudar?`;
     return window.ColorWeg ? window.ColorWeg.linkWhatsApp(msg) : "#";
   }
-  /** botões "Copiar" dentro de um contêiner */
+  /** botões Copiar, Copiar link e Imprimir dentro de um contêiner */
   function ligarCopiar(box) {
-    box.querySelectorAll("[data-copiar]").forEach((b) => b.addEventListener("click", () => {
-      const v = b.dataset.copiar;
-      (navigator.clipboard ? navigator.clipboard.writeText(v) : Promise.reject()).then(
-        () => { b.textContent = "Copiado!"; setTimeout(() => (b.textContent = "Copiar"), 1800); },
-        () => prompt("Copie o código:", v));
+    const copiar = (b, v, txt) => (navigator.clipboard ? navigator.clipboard.writeText(v) : Promise.reject()).then(
+      () => { const t = b.textContent; b.textContent = "Copiado!"; setTimeout(() => (b.textContent = t), 1800); },
+      () => prompt(txt, v));
+    box.querySelectorAll("[data-copiar]").forEach((b) => b.addEventListener("click", () => copiar(b, b.dataset.copiar, "Copie o número:")));
+    box.querySelectorAll("[data-copiar-link]").forEach((b) => b.addEventListener("click", () => copiar(b, b.dataset.copiarLink, "Copie o link:")));
+    box.querySelectorAll("[data-imprimir]").forEach((b) => b.addEventListener("click", () => {
+      const art = b.closest(".cot-comp"); if (!art) return;
+      art.querySelectorAll("details").forEach((d) => (d.open = true));
+      art.classList.add("cot-imprimir"); document.body.classList.add("imprimindo-cotacao");
+      const fim = () => { art.classList.remove("cot-imprimir"); document.body.classList.remove("imprimindo-cotacao"); window.removeEventListener("afterprint", fim); };
+      window.addEventListener("afterprint", fim);
+      window.print();
+      setTimeout(fim, 1500);
     }));
   }
 
@@ -238,5 +307,5 @@
   document.addEventListener("recursos-atualizados", menu);
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", menu); else menu();
 
-  window.Cotacao = { lista, enviar, consultar, minhas, lembradas, equipe, STATUS, htmlCartao, htmlFrete, ligarCopiar, linkWhats, normalizarCodigo, codigoValido, pesoKg, dataHora, reais, online: ONLINE, HORAS };
+  window.Cotacao = { lista, enviar, consultar, minhas, lembradas, equipe, STATUS, ROT, volumes, prazoTxt, htmlComprovante, htmlCartao, htmlFrete, ligarCopiar, linkWhats, normalizarCodigo, codigoValido, pesoKg, dataHora, reais, online: ONLINE, HORAS };
 })();

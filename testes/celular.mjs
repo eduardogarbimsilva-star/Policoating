@@ -23,7 +23,7 @@ export function detector() {
   // 3) irmãos sobrepostos em grades/linhas
   for (const pai of todos) {
     const s = getComputedStyle(pai); if (!/(grid|flex)/.test(s.display)) continue;
-    if (pai.matches(".pilula")) continue;   // cartão sobre a foto: proposital
+    if (pai.matches(".pilula, .novidade")) continue;   // cartão ou ícone sobre a foto: proposital
     const f = [...pai.children].filter((c) => visivel(c) && !/(absolute|fixed)/.test(getComputedStyle(c).position) && !c.closest("[hidden]"));
     for (let i = 0; i < f.length; i++) for (let j = i + 1; j < f.length; j++) {
       const a = f[i].getBoundingClientRect(), b = f[j].getBoundingClientRect();

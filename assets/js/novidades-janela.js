@@ -7,7 +7,7 @@
    ========================================================= */
 (function () {
   "use strict";
-  const VERSAO = "2026-11-23b";
+  const VERSAO = "2026-11-23c";
   const DATA = "23/11/2026";
   const CHAVE = "policoating_novidades_ocultar";
   const DURACAO = 10000;
@@ -52,19 +52,27 @@
     const anterior = document.activeElement;
     const tela = document.createElement("div");
     tela.className = "nv-tela";
+    const item = (x) => `<li${x.equipe ? ' class="nv-equipe"' : ""}><span class="nv-ic">${x.icone}</span><div><strong>${esc(x.titulo)}</strong><span>${esc(x.texto)}</span></div></li>`;
+    const pub = itens.filter((x) => !x.equipe), eq = itens.filter((x) => x.equipe);
     tela.innerHTML = `<div class="nv-caixa" role="dialog" aria-modal="true" aria-labelledby="nv-titulo">
       <div class="nv-topo">
-        <span class="nv-selo">${I.estrela} Novidades</span>
+        <img class="nv-foto" src="assets/img/novidades/fachada-frontal.jpg" alt="" width="1100" height="825" decoding="async">
         <button type="button" class="nv-fechar" aria-label="Fechar novidades">✕</button>
-        <h2 id="nv-titulo">O que mudou no site</h2>
-        <p>Atualização de ${DATA}</p>
+        <div class="nv-topo-txt">
+          <span class="nv-selo">${I.estrela} Novidades no site</span>
+          <h2 id="nv-titulo">O que mudou na Policoating online</h2>
+          <p>Atualização de ${DATA} · Tinta eletrostática em pó, de Matão-SP para todo o Brasil</p>
+        </div>
       </div>
-      <ul class="nv-lista">${itens.map((x) => `<li${x.equipe ? ' class="nv-equipe"' : ""}><span class="nv-ic">${x.icone}</span><div><strong>${esc(x.titulo)}${x.equipe ? ' <em>equipe</em>' : ""}</strong><span>${esc(x.texto)}</span></div></li>`).join("")}</ul>
+      <div class="nv-corpo">
+        ${pub.length ? `<ul class="nv-lista">${pub.map(item).join("")}</ul>` : ""}
+        ${eq.length ? `<h3 class="nv-sub"><span>Para a equipe</span></h3><ul class="nv-lista">${eq.map(item).join("")}</ul>` : ""}
+      </div>
+      <div class="nv-tempo" aria-hidden="true"><i></i></div>
       <div class="nv-rodape">
         <label class="nv-nao"><input type="checkbox"> Não mostrar novamente</label>
         <button type="button" class="btn btn-primario nv-ok">Entendi</button>
       </div>
-      <div class="nv-tempo" aria-hidden="true"><i></i></div>
     </div>`;
     document.body.appendChild(tela);
     const barra = tela.querySelector(".nv-tempo i"), caixa = tela.querySelector(".nv-caixa");

@@ -3800,3 +3800,55 @@ body.cb-aberta { overflow: hidden; }
 @keyframes cb3Reluz { 0%, 100% { opacity: .6; } 50% { opacity: 1; } }
 .cb3-reluz rect { animation: cb3Reluz 1.6s ease-in-out infinite; }
 .cb3-reluz rect:nth-child(even) { animation-delay: .8s; } .cb3-reluz rect:nth-child(3n) { animation-delay: .4s; }
+
+/* ===== Janela de novidades v2: capa com a foto da Policoating, itens em grade ===== */
+.nv-caixa { width: min(760px, 100%); border-radius: 22px; }
+.nv-topo { position: relative; min-height: 210px; padding: 0; display: flex; align-items: flex-end; overflow: hidden; background: #0b1f45; }
+.nv-topo::after { z-index: 2; }
+.nv-foto { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 38%; transform: scale(1.06); animation: nvFoto 10s ease-out forwards; }
+@keyframes nvFoto { to { transform: scale(1); } }
+.nv-topo::before { content: ""; position: absolute; inset: 0; z-index: 1; background: linear-gradient(180deg, rgba(8, 20, 46, .15) 0%, rgba(8, 20, 46, .55) 45%, rgba(8, 24, 60, .95) 100%); }
+.nv-topo-txt { position: relative; z-index: 2; padding: 22px 26px 22px; }
+.nv-topo h2 { font-size: 1.6rem; margin: 10px 0 4px; letter-spacing: -.01em; text-shadow: 0 2px 12px rgba(0, 0, 0, .35); }
+.nv-topo p { color: #d6e4ff; }
+.nv-selo { background: rgba(255, 255, 255, .18); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); border: 1px solid rgba(255, 255, 255, .25); }
+.nv-fechar { z-index: 3; background: rgba(8, 20, 46, .45); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); border: 1px solid rgba(255, 255, 255, .3); }
+.nv-corpo { overflow-y: auto; padding: 18px 20px 6px; }
+.nv-lista { padding: 0; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-bottom: 12px; overflow: visible; }
+.nv-lista li { grid-template-columns: 42px 1fr; padding: 14px; border: 1px solid var(--borda); border-radius: 14px; background: #fff; box-shadow: 0 2px 10px rgba(10, 31, 58, .04); transition: border-color .2s, box-shadow .2s, transform .2s; }
+.nv-lista li:hover { background: #fff; border-color: #bcd2ff; box-shadow: 0 8px 22px rgba(21, 88, 214, .1); transform: translateY(-2px); }
+.nv-ic { width: 42px; height: 42px; background: linear-gradient(135deg, #e8f0ff, #d6e5ff); }
+.nv-sub { display: flex; align-items: center; gap: 10px; margin: 6px 0 10px; font-size: .74rem; letter-spacing: .12em; text-transform: uppercase; color: #8a5600; }
+.nv-sub::after { content: ""; flex: 1; height: 1px; background: #f1dfb5; }
+.nv-equipe { background: #fffdf6 !important; border-color: #f3e3bd !important; }
+.nv-tempo { height: 3px; }
+.nv-rodape { border-top: 0; padding: 12px 22px 18px; }
+@media (max-width: 640px) {
+  .nv-lista { grid-template-columns: 1fr; }
+  .nv-topo { min-height: 170px; }
+  .nv-topo h2 { font-size: 1.25rem; }
+  .nv-topo-txt { padding: 16px 18px; }
+  .nv-corpo { padding: 14px 14px 4px; }
+}
+@media (prefers-reduced-motion: reduce) { .nv-foto { animation: none; transform: none; } }
+
+/* ===== Cartões de novidades v2: foto real, mesma estrutura, link sempre no rodapé ===== */
+.novidades-grade { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; align-items: stretch; }
+.novidade { display: flex; flex-direction: column; padding: 0 20px 20px; }
+.novidade::before { z-index: 2; }
+.novidade-foto { position: relative; margin: 0 -20px; height: 150px; overflow: hidden; background: #dfe7f2; }
+.novidade-foto img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .6s var(--suave, ease); }
+.novidade-foto::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(8, 20, 46, 0) 45%, rgba(8, 20, 46, .45) 100%); }
+.novidade:hover .novidade-foto img { transform: scale(1.06); }
+.novidade-selo { position: absolute; z-index: 1; top: 12px; left: 12px; padding: 4px 10px; border-radius: 999px; background: rgba(255, 255, 255, .92); color: var(--azul); font-size: .7rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; box-shadow: 0 2px 8px rgba(0, 0, 0, .12); }
+.novidade-ic { position: relative; z-index: 1; margin: -23px 0 12px; border: 3px solid #fff; box-shadow: 0 6px 16px rgba(21, 88, 214, .18); background: #fff; }
+.novidade h3 { font-size: 1.08rem; }
+.novidade p { line-height: 1.5; }
+.novidade-passos { margin-bottom: 16px; }
+.novidade-link { margin-top: auto; display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; padding: 9px 14px; border-radius: 10px; background: var(--azul-claro); transition: background .2s, color .2s; }
+.novidade:hover .novidade-link { background: var(--azul); color: #fff; }
+@media (prefers-reduced-motion: reduce) { .novidade-foto img { transition: none; } }
+.nv-topo { min-height: 250px; }
+.nv-foto { object-position: 20% 22%; }
+.nv-lista li:last-child:nth-child(odd) { grid-column: 1 / -1; }
+@media (max-width: 640px) { .nv-topo { min-height: 190px; } .nv-foto { object-position: 12% 25%; } }

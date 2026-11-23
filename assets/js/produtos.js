@@ -55,7 +55,7 @@ window.TEXTURAS = ["Liso", "Texturizado", "Microtextura", "Craqueado"];
 window.ACABAMENTOS = ["Ultra Brilhante", "Brilhante", "Semi Brilho", "Semi Fosco", "Fosco", "Ultra Fosca"];
 // Nome padrão de um valor antigo/digitado ("Brilhante (> 85 GU)" → "Brilhante", "Lisa" → "Liso")
 window.padraoClassificacao = function (valor, lista) {
-  const n = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[-\s]+/g, " ").trim();
+  const n = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[-\s]+/g, " ").trim();
   const v = n(valor); if (!v) return "";
   const apelidos = { lisa: "Liso", liso: "Liso", "semibrilho": "Semi Brilho", "semi brilhante": "Semi Brilho", acetinado: "Semi Brilho", "semifosco": "Semi Fosco", "ultra fosco": "Ultra Fosca", "texturizada": "Texturizado", "micro textura": "Microtextura", "microtexturizado": "Microtextura", craquelado: "Craqueado", craquelada: "Craqueado" };
   const porTamanho = lista.slice().sort((a, b) => b.length - a.length);

@@ -31,7 +31,7 @@ type Ponto = { lat: number; lng: number; confianca?: number; rotulo?: string };
 type Item = { id: string; embalagem?: string; qtd?: number };
 
 /* ---------- regras puras (testadas em testes/frete.mjs) ---------- */
-export const normalizar = (s: string) => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
+export const normalizar = (s: string) => String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
 export const soDigitos = (s: unknown) => String(s ?? "").replace(/\D/g, "");
 
 /** Distância em linha reta (metros) — fórmula de Haversine */

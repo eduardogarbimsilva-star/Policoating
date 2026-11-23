@@ -20,7 +20,7 @@
   const esc = (s) => CW().esc(s);
 
   /* ---------- Entendimento do texto (sem IA externa) ---------- */
-  const norm = (t) => String(t || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+  const norm = (t) => String(t || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
   // palavra -> termos que podem aparecer no nome da cor
   const CORES = {

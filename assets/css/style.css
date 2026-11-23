@@ -3751,3 +3751,52 @@ body.cb-aberta { overflow: hidden; }
 .cot-enviar.cot-esperando { background: #5a6775; cursor: not-allowed; font-variant-numeric: tabular-nums; }
 .btn.cot-excluir { border: 1.5px solid #e2b4b0; color: #a11d1d; background: #fff; }
 .btn.cot-excluir:hover { background: #fdecec; }
+
+/* ===== Animação ao cotar v3 (mais realista): profundidade, luz e movimento natural ===== */
+.cb3-c1 { animation: cbRolar 70s linear infinite; } .cb3-c2 { animation: cbRolar 40s linear infinite; } .cb3-c3 { animation: cbRolar 18s linear infinite; }
+.cb3-c4 { animation: cbRolar 2.6s linear infinite; } .cb3-c5 { animation: cbRolar 1.1s linear infinite; }
+.cb3-n1 { animation: cbRolar 90s linear infinite; } .cb3-n2 { animation: cbRolar 30s linear infinite; } .cb3-n3 { animation: cbRolar 11s linear infinite; }
+.cb3-o1 { animation: cbRolar 12s linear infinite; } .cb3-o2 { animation: cbRolar 7s linear infinite; }
+/* caminhão: chega freando, roda com pequenas variações de velocidade e sai acelerando */
+@keyframes cb3Caminhao {
+  0% { transform: translateX(-450px); animation-timing-function: cubic-bezier(.15, .7, .35, 1); }
+  24% { transform: translateX(112px); animation-timing-function: ease-in-out; }
+  50% { transform: translateX(128px); animation-timing-function: ease-in-out; }
+  76% { transform: translateX(110px); animation-timing-function: cubic-bezier(.6, 0, .9, .5); }
+  100% { transform: translateX(780px); }
+}
+.cb-cam .cb3-veiculo { animation: cb3Caminhao 6s infinite; }
+.cb3-roda { animation: cbGiro .38s linear infinite; }
+@keyframes cb3Fumaca { 0% { transform: translate(0, 0) scale(.6); opacity: .75; } 100% { transform: translate(-34px, -30px) scale(2.6); opacity: 0; } }
+.cb3-fumaca circle { transform-box: fill-box; transform-origin: center; animation: cb3Fumaca 1.4s ease-out infinite; }
+.cb3-fumaca circle:nth-child(2) { animation-delay: .45s; } .cb3-fumaca circle:nth-child(3) { animation-delay: .9s; }
+@keyframes cb3Reflexo { 0%, 35% { transform: skewX(-18deg) translateX(0); } 75%, 100% { transform: skewX(-18deg) translateX(420px); } }
+.cb3-reflexo { animation: cb3Reflexo 3s ease-in-out infinite; }
+/* jato: vai se afastando (sobe e diminui), some atrás das nuvens e volta mais perto, do outro lado */
+@keyframes cb3Ida {
+  0% { transform: translate(-160px, 168px) scale(.95); opacity: 1; }
+  44% { transform: translate(700px, 74px) scale(.48); opacity: 1; }
+  44.1%, 100% { transform: translate(900px, 74px) scale(.48); opacity: 0; }
+}
+@keyframes cb3Volta {
+  0%, 50% { transform: translate(900px, 66px) scale(.5); opacity: 0; }
+  50.1% { transform: translate(740px, 82px) scale(.55); opacity: 1; }
+  100% { transform: translate(-220px, 162px) scale(1.12); opacity: 1; }
+}
+.cb3-ida { animation: cb3Ida 6s cubic-bezier(.35, .1, .6, 1) infinite; }
+.cb3-volta { animation: cb3Volta 6s cubic-bezier(.3, 0, .55, 1) infinite; }
+@keyframes cb3InclIda { 0%, 100% { transform: translateY(0) rotate(-6deg); } 50% { transform: translateY(-3px) rotate(-3.5deg); } }
+@keyframes cb3InclVolta { 0%, 100% { transform: translateY(0) rotate(5deg); } 50% { transform: translateY(-3px) rotate(2.5deg); } }
+.cb3-incl-ida { animation: cb3InclIda 1.8s ease-in-out infinite; }
+.cb3-incl-volta { animation: cb3InclVolta 1.8s ease-in-out infinite; }
+@keyframes cb3Luz { 0%, 70%, 100% { opacity: .2; } 75%, 85% { opacity: 1; } }
+.cb3-luz { animation: cb3Luz 1s linear infinite; }
+@keyframes cb3Rastro { 0%, 100% { opacity: .65; } 50% { opacity: 1; } }
+.cb3-rastro { animation: cb3Rastro 1.2s ease-in-out infinite; }
+@keyframes cb3Navio { from { transform: translateX(-100px) translateY(0); } to { transform: translateX(700px) translateY(0); } }
+.cb3-navio { animation: cb3Navio 30s linear infinite; }
+.cb3-fumaca2 circle { transform-box: fill-box; transform-origin: center; animation: cb3Fumaca 2.2s ease-out infinite; }
+.cb3-fumaca2 circle:nth-child(2) { animation-delay: 1.1s; }
+@keyframes cb3Reluz { 0%, 100% { opacity: .6; } 50% { opacity: 1; } }
+.cb3-reluz rect { animation: cb3Reluz 1.6s ease-in-out infinite; }
+.cb3-reluz rect:nth-child(even) { animation-delay: .8s; } .cb3-reluz rect:nth-child(3n) { animation-delay: .4s; }

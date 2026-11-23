@@ -162,7 +162,7 @@
           <button type="button" class="assist-voz" aria-label="Falar a mensagem" title="Falar" hidden>${ic("microfone")}</button>
           <button type="submit" aria-label="Enviar">${ic("seta")}</button>
         </form>
-        <a class="assist-whats" data-whats-assist target="_blank" rel="noopener">${CW().iconeWhats()} Falar com um vendedor no WhatsApp</a>
+        <a class="assist-whats" href="#" data-whats-assist target="_blank" rel="noopener">${CW().iconeWhats()} Falar com um vendedor no WhatsApp</a>
       </section>`);
 
     $(".assist-botao").addEventListener("click", () => alternar(!aberto));

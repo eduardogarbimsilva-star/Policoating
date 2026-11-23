@@ -45,7 +45,7 @@
         <button type="button" class="cot-tirar" data-tirar aria-label="Tirar ${esc(p.nome)}" title="Tirar da cotação">✕</button>
       </li>`;
     }).join("")}</ul>`
-      : `<div class="cot-vazio"><strong>Nenhum produto na cotação.</strong><span>Busque acima, ou use o botão <b>Solicitar cotação</b> na página do produto.</span></div>`;
+      : `<div class="cot-vazio"><strong>Nenhum produto na cotação.</strong><span>${modo("produtos") === "opcional" ? "Opcional: sem produtos, cotamos só o frete (informe o peso em Detalhes). Para incluir, busque acima." : "Busque acima, ou use o botão <b>Solicitar cotação</b> na página do produto."}</span></div>`;
     $$(".cot-item", box).forEach((li) => {
       const n = +li.dataset.n, mudar = (fn) => { const v = C.lista.ler(); if (!v[n]) return; fn(v[n]); C.lista.gravar(v); };
       $$("[data-campo]", li).forEach((el) => el.addEventListener("change", () => mudar((it) => { it[el.dataset.campo] = el.dataset.campo === "qtd" ? Math.max(1, Math.min(100000, Math.round(+el.value || 1))) : el.value; })));
@@ -63,7 +63,9 @@
     $("#cot-do-carrinho").hidden = !(CW.itensCarrinho && CW.itensCarrinho().length);
     resumo(); agendarFrete();
   }
-  document.addEventListener("cotacao-lista", desenharItens);
+  // redesenha depois do evento atual (evita redesenhar no meio de um "blur" do campo de quantidade)
+  let redesenho = 0;
+  document.addEventListener("cotacao-lista", () => { clearTimeout(redesenho); redesenho = setTimeout(desenharItens, 0); });
   if (window.Seletor) window.Seletor.produtos($("#cot-busca"), {
     lista: prods,
     aoEscolher: (p) => {
@@ -90,7 +92,7 @@
     const box = $("#cot-cep-info");
     if (!endCep) { box.hidden = !estado; box.innerHTML = estado || ""; return; }
     const e = endCep, f = freteAtual;
-    const freteHtml = !f ? `<span class="cot-cep-calc">${C.lista.ler().length ? "Calculando o frete…" : "Adicione produtos para calcular o frete."}</span>`
+    const freteHtml = !f ? `<span class="cot-cep-calc">${C.lista.ler().length || !exige("produtos") ? "Calculando o frete…" : "Adicione produtos para calcular o frete."}</span>`
       : f.erro ? `<span class="cot-cep-calc">${esc(f.erro)}</span>`
       : f.zona === "manual" || f.valor == null ? `<span class="cot-cep-calc">Frete informado pelo vendedor na proposta.</span>`
       : `<span class="cot-cep-frete"><b>${reais(f.valor)}</b> ${f.zona === "local" ? "entrega local" : `${Number(f.km).toLocaleString("pt-BR")} km por estrada`}${f.prazo_dias ? ` · até ${f.prazo_dias} dias úteis` : ""}</span>`;
@@ -129,8 +131,9 @@
   function agendarFrete(ja) { clearTimeout(tFrete); tFrete = setTimeout(calcularFrete, ja ? 50 : 700); }
   async function calcularFrete() {
     const itens = C.lista.ler(), cep = so($("#cot-cep").value);
-    if (!endCep || !itens.length) { freteAtual = null; desenharCep(); resumo(); return; }
-    const pode = window.Frete && window.Frete.online && itens.every((i) => R.disponivel("freight_estimate_enabled", acharProd(i.id) || { id: i.id }));
+    if (!endCep || (!itens.length && exige("produtos"))) { freteAtual = null; desenharCep(); resumo(); return; }
+    // sem produtos (lista opcional) o frete sai só pelo CEP
+    const pode = window.Frete && window.Frete.online && (itens.length ? itens.every((i) => R.disponivel("freight_estimate_enabled", acharProd(i.id) || { id: i.id })) : R.ligado("freight_estimate_enabled"));
     if (!pode) { freteAtual = { zona: "manual" }; desenharCep(); resumo(); return; }
     const lista = itens.map((i) => ({ id: i.id, embalagem: i.embalagem, cor: i.cor, qtd: i.qtd }));
     const chave = JSON.stringify([cep, so($("#cot-numero").value), lista]);
@@ -176,17 +179,67 @@
     $("#cot-r-km").textContent = temValor ? (f.zona === "local" ? "entrega local" : `${Number(f.km).toLocaleString("pt-BR")} km`) : "—";
     $("#cot-rota-km").textContent = temValor && f.km ? `${Number(f.km).toLocaleString("pt-BR")} km` : "";
     $("#cot-r-prazo").textContent = temValor ? C.prazoTxt(f) : "—";
-    $("#cot-r-frete").textContent = !endCep ? "informe o CEP" : !itens.length ? "adicione produtos" : !f ? "calculando…" : temValor ? reais(f.valor) : "pelo vendedor";
-    $("#cot-r-frete-obs").textContent = temValor ? (f.regra || "") : f && f.erro ? f.erro : endCep && itens.length && f ? "O vendedor informa o frete na proposta." : "";
+    const semProdOk = modo("produtos") !== "obrigatorio";
+    $("#cot-r-frete").textContent = !endCep ? "informe o CEP" : !itens.length && !semProdOk ? "adicione produtos" : !f ? "calculando…" : temValor ? reais(f.valor) : "pelo vendedor";
+    $("#cot-r-frete-obs").textContent = temValor ? (f.regra || "") : f && f.erro ? f.erro : endCep && f ? "O vendedor informa o frete na proposta." : "";
+    atualizarVeiculos();
     progresso();
   }
+  const valorRadio = (n) => ($(`input[name=${n}]:checked`) || {}).value || "";
+  /* ---------- configuração do formulário (painel → Cotações → Configurar formulário) ---------- */
+  const cfgForm = () => (window.CotacaoConfig ? window.CotacaoConfig.normalizar((window.SITE_CONFIG || {}).cotacao) : { campos: {}, veiculos: { ativo: false, lista: [] }, pesoMaximo: { ativo: false, kg: 0 } });
+  const modo = (k) => cfgForm().campos[k] || "opcional";
+  const exige = (k) => modo(k) === "obrigatorio", mostra = (k) => modo(k) !== "oculto";
+  const pesoAtual = () => { const n = Number(String($("#cot-peso").value).replace(",", ".")); return n > 0 ? n : C.lista.ler().reduce((t, i) => t + kgItem(i), 0); };
+  function aplicarForm() {
+    const cfg = cfgForm();
+    $$("[data-campo-cot]").forEach((el) => {
+      const k = el.dataset.campoCot; if (k === "veiculo") return;
+      const m = cfg.campos[k] || "opcional";
+      el.hidden = m === "oculto";
+      const opc = el.querySelector(".cot-opc"); if (opc) opc.hidden = m !== "opcional";
+      const vazio = el.querySelector("option[data-vazio]"); if (vazio) vazio.textContent = m === "obrigatorio" ? "Selecione…" : "Não informar";
+    });
+    const prod = cfg.campos.produtos;
+    $("#cot-e-produtos").hidden = prod === "oculto";
+    const liP = $('#cot-progresso [data-etapa="produtos"]'); if (liP) liP.hidden = prod === "oculto";
+    $("#cot-prod-opc").hidden = prod !== "opcional";
+    $$("#cot-progresso li:not([hidden]) a span").forEach((sp, i) => (sp.textContent = String(i + 1)));
+    $$(".cot-etapa:not([hidden]) .cot-etapa-topo .cot-num").forEach((sp, i) => (sp.textContent = String(i + 1)));
+    desenharItens();
+    $('[data-campo-cot="veiculo"]').hidden = !cfg.veiculos.ativo;
+    $("#cot-r-veiculo-linha").hidden = !cfg.veiculos.ativo;
+    atualizarVeiculos(); progresso();
+  }
+  let veiculoEscolhido = "";
+  function atualizarVeiculos() {
+    const cfg = cfgForm(), sel = $("#cot-veiculo"), dica = $("#cot-veiculo-dica"); if (!sel) return;
+    const peso = pesoAtual(), pm = cfg.pesoMaximo;
+    let msg = pm.ativo && peso > pm.kg ? `Acima do peso máximo por cotação (${fmtKg(pm.kg)}). Fale com o vendedor ou divida o pedido.` : "";
+    if (!cfg.veiculos.ativo) { dica.textContent = msg; $("#cot-r-veiculo").textContent = "—"; return; }
+    const cabe = cfg.veiculos.lista.filter((v) => v.pesoMax >= peso);
+    if (!cabe.find((v) => v.nome === veiculoEscolhido)) veiculoEscolhido = cabe.length ? cabe[0].nome : "";
+    sel.innerHTML = `<option value="">${cabe.length ? "Selecione…" : "Nenhum veículo comporta este peso"}</option>` +
+      cfg.veiculos.lista.map((v) => `<option value="${esc(v.nome)}"${v.pesoMax < peso ? " disabled" : ""}${v.nome === veiculoEscolhido ? " selected" : ""}>${esc(v.nome)} — até ${fmtKg(v.pesoMax)}</option>`).join("");
+    if (!msg) msg = !cabe.length ? `Nenhum veículo cadastrado leva ${fmtKg(peso)}. Fale com o vendedor.` : peso ? `Sugerido pelo peso (${fmtKg(peso)}): ${cabe[0].nome}.` : "";
+    dica.textContent = msg;
+    $("#cot-r-veiculo").textContent = veiculoEscolhido || "—";
+  }
+  $("#cot-veiculo").addEventListener("change", (e) => { veiculoEscolhido = e.target.value; atualizarVeiculos(); });
+  document.addEventListener("cotacao-config", () => { aplicarForm(); agendarFrete(); });
+  const docValido = (d) => (d.length === 11 ? B.cpfValido(d) : d.length === 14 && B.cnpjValido(d));
   function etapasOk() {
-    const d = so($("#cot-doc").value);
+    const d = so($("#cot-doc").value), tel = so($("#cot-tel").value), email = $("#cot-email").value.trim();
+    const preenche = (k, ok) => !mostra(k) || (exige(k) ? ok : true);
+    const sel = (k, id) => preenche(k, !!$(id).value);
     return {
-      produtos: C.lista.ler().length > 0,
-      entrega: !!endCep && !!$("#cot-rua").value.trim() && !!$("#cot-numero").value.trim(),
-      dados: $("#cot-nome").value.trim().length >= 3 && (d.length === 11 ? B.cpfValido(d) : d.length === 14 && B.cnpjValido(d)) && /^\d{10,11}$/.test(so($("#cot-tel").value)),
-      detalhes: $("#cot-desc").value.trim().length >= 20
+      produtos: !exige("produtos") || C.lista.ler().length > 0,
+      entrega: !!endCep && preenche("logradouro", !!$("#cot-rua").value.trim()) && preenche("numero", !!$("#cot-numero").value.trim()) &&
+        preenche("bairro", !!$("#cot-bairro").value.trim()) && preenche("complemento", !!$("#cot-compl").value.trim()) && preenche("referencia", !!$("#cot-ref").value.trim()) &&
+        preenche("tipo_local", !!valorRadio("tipo_local")) && sel("horario", "#cot-horario") && sel("descarga", "#cot-descarga") && sel("agendamento", "#cot-agenda"),
+      dados: preenche("nome", $("#cot-nome").value.trim().length >= 3) && preenche("documento", docValido(d)) && preenche("telefone", /^\d{10,11}$/.test(tel)) && preenche("email", !!email),
+      detalhes: preenche("descricao", $("#cot-desc").value.trim().length >= 20) && sel("prazo_desejado", "#cot-prazo") && preenche("peso", pesoAtual() > 0) &&
+        (!cfgForm().veiculos.ativo || !!veiculoEscolhido) && !(cfgForm().pesoMaximo.ativo && pesoAtual() > cfgForm().pesoMaximo.kg)
     };
   }
   function progresso() { const ok = etapasOk(); $$("#cot-progresso [data-etapa]").forEach((li) => li.classList.toggle("feito", !!ok[li.dataset.etapa])); }
@@ -212,34 +265,55 @@
   }
 
   /* ---------- enviar ---------- */
-  const valorRadio = (n) => ($(`input[name=${n}]:checked`) || {}).value || "";
   $("#cot-form").addEventListener("submit", async (e) => {
     e.preventDefault();
     const erro = (msg, foco) => { $("#cot-erro").textContent = msg; if (foco) { $(foco).focus(); $(foco).scrollIntoView({ block: "center", behavior: "smooth" }); } };
-    const itens = C.lista.ler();
+    const cfg = cfgForm(), val = (k, v) => (mostra(k) ? v : "");
+    const itens = modo("produtos") === "oculto" ? [] : C.lista.ler();
+    const peso = pesoAtual();
+    const entrega = {};
+    [["horario", "#cot-horario"], ["descarga", "#cot-descarga"], ["prazo_desejado", "#cot-prazo"]].forEach(([k, id]) => { if (mostra(k) && $(id).value) entrega[k] = $(id).value; });
+    if (mostra("agendamento") && $("#cot-agenda").value) entrega.agendamento = $("#cot-agenda").value === "sim";
+    if (mostra("tipo_local") && valorRadio("tipo_local")) entrega.tipo_local = valorRadio("tipo_local");
+    if (mostra("referencia") && $("#cot-ref").value.trim()) entrega.referencia = $("#cot-ref").value.trim();
+    if (cfg.veiculos.ativo && veiculoEscolhido) { entrega.veiculo = veiculoEscolhido; const vv = cfg.veiculos.lista.find((x) => x.nome === veiculoEscolhido); if (vv) entrega.veiculo_peso_max = vv.pesoMax; }
     const d = {
-      nome: $("#cot-nome").value.trim(), documento: so($("#cot-doc").value), telefone: so($("#cot-tel").value), email: $("#cot-email").value.trim(),
-      cep: so($("#cot-cep").value), logradouro: $("#cot-rua").value.trim(), numero: $("#cot-numero").value.trim(), complemento: $("#cot-compl").value.trim(),
-      bairro: $("#cot-bairro").value.trim(), cidade: endCep ? endCep.cidade : "", uf: endCep ? endCep.uf : "",
-      descricao: $("#cot-desc").value.trim(), peso_kg: $("#cot-peso").value.trim(),
-      entrega: Object.assign({ horario: $("#cot-horario").value, descarga: $("#cot-descarga").value, agendamento: $("#cot-agenda").value === "sim", prazo_desejado: $("#cot-prazo").value },
-        valorRadio("tipo_local") ? { tipo_local: valorRadio("tipo_local") } : {}, $("#cot-ref").value.trim() ? { referencia: $("#cot-ref").value.trim() } : {}),
-      itens: itens.map((i) => ({ id: i.id, embalagem: i.embalagem || "Caixa 25 kg", cor: i.cor || "", qtd: i.qtd }))
+      nome: val("nome", $("#cot-nome").value.trim()), documento: val("documento", so($("#cot-doc").value)), telefone: val("telefone", so($("#cot-tel").value)), email: val("email", $("#cot-email").value.trim()),
+      cep: so($("#cot-cep").value), logradouro: val("logradouro", $("#cot-rua").value.trim()), numero: val("numero", $("#cot-numero").value.trim()), complemento: val("complemento", $("#cot-compl").value.trim()),
+      bairro: val("bairro", $("#cot-bairro").value.trim()), cidade: endCep ? endCep.cidade : "", uf: endCep ? endCep.uf : "",
+      descricao: val("descricao", $("#cot-desc").value.trim()), peso_kg: mostra("peso") ? $("#cot-peso").value.trim() : (peso ? String(peso) : ""),
+      entrega, itens: itens.map((i) => ({ id: i.id, embalagem: i.embalagem || "Caixa 25 kg", cor: i.cor || "", qtd: i.qtd }))
     };
-    if (!itens.length) return erro("Adicione pelo menos um produto.", "#cot-busca");
+    const falta = (k, vazio) => exige(k) && vazio;
+    if (falta("produtos", !itens.length)) return erro("Adicione pelo menos um produto.", "#cot-busca");
     if (itens.some((i) => !R.disponivel("b2b_quote_enabled", acharProd(i.id) || { id: i.id }))) return erro("Tire da lista os produtos sem cotação pelo site (marcados em cinza).", "#cot-itens");
     if (d.cep.length !== 8 || !endCep) return erro("Informe um CEP de entrega válido.", "#cot-cep");
-    if (!d.logradouro) return erro("Informe a rua.", "#cot-rua");
-    if (!d.numero) return erro("Informe o número (ou S/N).", "#cot-numero");
-    if (!(d.documento.length === 11 ? B.cpfValido(d.documento) : d.documento.length === 14 && B.cnpjValido(d.documento))) return erro("CPF ou CNPJ inválido. Confira os números.", "#cot-doc");
-    if (!/^\d{10,11}$/.test(d.telefone)) return erro("Informe o telefone com DDD.", "#cot-tel");
-    if (d.nome.length < 3) return erro("Informe o nome completo ou a razão social.", "#cot-nome");
+    if (falta("logradouro", !d.logradouro)) return erro("Informe a rua.", "#cot-rua");
+    if (falta("numero", !d.numero)) return erro("Informe o número (ou S/N).", "#cot-numero");
+    if (falta("complemento", !d.complemento)) return erro("Informe o complemento.", "#cot-compl");
+    if (falta("bairro", !d.bairro)) return erro("Informe o bairro.", "#cot-bairro");
+    if (falta("referencia", !entrega.referencia)) return erro("Informe um ponto de referência.", "#cot-ref");
+    if (falta("tipo_local", !entrega.tipo_local)) return erro("Escolha o tipo de local.", '.cot-chips input');
+    if (falta("horario", !entrega.horario)) return erro("Escolha o horário de recebimento.", "#cot-horario");
+    if (falta("descarga", !entrega.descarga)) return erro("Informe como é a descarga.", "#cot-descarga");
+    if (falta("agendamento", entrega.agendamento == null)) return erro("Informe se precisa agendar a entrega.", "#cot-agenda");
+    if ((exige("documento") || d.documento) && !docValido(d.documento)) return erro("CPF ou CNPJ inválido. Confira os números.", "#cot-doc");
+    if ((exige("telefone") || d.telefone) && !/^\d{10,11}$/.test(d.telefone)) return erro("Informe o telefone com DDD.", "#cot-tel");
+    if ((exige("nome") || d.nome) && d.nome.length < 3) return erro("Informe o nome completo ou a razão social.", "#cot-nome");
+    if (falta("email", !d.email)) return erro("Informe o e-mail.", "#cot-email");
     if (d.email && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(d.email)) return erro("E-mail inválido (ou deixe em branco).", "#cot-email");
-    if (d.descricao.length < 20) return erro("Descreva o serviço com mais detalhes (mínimo de 20 letras).", "#cot-desc");
+    if ((exige("descricao") || d.descricao) && d.descricao.length < 20) return erro(exige("descricao") ? "Descreva o serviço com mais detalhes (mínimo de 20 letras)." : "Descrição: mínimo de 20 letras, ou deixe em branco.", "#cot-desc");
+    if (falta("prazo_desejado", !entrega.prazo_desejado)) return erro("Diga para quando precisa.", "#cot-prazo");
+    if ((exige("peso") || (!itens.length && mostra("peso"))) && !(peso > 0)) return erro(itens.length ? "Informe o peso total." : "Sem produtos na lista: informe o peso total da carga.", "#cot-peso");
+    if (cfg.pesoMaximo.ativo && peso > cfg.pesoMaximo.kg) return erro(`O peso (${fmtKg(peso)}) passa do máximo por cotação (${fmtKg(cfg.pesoMaximo.kg)}). Fale com o vendedor.`, "#cot-peso");
+    if (cfg.veiculos.ativo && !veiculoEscolhido) return erro("Nenhum veículo cadastrado comporta esse peso. Fale com o vendedor.", "#cot-veiculo");
     erro("");
     const bt = $("#cot-enviar"); bt.disabled = true; bt.textContent = "Cotando…";
+    const fimAnim = window.CotacaoAnimacao ? window.CotacaoAnimacao.mostrar() : async () => {};
     try {
-      const r = await C.enviar(d);
+      let r;
+      try { r = await C.enviar(d); } catch (errEnvio) { await fimAnim(false); throw errEnvio; }
+      await fimAnim(true);
       C.lista.limpar();
       const fr = r.frete && r.frete.zona !== "manual" ? r.frete : freteAtual && freteAtual.valor != null && !C.online ? freteAtual : r.frete;
       mostrarSucesso(Object.assign({}, d, r, { status: r.status || "recebida", itens: r.itens || d.itens, frete: fr, entrega: r.entrega || d.entrega }));
@@ -301,7 +375,7 @@
     $("#cot-off").hidden = on; $("#cot-app").hidden = !on;
     const w = $("[data-whats-cotacao]"); if (w && CW.linkWhatsApp) w.href = CW.linkWhatsApp("Olá! Gostaria de fazer uma cotação.");
     if (!on) return;
-    desenharItens(); preencherDaConta(); contarMinhas(); contar();
+    aplicarForm(); preencherDaConta(); contarMinhas(); contar();
     let cepFrete = ""; try { cepFrete = localStorage.getItem("policoating_frete_cep") || ""; } catch (e) { /* */ }
     if (!$("#cot-cep").value && /^\d{8}$/.test(cepFrete)) { $("#cot-cep").value = cepFrete; $("#cot-cep").dispatchEvent(new Event("input")); }
     const h = location.hash.slice(1), m = /^codigo=(.+)$/.exec(h);

@@ -92,6 +92,43 @@
   }
 
   /** Aceita só campos conhecidos e valores no formato certo */
+  /* ---------- Formulário da cotação: o que cada campo exige (painel → Cotações → Configurar formulário) ----------
+     modos: "obrigatorio" | "opcional" | "oculto". O CEP é sempre obrigatório (é dele que sai o frete).
+     A função "frete" (ação "cotar") aplica as mesmas regras no servidor. */
+  const CAMPOS_COTACAO = [
+    { k: "produtos", etapa: "Produtos", nome: "Lista de produtos", padrao: "opcional" },
+    { k: "logradouro", etapa: "Entrega", nome: "Rua / avenida", padrao: "obrigatorio" },
+    { k: "numero", etapa: "Entrega", nome: "Número", padrao: "obrigatorio" },
+    { k: "complemento", etapa: "Entrega", nome: "Complemento", padrao: "opcional" },
+    { k: "bairro", etapa: "Entrega", nome: "Bairro", padrao: "opcional" },
+    { k: "referencia", etapa: "Entrega", nome: "Ponto de referência", padrao: "opcional" },
+    { k: "tipo_local", etapa: "Entrega", nome: "Tipo de local", padrao: "opcional" },
+    { k: "horario", etapa: "Entrega", nome: "Horário de recebimento", padrao: "opcional" },
+    { k: "descarga", etapa: "Entrega", nome: "Descarga no local", padrao: "opcional" },
+    { k: "agendamento", etapa: "Entrega", nome: "Agendar a entrega", padrao: "opcional" },
+    { k: "documento", etapa: "Seus dados", nome: "CPF ou CNPJ", padrao: "obrigatorio" },
+    { k: "telefone", etapa: "Seus dados", nome: "Telefone / WhatsApp", padrao: "obrigatorio" },
+    { k: "nome", etapa: "Seus dados", nome: "Nome ou razão social", padrao: "obrigatorio" },
+    { k: "email", etapa: "Seus dados", nome: "E-mail", padrao: "opcional" },
+    { k: "descricao", etapa: "Detalhes", nome: "Descrição detalhada", padrao: "obrigatorio" },
+    { k: "prazo_desejado", etapa: "Detalhes", nome: "Para quando precisa", padrao: "opcional" },
+    { k: "peso", etapa: "Detalhes", nome: "Peso total (kg)", padrao: "opcional" }
+  ];
+  const MODOS = ["obrigatorio", "opcional", "oculto"];
+  function configCotacao(d) {
+    d = d && typeof d === "object" ? d : {};
+    const campos = {};
+    CAMPOS_COTACAO.forEach((c) => { const m = (d.campos || {})[c.k]; campos[c.k] = MODOS.includes(m) ? m : c.padrao; });
+    if (campos.telefone === "oculto" && campos.email === "oculto") campos.telefone = "obrigatorio";   // sempre há um contato
+    const v = d.veiculos && typeof d.veiculos === "object" ? d.veiculos : {};
+    const lista = (Array.isArray(v.lista) ? v.lista : []).map((x) => ({ nome: String((x && x.nome) || "").replace(/\s+/g, " ").trim().slice(0, 40), pesoMax: Math.round(Number(x && x.pesoMax) || 0) }))
+      .filter((x) => x.nome && x.pesoMax > 0 && x.pesoMax <= 100000).slice(0, 12).sort((a, b) => a.pesoMax - b.pesoMax);
+    const pm = d.pesoMaximo && typeof d.pesoMaximo === "object" ? d.pesoMaximo : {};
+    const kg = Math.round(Number(pm.kg) || 0);
+    return { campos, veiculos: { ativo: !!v.ativo && lista.length > 0, lista }, pesoMaximo: { ativo: !!pm.ativo && kg > 0, kg: kg > 0 && kg <= 100000 ? kg : 0 } };
+  }
+  window.CotacaoConfig = { CAMPOS: CAMPOS_COTACAO, MODOS, normalizar: configCotacao };
+
   function limparConfig(d) {
     d = d || {};
     const o = {};
@@ -120,6 +157,7 @@
       o.tipos = d.tipos.map((t) => ({ id: slugTipo(t && (t.id || t.nome)), nome: String((t && t.nome) || "").replace(/\s+/g, " ").trim().slice(0, 40) }))
         .filter((t) => t.id && t.nome && !vistos.has(t.id) && vistos.add(t.id)).slice(0, 50);
     }
+    if (d.cotacao && typeof d.cotacao === "object") o.cotacao = configCotacao(d.cotacao);
     if (Array.isArray(d.galeria)) {
       const fotoOk = (u) => typeof u === "string" && /^(https:\/\/|assets\/|data:image\/(jpeg|png|webp);base64,)/.test(u);
       const videoOk = (u) => typeof u === "string" && u.length <= 500 && /^https:\/\//.test(u);
@@ -136,6 +174,9 @@
     const antes = JSON.stringify([CFG.whatsapp, CFG.email, CFG.redes, CFG.lojas, CFG.flutuante, TEXTO.map((k) => CFG[k]), galeriaPainel]);
     ["whatsapp", "email"].concat(TEXTO).forEach((k) => { if (d[k]) CFG[k] = d[k]; });
     if (d.flutuante) CFG.flutuante = d.flutuante;
+    const antesCot = JSON.stringify(CFG.cotacao || null);
+    CFG.cotacao = configCotacao(d.cotacao);
+    if (antesCot !== JSON.stringify(CFG.cotacao)) document.dispatchEvent(new CustomEvent("cotacao-config"));
     CFG.redes = Object.assign({}, CFG.redes, d.redes);
     CFG.lojas = Object.assign({}, CFG.lojas, d.lojas);
     if (d.galeria && d.galeria.length) galeriaPainel = d.galeria;
@@ -504,6 +545,7 @@
         marcas: atual.marcas && atual.marcas.length ? atual.marcas : ["Policoating"],
         tipos: atual.tipos || [],
         flutuante: atual.flutuante || { posicao: "direita", dispositivos: "todos", redes: REDES.slice() },
+        cotacao: configCotacao(atual.cotacao),
       };
     },
     /** Marcas e tipos de produto: cadastro rápido pelo formulário de produto (administrador) */

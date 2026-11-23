@@ -196,7 +196,8 @@ export async function atender(req: Request): Promise<Response> {
   // ---- recurso ligado? (no site) ----
   const itens = lerItens(corpo.itens);
   if (!simulacao) {
-    if (!itens.length || itens.some((i) => !/^[a-z0-9-]{2,60}$/.test(i.id))) return responder({ erro: "Informe o produto." }, 400);
+    // sem produtos (cotação só de frete) vale o liga/desliga geral; com produtos, cada um precisa estar liberado
+    if (itens.some((i) => !/^[a-z0-9-]{2,60}$/.test(i.id))) return responder({ erro: "Produto inválido." }, 400);
     const vale = await recursoValeParaItens(db, "freight_estimate_enabled", itens);
     if (vale === "desligado") return responder({ erro: "Estimativa de frete indisponível no momento." }, 403);
     if (vale) return responder({ erro: "Estimativa de frete indisponível para este produto. Fale com o vendedor." }, 403);
@@ -228,6 +229,7 @@ async function recursoValeParaItens(db: Banco, chave: string, itens: Item[]) {
   const rec = (await db.get(`recursos?select=ligado,implementado&chave=eq.${chave}`))?.[0];
   if (!rec || !rec.ligado || !rec.implementado) return "desligado";
   const ids = [...new Set(itens.map((i) => i.id))];
+  if (!ids.length) return "";
   const prods: any[] = (await db.get(`produtos?select=id,ativo,categoria:dados->>categoria&id=in.(${ids.join(",")})`)) || [];
   for (const id of ids) {
     const p = prods.find((x) => x.id === id);
@@ -309,18 +311,50 @@ export function lerEntrega(e: any) {
 }
 const texto = (v: unknown, max: number) => String(v ?? "").replace(/[\u0000-\u001f\u007f]+/g, " ").replace(/\s+/g, " ").trim().slice(0, max);
 
+/* ---------- configuração do formulário (painel → Cotações → Configurar formulário; guardada em configuracoes.dados.cotacao) ----------
+   Mesmas regras de assets/js/catalogo.js (CotacaoConfig). O CEP é sempre obrigatório. */
+const PADRAO_CAMPOS: Record<string, string> = {
+  produtos: "opcional", logradouro: "obrigatorio", numero: "obrigatorio", complemento: "opcional", bairro: "opcional", referencia: "opcional",
+  tipo_local: "opcional", horario: "opcional", descarga: "opcional", agendamento: "opcional",
+  documento: "obrigatorio", telefone: "obrigatorio", nome: "obrigatorio", email: "opcional",
+  descricao: "obrigatorio", prazo_desejado: "opcional", peso: "opcional"
+};
+export function configCotacao(d: any) {
+  d = d && typeof d === "object" ? d : {};
+  const campos: Record<string, string> = {};
+  for (const [k, p] of Object.entries(PADRAO_CAMPOS)) { const m = d.campos?.[k]; campos[k] = ["obrigatorio", "opcional", "oculto"].includes(m) ? m : p; }
+  if (campos.telefone === "oculto" && campos.email === "oculto") campos.telefone = "obrigatorio";
+  const v = d.veiculos && typeof d.veiculos === "object" ? d.veiculos : {};
+  const lista = (Array.isArray(v.lista) ? v.lista : []).map((x: any) => ({ nome: String(x?.nome || "").replace(/\s+/g, " ").trim().slice(0, 40), pesoMax: Math.round(Number(x?.pesoMax) || 0) }))
+    .filter((x: any) => x.nome && x.pesoMax > 0 && x.pesoMax <= 100000).slice(0, 12).sort((a: any, b: any) => a.pesoMax - b.pesoMax);
+  const kg = Math.round(Number(d.pesoMaximo?.kg) || 0);
+  return { campos, veiculos: { ativo: !!v.ativo && lista.length > 0, lista }, pesoMaximo: { ativo: !!d.pesoMaximo?.ativo && kg > 0 && kg <= 100000, kg } };
+}
+
 async function cotar(req: Request, db: Banco, ors: string, corpo: any, token: string, responder: (d: unknown, s?: number) => Response) {
-  // dados do formulário
-  const nome = texto(corpo.nome, 150), documento = soDigitos(corpo.documento), telefone = soDigitos(corpo.telefone);
-  const cep = soDigitos(corpo.cep), numero = texto(corpo.numero, 20), descricao = String(corpo.descricao ?? "").trim().slice(0, 2000);
-  if (nome.length < 3) return responder({ erro: "Informe o nome ou a razão social." }, 400);
-  if (!documentoValido(documento)) return responder({ erro: "CPF ou CNPJ inválido. Confira os números." }, 400);
-  if (!/^\d{10,11}$/.test(telefone)) return responder({ erro: "Telefone com DDD inválido." }, 400);
+  const cfgForm = configCotacao((await db.get("configuracoes?select=dados&id=eq.1"))?.[0]?.dados?.cotacao);
+  const modo = (k: string) => cfgForm.campos[k];
+  const exige = (k: string) => modo(k) === "obrigatorio", mostra = (k: string) => modo(k) !== "oculto";
+  const val = (k: string, v: string) => (mostra(k) ? v : "");
+  // dados do formulário (campo oculto no painel é ignorado; opcional só é conferido se veio preenchido)
+  const nome = val("nome", texto(corpo.nome, 150)), documento = val("documento", soDigitos(corpo.documento)), telefone = val("telefone", soDigitos(corpo.telefone));
+  const cep = soDigitos(corpo.cep), numero = val("numero", texto(corpo.numero, 20)), descricao = val("descricao", String(corpo.descricao ?? "").trim().slice(0, 2000));
   if (cep.length !== 8) return responder({ erro: "CEP inválido. Confira os 8 números." }, 400);
-  if (!numero) return responder({ erro: "Informe o número do endereço (ou S/N)." }, 400);
-  if (descricao.length < 20) return responder({ erro: "Descreva o que precisa com um pouco mais de detalhe (mínimo de 20 letras)." }, 400);
-  const itens = lerItens(corpo.itens).filter((i) => i.qtd > 0);
-  if (!itens.length || itens.length > 30 || itens.some((i) => !/^[a-z0-9-]{2,60}$/.test(i.id) || i.qtd > 100000)) return responder({ erro: "Escolha de 1 a 30 produtos com a quantidade." }, 400);
+  if ((exige("nome") || nome) && nome.length < 3) return responder({ erro: "Informe o nome ou a razão social." }, 400);
+  if ((exige("documento") || documento) && !documentoValido(documento)) return responder({ erro: "CPF ou CNPJ inválido. Confira os números." }, 400);
+  if ((exige("telefone") || telefone) && !/^\d{10,11}$/.test(telefone)) return responder({ erro: "Telefone com DDD inválido." }, 400);
+  if (exige("numero") && !numero) return responder({ erro: "Informe o número do endereço (ou S/N)." }, 400);
+  if ((exige("descricao") || descricao) && descricao.length < 20) return responder({ erro: "Descreva o que precisa com um pouco mais de detalhe (mínimo de 20 letras)." }, 400);
+  const itens = mostra("produtos") ? lerItens(corpo.itens).filter((i) => i.qtd > 0) : [];
+  if (itens.length > 30 || itens.some((i) => !/^[a-z0-9-]{2,60}$/.test(i.id) || i.qtd > 100000)) return responder({ erro: "Escolha até 30 produtos com a quantidade." }, 400);
+  if (exige("produtos") && !itens.length) return responder({ erro: "Escolha pelo menos um produto." }, 400);
+  const entrega = lerEntrega(corpo.entrega);
+  for (const k of ["tipo_local", "horario", "descarga", "prazo_desejado", "referencia", "agendamento"]) {
+    if (!mostra(k)) delete entrega[k];
+    else if (exige(k) && entrega[k] == null) return responder({ erro: "Preencha todos os campos obrigatórios da entrega." }, 400);
+  }
+  const email = val("email", texto(corpo.email, 150));
+  if (exige("email") && !email) return responder({ erro: "Informe o e-mail." }, 400);
 
   // limite por IP (evita robôs enchendo a caixa da equipe)
   const ipHash = await hashIp(req);
@@ -334,17 +368,30 @@ async function cotar(req: Request, db: Banco, ors: string, corpo: any, token: st
 
   const end = await buscarCep(cep).catch(() => null);
   if (!end) return responder({ erro: "CEP não encontrado. Confira os números." }, 400);
-  const logradouro = texto(corpo.logradouro, 150) || end.logradouro, bairro = texto(corpo.bairro, 80) || end.bairro;
-  if (!logradouro) return responder({ erro: "Informe a rua." }, 400);
+  const logradouro = val("logradouro", texto(corpo.logradouro, 150)) || (mostra("logradouro") ? end.logradouro : "");
+  const bairro = val("bairro", texto(corpo.bairro, 80)) || (mostra("bairro") ? end.bairro : "");
+  const complemento = val("complemento", texto(corpo.complemento, 80));
+  if (exige("logradouro") && !logradouro) return responder({ erro: "Informe a rua." }, 400);
+  if (exige("bairro") && !bairro) return responder({ erro: "Informe o bairro." }, 400);
+  if (exige("complemento") && !complemento) return responder({ erro: "Informe o complemento." }, 400);
 
   // nomes vêm do catálogo, não do navegador
   const ids = [...new Set(itens.map((i) => i.id))];
-  const prods: any[] = (await db.get(`produtos?select=id,nome:dados->>nome,codigo:dados->>codigo&id=in.(${ids.join(",")})`)) || [];
+  const prods: any[] = ids.length ? (await db.get(`produtos?select=id,nome:dados->>nome,codigo:dados->>codigo&id=in.(${ids.join(",")})`)) || [] : [];
   const itensGravados = itens.map((i) => { const p = prods.find((x) => x.id === i.id) || {}; return { id: i.id, codigo: p.codigo || i.id.toUpperCase(), nome: p.nome || i.id.toUpperCase(), embalagem: i.embalagem, cor: i.cor || null, qtd: i.qtd }; });
   const pesoCalc = pesoTotalKg(itens), pesoInf = Number(String(corpo.peso_kg ?? "").replace(",", "."));
   const peso = isFinite(pesoInf) && pesoInf > 0 && pesoInf <= 1000000 ? Math.round(pesoInf * 100) / 100 : pesoCalc;
+  if ((exige("peso") || (!itens.length && mostra("peso"))) && !(peso > 0)) return responder({ erro: itens.length ? "Informe o peso total." : "Sem produtos: informe o peso total da carga." }, 400);
+  // peso máximo e veículo (se ligados no painel)
+  if (cfgForm.pesoMaximo.ativo && peso > cfgForm.pesoMaximo.kg) return responder({ erro: `O peso passa do máximo por cotação (${cfgForm.pesoMaximo.kg} kg). Fale com o vendedor.` }, 400);
+  if (cfgForm.veiculos.ativo) {
+    const v = cfgForm.veiculos.lista.find((x) => x.nome === String(corpo.entrega?.veiculo || ""));
+    if (!v) return responder({ erro: "Escolha o veículo da entrega." }, 400);
+    if (v.pesoMax < peso) return responder({ erro: `${v.nome} leva até ${v.pesoMax} kg. Escolha outro veículo.` }, 400);
+    entrega.veiculo = v.nome; entrega.veiculo_peso_max = v.pesoMax;
+  }
 
-  // frete automático só se o recurso de frete valer para todos os produtos; senão a equipe calcula
+  // frete automático só se o recurso de frete valer (para todos os produtos, quando houver); senão a equipe calcula
   let frete: Record<string, unknown> = { zona: "manual", motivo: "frete_pelo_vendedor" };
   if (!(await recursoValeParaItens(db, "freight_estimate_enabled", itens))) {
     const cfg: Config | undefined = (await db.get("frete_config?select=*&id=eq.1"))?.[0];
@@ -352,17 +399,17 @@ async function cotar(req: Request, db: Banco, ors: string, corpo: any, token: st
   }
 
   const cliente = token ? await db.usuario(token) : null;
-  const email = cliente?.email || (/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(texto(corpo.email, 150)) ? texto(corpo.email, 150).toLowerCase() : null);
+  const emailFinal = cliente?.email || (/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email) ? email.toLowerCase() : null);
   const linha = {
-    cliente_id: cliente?.id || null, ip_hash: ipHash, nome, documento, telefone, email, cep,
-    logradouro, numero, complemento: texto(corpo.complemento, 80) || null, bairro: bairro || null, cidade: end.cidade, uf: end.uf,
-    descricao, itens: itensGravados, peso_kg: peso, frete, entrega: lerEntrega(corpo.entrega)
+    cliente_id: cliente?.id || null, ip_hash: ipHash, nome: nome || null, documento: documento || null, telefone: telefone || null, email: emailFinal, cep,
+    logradouro: logradouro || null, numero: numero || null, complemento: complemento || null, bairro: bairro || null, cidade: end.cidade, uf: end.uf,
+    descricao: descricao || null, itens: itensGravados, peso_kg: peso || null, frete, entrega
   };
   for (let tentativa = 0; tentativa < 3; tentativa++) {
     const r = await db.inserirRetornando("cotacoes", { ...linha, protocolo: gerarProtocolo() });
     if (r.ok) {
       const c = r.dados;
-      return responder({ protocolo: c.protocolo, emitida_em: c.emitida_em, expira_em: c.expira_em, status: c.status, frete, peso_kg: peso, cidade: end.cidade, uf: end.uf, bairro, logradouro, numero, cep, itens: itensGravados, entrega: linha.entrega });
+      return responder({ protocolo: c.protocolo, emitida_em: c.emitida_em, expira_em: c.expira_em, status: c.status, frete, peso_kg: peso, cidade: end.cidade, uf: end.uf, bairro, logradouro, numero, cep, itens: itensGravados, entrega });
     }
     if (r.status !== 409) return responder({ erro: "Não foi possível registrar a cotação agora. Tente de novo ou fale com o vendedor." }, 500);
   }

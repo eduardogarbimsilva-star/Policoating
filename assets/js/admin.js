@@ -993,7 +993,7 @@
                 <dt>Conta</dt><dd>${c.cliente_id ? "cliente com cadastro no site" : "sem login"}</dd>
                 ${(() => { const e = c.entrega || {}, R2 = COT.ROT || {}; return [
                   ["Tipo de local", (R2.tipo_local || {})[e.tipo_local]], ["Recebimento", (R2.horario || {})[e.horario]], ["Descarga", (R2.descarga || {})[e.descarga]],
-                  ["Agendamento", e.agendamento == null ? "" : e.agendamento ? "Precisa agendar" : "Não precisa"], ["Referência", e.referencia], ["Precisa para", (R2.prazo_desejado || {})[e.prazo_desejado]]
+                  ["Agendamento", e.agendamento == null ? "" : e.agendamento ? "Precisa agendar" : "Não precisa"], ["Referência", e.referencia], ["Veículo", e.veiculo ? e.veiculo + (e.veiculo_peso_max ? ` (até ${e.veiculo_peso_max} kg)` : "") : ""], ["Precisa para", (R2.prazo_desejado || {})[e.prazo_desejado]]
                 ].filter(([, v]) => v).map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join(""); })()}
               </dl>
               <h5>Produtos</h5><ul class="cot-itens">${itens}</ul>
@@ -1048,6 +1048,70 @@
       atualizarSeloCot(); desenharCotacoes();
       if (abrirId) { const d = $(`.adm-cot[data-id="${CSS.escape(abrirId)}"]`, box); if (d) d.open = true; }
     }
+    /* ---------- Configurar formulário da cotação (só administrador) ---------- */
+    const CC = window.CotacaoConfig;
+    let cfgCotacao = null;
+    const NOMES_MODO = { obrigatorio: "Obrigatório", opcional: "Opcional", oculto: "Oculto" };
+    function desenharCfgCotacao() {
+      const c = cfgCotacao, etapas = [...new Set(CC.CAMPOS.map((x) => x.etapa))];
+      $("#cot-cfg-campos").innerHTML = etapas.map((et) => `<div class="cot-cfg-etapa"><h4>${esc(et)}</h4>
+        ${et === "Entrega" ? `<div class="cot-cfg-linha"><span>CEP de entrega</span><b class="cot-cfg-fixo">Sempre obrigatório</b></div>` : ""}
+        ${CC.CAMPOS.filter((x) => x.etapa === et).map((x) => `<div class="cot-cfg-linha"><span>${esc(x.nome)}${x.k === "produtos" ? " <small>(sem produtos, cota só o frete com o peso informado)</small>" : ""}</span>
+          <div class="cot-seg" role="radiogroup" aria-label="${esc(x.nome)}">${CC.MODOS.map((m) => `<button type="button" data-campo="${x.k}" data-modo="${m}" aria-pressed="${c.campos[x.k] === m}">${NOMES_MODO[m]}</button>`).join("")}</div></div>`).join("")}</div>`).join("");
+      $("#cot-cfg-veic-ativo").checked = c.veiculos.ativo || (c.veiculos.lista.length > 0 && c.veiculos.ativoSalvo);
+      $("#cot-cfg-veiculos").innerHTML = (c.veiculos.lista.length ? c.veiculos.lista : [{ nome: "", pesoMax: "" }]).map((v, i) => `<div class="cot-cfg-veic" data-i="${i}">
+          <input placeholder="Veículo (ex.: Carro, Van, Caminhão 3/4)" maxlength="40" value="${esc(v.nome)}" data-v="nome" aria-label="Nome do veículo">
+          <label>até <input type="number" min="1" max="100000" step="1" value="${esc(v.pesoMax)}" data-v="pesoMax" aria-label="Peso máximo do veículo em kg"> kg</label>
+          <button type="button" class="cor-sem-foto" data-tirar-veic aria-label="Tirar veículo">✕</button></div>`).join("");
+      $("#cot-cfg-peso-ativo").checked = c.pesoMaximo.ativo; $("#cot-cfg-peso-kg").value = c.pesoMaximo.kg || "";
+    }
+    function lerVeiculosCfg() {
+      return $$("#cot-cfg-veiculos .cot-cfg-veic").map((l) => ({ nome: $('[data-v="nome"]', l).value.trim(), pesoMax: Number($('[data-v="pesoMax"]', l).value) || 0 })).filter((v) => v.nome || v.pesoMax);
+    }
+    async function carregarCfgCotacao() {
+      if (!CC || !$("#cot-cfg")) return;
+      try { const cfg = await A.lerConfig(); cfgCotacao = CC.normalizar(cfg.cotacao); cfgCotacao.veiculos.ativoSalvo = !!(cfg.cotacao && cfg.cotacao.veiculos && cfg.cotacao.veiculos.ativo); desenharCfgCotacao(); }
+      catch (e) { $("#cot-cfg-erro").textContent = e.message; }
+    }
+    if ($("#cot-cfg")) {
+      if (!ehAdmin || !CC) $("#cot-cfg").hidden = true;
+      else {
+        $("#cot-cfg").addEventListener("toggle", () => { if ($("#cot-cfg").open && !cfgCotacao) carregarCfgCotacao(); });
+        $("#cot-cfg-campos").addEventListener("click", (e) => {
+          const b = e.target.closest("[data-campo]"); if (!b) return;
+          cfgCotacao.campos[b.dataset.campo] = b.dataset.modo;
+          $$(`[data-campo="${b.dataset.campo}"]`, $("#cot-cfg-campos")).forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+        });
+        $("#cot-cfg-veic-add").addEventListener("click", () => {
+          cfgCotacao.veiculos.lista = lerVeiculosCfg().concat([{ nome: "", pesoMax: "" }]); cfgCotacao.veiculos.ativoSalvo = $("#cot-cfg-veic-ativo").checked;
+          const pa = $("#cot-cfg-peso-ativo").checked, pk = $("#cot-cfg-peso-kg").value;
+          desenharCfgCotacao(); $("#cot-cfg-peso-ativo").checked = pa; $("#cot-cfg-peso-kg").value = pk;
+          const ult = $$("#cot-cfg-veiculos [data-v=nome]").pop(); if (ult) ult.focus();
+        });
+        $("#cot-cfg-veiculos").addEventListener("click", (e) => { const t = e.target.closest("[data-tirar-veic]"); if (t) t.closest(".cot-cfg-veic").remove(); });
+        $("#cot-cfg-padrao").addEventListener("click", () => { if (!confirm("Voltar o formulário ao padrão? (Clique em Salvar para confirmar.)")) return; cfgCotacao = CC.normalizar({}); desenharCfgCotacao(); });
+        $("#cot-cfg-salvar").addEventListener("click", async (e) => {
+          const erroEl = $("#cot-cfg-erro"); erroEl.textContent = "";
+          const veics = lerVeiculosCfg();
+          if (veics.some((v) => !v.nome || !(v.pesoMax > 0))) return (erroEl.textContent = "Cada veículo precisa de nome e peso máximo (em kg).");
+          const vAtivo = $("#cot-cfg-veic-ativo").checked;
+          if (vAtivo && !veics.length) return (erroEl.textContent = "Cadastre pelo menos um veículo, ou desmarque a escolha do veículo.");
+          const pAtivo = $("#cot-cfg-peso-ativo").checked, pKg = Number($("#cot-cfg-peso-kg").value) || 0;
+          if (pAtivo && !(pKg > 0)) return (erroEl.textContent = "Informe o peso máximo em kg, ou desmarque essa opção.");
+          if (cfgCotacao.campos.telefone === "oculto" && cfgCotacao.campos.email === "oculto") return (erroEl.textContent = "Deixe o telefone ou o e-mail visível: a equipe precisa de um contato do cliente.");
+          const nova = { campos: Object.assign({}, cfgCotacao.campos), veiculos: { ativo: vAtivo, lista: veics }, pesoMaximo: { ativo: pAtivo, kg: pKg } };
+          e.target.disabled = true;
+          try {
+            const cfg = await A.lerConfig();
+            await A.salvarConfig(Object.assign(cfg, { cotacao: nova }));
+            cfgCotacao = CC.normalizar(nova); cfgCotacao.veiculos.ativoSalvo = vAtivo; desenharCfgCotacao();
+            CW.mostrarToast("Formulário da cotação salvo. Já vale no site.");
+          } catch (err) { erroEl.textContent = err.message; }
+          finally { e.target.disabled = false; }
+        });
+      }
+    }
+
     if ($("#cot-adm-busca")) {
       let t; $("#cot-adm-busca").addEventListener("input", () => { clearTimeout(t); t = setTimeout(desenharCotacoes, 150); });
       $("#cot-adm-atualizar").addEventListener("click", () => carregarCotacoes());

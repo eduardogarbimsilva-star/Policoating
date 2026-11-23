@@ -1929,3 +1929,25 @@ notify pgrst, 'reload schema';
 update public.recursos set implementado = true, requisito = null
  where chave = 'new_home_banners_enabled';
 notify pgrst, 'reload schema';
+
+-- ===========================================================
+-- PARTE Z — Formulário da cotação configurável no painel
+--   Rode depois da PARTE Y. Permite cotação só de frete (sem produtos) e campos que o dono
+--   deixar ocultos (nome, CPF/CNPJ, telefone, descrição). Quando preenchidos, continuam conferidos.
+--   A configuração fica em configuracoes.dados.cotacao (painel → Cotações → Configurar formulário).
+--   Desfazer: recriar as travas antigas (not null e itens com 1 a 30 produtos) — só se não houver
+--   cotações sem esses dados.
+-- ===========================================================
+alter table public.cotacoes alter column nome drop not null, alter column documento drop not null,
+  alter column telefone drop not null, alter column descricao drop not null;
+alter table public.cotacoes drop constraint if exists cotacoes_nome_check,
+  add constraint cotacoes_nome_check check (nome is null or length(nome) between 3 and 150);
+alter table public.cotacoes drop constraint if exists cotacoes_documento_check,
+  add constraint cotacoes_documento_check check (documento is null or documento ~ '^(\d{11}|\d{14})$');
+alter table public.cotacoes drop constraint if exists cotacoes_telefone_check,
+  add constraint cotacoes_telefone_check check (telefone is null or telefone ~ '^\d{10,11}$');
+alter table public.cotacoes drop constraint if exists cotacoes_descricao_check,
+  add constraint cotacoes_descricao_check check (descricao is null or length(descricao) between 20 and 2000);
+alter table public.cotacoes drop constraint if exists cotacoes_itens_check,
+  add constraint cotacoes_itens_check check (jsonb_typeof(itens) = 'array' and jsonb_array_length(itens) between 0 and 30);
+notify pgrst, 'reload schema';

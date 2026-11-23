@@ -29,7 +29,7 @@ const d = F.distanciaRetaM({ lat: -21.6033, lng: -48.3658 }, { lat: -21.7845, ln
 R.add("V31-E05-12", "Linha reta Matão → Araraquara ≈ 28 km", d > 26000 && d < 30000, Math.round(d) + " m");
 
 /* ---------- função completa com serviços imitados ---------- */
-function imitar({ recursoLigado = true, disponivel = true, cep = { logradouro: "Avenida Brasil", localidade: "Araraquara", uf: "SP" }, geo = { lat: -21.7845, lng: -48.178 }, rotaM = 33000, admin = false, jaFeitos = 0, cfg = CFG, cotacaoLigada = true, freteLigado = recursoLigado, cotacoesHora = 0, usuario = null, colisoes = 0 } = {}) {
+function imitar({ recursoLigado = true, disponivel = true, cep = { logradouro: "Avenida Brasil", localidade: "Araraquara", uf: "SP" }, geo = { lat: -21.7845, lng: -48.178 }, rotaM = 33000, admin = false, jaFeitos = 0, cfg = CFG, cotacaoLigada = true, freteLigado = recursoLigado, cotacoesHora = 0, usuario = null, colisoes = 0, formCfg = null } = {}) {
   const log = { inseridos: [], orsGeo: 0, orsRota: 0, cotacoes: [] };
   globalThis.fetch = async (url, init = {}) => {
     const u = String(url);
@@ -39,6 +39,7 @@ function imitar({ recursoLigado = true, disponivel = true, cep = { logradouro: "
     if (u.includes("/v2/directions/driving-hgv")) { log.orsRota++; return rotaM == null ? json({ error: "sem rota" }, 404) : json({ routes: [{ summary: { distance: rotaM } }] }); }
     if (u.includes("/rpc/eh_admin")) return json(admin);
     if (u.includes("/rpc/recurso_disponivel")) return json(disponivel);
+    if (u.includes("/rest/v1/configuracoes")) return json(formCfg ? [{ dados: { cotacao: formCfg } }] : []);
     if (u.includes("/auth/v1/user")) return usuario ? json(usuario) : json({ msg: "invalid" }, 401);
     if (u.includes("/rest/v1/recursos")) return json([{ ligado: u.includes("b2b_quote_enabled") ? cotacaoLigada : freteLigado, implementado: true }]);
     if (u.includes("/rest/v1/cotacoes") && init.method === "HEAD") return new Response(null, { headers: { "content-range": `0-0/${cotacoesHora}` } });
@@ -128,5 +129,27 @@ R.add("V31-E06-13", "Prazo: sem configuração não mostra; com 2 dias + 400 km/
   F.prazoDias(CFG, "externo", 33.1) === null && F.prazoDias({ ...CFG, prazo_base_dias: 2, km_por_dia: 400 }, "externo", 33.1) === 3 && F.prazoDias({ ...CFG, prazo_base_dias: 2, km_por_dia: 400 }, "local", null) === 2 && F.prazoDias({ ...CFG, prazo_base_dias: 2, km_por_dia: 400 }, "externo", 900) === 5);
 x = await chamar({ cep: "14801-000", numero: "500", itens }, { cfg: { ...CFG, prazo_base_dias: 1, km_por_dia: 300 } });
 R.add("V31-E06-14", "Estimativa devolve prazo e origem quando configurado", x.d.prazo_dias === 2 && x.d.origem === "Matão/SP", JSON.stringify(x.d));
+
+/* ---------- formulário configurável no painel (produto opcional, campos ocultos, veículo, peso máximo) ---------- */
+const SO_FRETE = { ...COT, itens: [], peso_kg: "120" };
+x = await chamar(SO_FRETE);
+R.add("V31-E06-15", "Produto é opcional (padrão): cotação só de frete com o peso informado", x.status === 200 && x.log.cotacoes[0].itens.length === 0 && x.d.peso_kg === 120 && x.d.frete.zona === "externo", JSON.stringify(x.d).slice(0, 200));
+x = await chamar({ ...COT, itens: [] });
+R.add("V31-E06-16", "Sem produtos e sem peso: pede o peso total", x.status === 400 && /peso/.test(x.d.erro));
+x = await chamar(SO_FRETE, { formCfg: { campos: { produtos: "obrigatorio" } } });
+R.add("V31-E06-17", "Painel exige produto: sem produtos é recusado", x.status === 400 && /produto/.test(x.d.erro));
+x = await chamar({ ...SO_FRETE, nome: "", documento: "" }, { formCfg: { campos: { nome: "oculto", documento: "oculto" } } });
+R.add("V31-E06-18", "Campos ocultos no painel (nome e CPF/CNPJ) não são exigidos nem gravados", x.status === 200 && x.log.cotacoes[0].nome === null && x.log.cotacoes[0].documento === null, JSON.stringify(x.d).slice(0, 120));
+x = await chamar({ ...SO_FRETE, email: "" }, { formCfg: { campos: { email: "obrigatorio" } } });
+R.add("V31-E06-19", "Campo tornado obrigatório no painel (e-mail) é exigido", x.status === 400 && /e-mail/.test(x.d.erro));
+x = await chamar({ ...SO_FRETE, peso_kg: "300" }, { formCfg: { pesoMaximo: { ativo: true, kg: 250 } } });
+R.add("V31-E06-20s", "Peso máximo ligado: 300 kg acima de 250 kg é recusado", x.status === 400 && /peso/.test(x.d.erro));
+const VEIC = { veiculos: { ativo: true, lista: [{ nome: "Carro", pesoMax: 50 }, { nome: "Caminhão", pesoMax: 200 }] } };
+x = await chamar({ ...SO_FRETE, entrega: { veiculo: "Carro" } }, { formCfg: VEIC });
+R.add("V31-E06-21s", "Veículo: Carro (até 50 kg) não leva 120 kg", x.status === 400 && /Carro leva até 50 kg/.test(x.d.erro));
+x = await chamar({ ...SO_FRETE, entrega: { veiculo: "Caminhão" } }, { formCfg: VEIC });
+R.add("V31-E06-22s", "Veículo: Caminhão (até 200 kg) leva 120 kg e fica gravado", x.status === 200 && x.log.cotacoes[0].entrega.veiculo === "Caminhão" && x.log.cotacoes[0].entrega.veiculo_peso_max === 200);
+x = await chamar({ cep: "14801-000", numero: "500", itens: [] });
+R.add("V31-E05-28", "Frete pelo CEP sem produto (estimar sem itens)", x.status === 200 && x.d.zona === "externo" && x.d.valor === 500, JSON.stringify(x.d).slice(0, 120));
 
 process.exitCode = R.imprimir() ? 1 : 0;

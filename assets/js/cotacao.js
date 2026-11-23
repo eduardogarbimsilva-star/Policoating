@@ -239,7 +239,7 @@
           <dl class="cot-dl">${linha("Endereço", end)}${linha("Distância", f.km != null ? `${km(f.km)} por estrada` : f.zona === "local" ? "entrega local" : "")}${linha("Recebedor", c.primeiro_nome ? esc(c.primeiro_nome) : c.nome ? esc(c.nome) : "")}</dl>
         </section>
         <section class="cot-comp-bloco"><h4>Entrega</h4>
-          <dl class="cot-dl">${linha("Tipo de local", esc(ROT.tipo_local[e.tipo_local] || ""))}${linha("Recebimento", esc(ROT.horario[e.horario] || ""))}${linha("Descarga", esc(ROT.descarga[e.descarga] || ""))}${e.agendamento != null ? linha("Agendamento", e.agendamento ? "Precisa agendar" : "Não precisa") : ""}${linha("Referência", esc(e.referencia || ""))}${linha("Precisa para", esc(ROT.prazo_desejado[e.prazo_desejado] || ""))}</dl>
+          <dl class="cot-dl">${linha("Tipo de local", esc(ROT.tipo_local[e.tipo_local] || ""))}${linha("Recebimento", esc(ROT.horario[e.horario] || ""))}${linha("Descarga", esc(ROT.descarga[e.descarga] || ""))}${e.agendamento != null ? linha("Agendamento", e.agendamento ? "Precisa agendar" : "Não precisa") : ""}${linha("Referência", esc(e.referencia || ""))}${linha("Veículo", e.veiculo ? esc(e.veiculo + (e.veiculo_peso_max ? ` (até ${e.veiculo_peso_max} kg)` : "")) : "")}${linha("Precisa para", esc(ROT.prazo_desejado[e.prazo_desejado] || ""))}</dl>
           ${!Object.keys(e).length ? `<p class="cot-dica">Sem detalhes de entrega.</p>` : ""}
         </section>
         <section class="cot-comp-bloco cot-comp-largo"><h4>Carga</h4>${tabela}</section>

@@ -13,7 +13,7 @@ const CEPS = {
 };
 
 async function site({ recursos, viewport, login, admin } = {}) {
-  const ctx = await contextoDemo(nav, viewport ? { viewport } : {});
+  const ctx = await contextoDemo(nav, Object.assign({ reducedMotion: "reduce" }, viewport ? { viewport } : {}));   // sem a espera de 6 s da animação
   await ctx.route("https://viacep.com.br/**", (r) => r.fulfill({ contentType: "application/json", body: JSON.stringify(/15990000/.test(r.request().url()) ? CEPS["15990000"] : CEPS.outro) }));
   await ctx.addInitScript(([c, rec, adm]) => {
     if (localStorage.getItem("__semente")) return; localStorage.setItem("__semente", "1");

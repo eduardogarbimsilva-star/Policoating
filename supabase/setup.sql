@@ -1426,3 +1426,118 @@ notify pgrst, 'reload schema';
 update public.produtos
    set dados = jsonb_set(dados, '{embalagens}', '["Caixa 5 kg", "Caixa 25 kg"]'::jsonb), atualizado_em = now()
  where not coalesce(dados -> 'embalagens', '[]'::jsonb) @> '["Caixa 5 kg"]'::jsonb;
+
+-- ===========================================================
+-- PARTE R — Comércio e Recursos (liga/desliga dos recursos novos) — etapa E03
+--   Rode uma vez; pode rodar de novo (não apaga nada).
+--   • Cada recurso novo começa DESLIGADO. Só o administrador (com as 2 etapas) liga ou desliga,
+--     e só pela função alterar_recurso, que grava quem mudou, quando e o motivo.
+--   • "implementado" = o recurso já existe no site. Enquanto for false, ele não pode ser ligado;
+--     a etapa que constrói o recurso troca para true.
+--   • Desfazer: drop function public.alterar_recurso(text, boolean, jsonb, text);
+--               drop function public.recurso_disponivel(text, text, text);
+--               drop table public.recursos_auditoria; drop table public.recursos;
+-- ===========================================================
+create table if not exists public.recursos (
+  chave          text primary key check (chave ~ '^[a-z0-9_]{3,60}$'),
+  ligado         boolean not null default false,
+  -- exceções: {"padrao":"todos"|"escolhidos","categorias":{"poliester":true},"produtos":{"pol-0001":false}}
+  alvos          jsonb   not null default '{}'::jsonb,
+  implementado   boolean not null default false,
+  requisito      text,                       -- o que falta para poder ligar (texto para o painel)
+  atualizado_em  timestamptz not null default now(),
+  atualizado_por text
+);
+alter table public.recursos enable row level security;
+drop policy if exists "todos leem recursos" on public.recursos;
+create policy "todos leem recursos" on public.recursos for select to anon, authenticated using (true);
+-- (sem políticas de insert/update/delete: só a função alterar_recurso escreve)
+
+create table if not exists public.recursos_auditoria (
+  id         bigserial primary key,
+  em         timestamptz not null default now(),
+  ator       uuid,
+  ator_email text,
+  chave      text not null,
+  antigo     jsonb,
+  novo       jsonb,
+  motivo     text check (motivo is null or length(motivo) <= 300)
+);
+alter table public.recursos_auditoria enable row level security;
+drop policy if exists "admin ve auditoria de recursos" on public.recursos_auditoria;
+create policy "admin ve auditoria de recursos" on public.recursos_auditoria for select to authenticated using (public.eh_admin());
+create index if not exists recursos_auditoria_em on public.recursos_auditoria (em desc);
+
+-- Recursos previstos no plano V3.1 (todos desligados; a aprovação manual de cotação começa ligada)
+insert into public.recursos (chave, ligado, requisito) values
+  ('floating_social_enabled',       false, 'Disponível a partir da etapa E10 (redes flutuantes).'),
+  ('social_click_metrics_enabled',  false, 'Disponível a partir da etapa E10; respeita o consentimento de cookies.'),
+  ('pwa_install_invite_enabled',    false, 'Disponível a partir da etapa E11 (app instalável).'),
+  ('freight_estimate_enabled',      false, 'Disponível a partir da etapa E05; precisa do endereço de saída em Matão e da chave do serviço de rotas.'),
+  ('b2b_quote_enabled',             false, 'Disponível a partir da etapa E06 (cotação com protocolo de 7 dias).'),
+  ('manual_quote_approval',         true,  'Disponível a partir da etapa E08 (painel de logística).'),
+  ('b2b_whatsapp_shortcut_enabled', false, 'Disponível a partir da etapa E06.'),
+  ('packaging_variants_enabled',    false, 'Disponível a partir da etapa E04; precisa de pesos e embalagens reais cadastrados.'),
+  ('tiered_discounts_enabled',      false, 'Disponível a partir da etapa E04; precisa da tabela de descontos por produto.'),
+  ('product_docs_enabled',          false, 'Disponível a partir da etapa E04; precisa dos documentos oficiais (ficha técnica/FDS).'),
+  ('direct_checkout_enabled',       false, 'Disponível a partir da etapa E09; precisa de gateway de pagamento, frete e emissão de nota fiscal.'),
+  ('merchant_center_feed_enabled',  false, 'Disponível a partir da etapa E02; precisa de preço e disponibilidade reais por produto.'),
+  ('new_home_banners_enabled',      false, 'Disponível a partir da etapa E12; os textos só podem anunciar recursos já ligados.')
+on conflict (chave) do nothing;
+
+/** O recurso vale para este produto? Mestre desligado = não. Depois vale o mais específico:
+    produto > classe > padrão ("todos" = sim, "escolhidos" = só os marcados). */
+create or replace function public.recurso_disponivel(p_chave text, p_produto text default null, p_categoria text default null)
+returns boolean language sql stable security definer set search_path = public
+as $$
+  select coalesce((
+    select r.ligado and r.implementado and coalesce(
+      (r.alvos -> 'produtos' ->> p_produto)::boolean,
+      (r.alvos -> 'categorias' ->> p_categoria)::boolean,
+      coalesce(r.alvos ->> 'padrao', 'todos') = 'todos')
+    from public.recursos r where r.chave = p_chave), false)
+$$;
+grant execute on function public.recurso_disponivel(text, text, text) to anon, authenticated;
+
+/** Única forma de alterar um recurso: confere administrador, requisito e formato; grava a auditoria */
+create or replace function public.alterar_recurso(p_chave text, p_ligado boolean, p_alvos jsonb default null, p_motivo text default null)
+returns public.recursos language plpgsql security definer set search_path = public
+as $$
+declare
+  v_antes public.recursos;
+  v_depois public.recursos;
+  v_alvos jsonb := coalesce(p_alvos, '{}'::jsonb);
+begin
+  if not public.eh_admin() then raise exception 'Só o administrador (com as 2 etapas) pode alterar recursos.'; end if;
+  select * into v_antes from public.recursos where chave = p_chave for update;
+  if not found then raise exception 'Recurso desconhecido.'; end if;
+  if p_ligado and not v_antes.ligado and not v_antes.implementado then
+    raise exception 'REQUISITO: %', coalesce(v_antes.requisito, 'Este recurso ainda não está pronto.');
+  end if;
+  -- formato das exceções
+  if jsonb_typeof(v_alvos) <> 'object'
+     or (v_alvos ? 'padrao' and v_alvos ->> 'padrao' not in ('todos', 'escolhidos'))
+     or (v_alvos ? 'categorias' and jsonb_typeof(v_alvos -> 'categorias') <> 'object')
+     or (v_alvos ? 'produtos' and jsonb_typeof(v_alvos -> 'produtos') <> 'object')
+     or exists (select 1 from jsonb_each(coalesce(v_alvos -> 'categorias', '{}') || coalesce(v_alvos -> 'produtos', '{}')) e
+                where jsonb_typeof(e.value) <> 'boolean' or e.key !~ '^[a-z0-9-]{2,60}$')
+     or length(v_alvos::text) > 20000 then
+    raise exception 'Exceções em formato inválido.';
+  end if;
+  update public.recursos
+     set ligado = coalesce(p_ligado, ligado),
+         alvos = case when p_alvos is null then alvos else v_alvos end,
+         atualizado_em = now(), atualizado_por = lower(auth.jwt() ->> 'email')
+   where chave = p_chave
+   returning * into v_depois;
+  insert into public.recursos_auditoria (ator, ator_email, chave, antigo, novo, motivo)
+  values (auth.uid(), lower(auth.jwt() ->> 'email'), p_chave,
+          jsonb_build_object('ligado', v_antes.ligado, 'alvos', v_antes.alvos),
+          jsonb_build_object('ligado', v_depois.ligado, 'alvos', v_depois.alvos),
+          nullif(left(trim(coalesce(p_motivo, '')), 300), ''));
+  return v_depois;
+end $$;
+revoke all on function public.alterar_recurso(text, boolean, jsonb, text) from public, anon;
+grant execute on function public.alterar_recurso(text, boolean, jsonb, text) to authenticated;
+
+notify pgrst, 'reload schema';

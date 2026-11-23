@@ -18,3 +18,16 @@ node testes/e01.mjs                    # E01: CPF, CEP, estado, login/saída, ca
 ```
 
 Cada linha mostra `PASS` ou `FAIL` com o código do cenário da matriz V3.1 (ex.: `V31-E01-03`).
+
+```
+node testes/e03.mjs                    # E03: Comércio e Recursos (aba do painel, requisito, exceções, histórico)
+```
+
+## Testes do banco (`testes/sql/`)
+Rodam num Postgres local (16+), nunca no Supabase de verdade:
+```
+createdb teste_policoating
+psql -d teste_policoating -f testes/sql/imitacao_supabase.sql   # login/2 etapas imitados
+psql -d teste_policoating -f <só a PARTE R do supabase/setup.sql>
+psql -d teste_policoating -f testes/sql/parte_r.sql             # os ERROR esperados são as recusas testadas
+```

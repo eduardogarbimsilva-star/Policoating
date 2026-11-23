@@ -113,7 +113,8 @@
     });
 
     function miniatura(p) {
-      const c = p.cores[0];
+      const c = (p.cores || [])[0];
+      if (!c) return `<span class="sem-foto" title="Produto sem cor cadastrada">sem cor</span>`;   // cadastro incompleto não derruba a lista
       return `<img src="${esc(CW.fotoProduto(p, c, { largura: 96, altura: 76 }))}" alt="" width="64" height="51" data-produto="${esc(p.id)}" data-cor="${esc(c.nome)}">`;
     }
     function textoPreco(p) {
@@ -135,7 +136,7 @@
         const p = r.dados, varias = (p.cores || []).length > 1;
         return `<tr data-id="${esc(r.id)}" class="${r.ativo ? "" : "oculto"}${selecionados.has(r.id) ? " selecionado" : ""}">
           <td class="col-sel"><input type="checkbox" data-sel ${selecionados.has(r.id) ? "checked" : ""} aria-label="Selecionar ${esc(p.nome)}"></td>
-          <td><div class="admin-prod">${miniatura(p)}<div><strong>${esc(p.nome)}</strong><small>Cód. ${esc(p.codigo || r.id.toUpperCase())}${p.destaque ? " · ★ destaque" : ""}${varias ? ` · <b class="selo-cli inativo">${p.cores.length} cores (converter)</b>` : ""}${p.cores[0] && !p.cores[0].foto ? ` · <span class="sem-foto">sem foto</span>` : ""}</small></div></div></td>
+          <td><div class="admin-prod">${miniatura(p)}<div><strong>${esc(p.nome)}</strong><small>Cód. ${esc(p.codigo || r.id.toUpperCase())}${p.destaque ? " · ★ destaque" : ""}${varias ? ` · <b class="selo-cli inativo">${p.cores.length} cores (converter)</b>` : ""}${(p.cores || [])[0] && !p.cores[0].foto ? ` · <span class="sem-foto">sem foto</span>` : ""}</small></div></div></td>
           <td>${esc(((window.CATEGORIAS || {})[p.categoria] || {}).nome || p.categoria)}${p.marca ? `<small class="marca-lista">${esc(p.marca)}</small>` : ""}${p.textura || p.acabamento ? `<small class="marca-lista">${esc([window.padraoClassificacao(p.textura, window.TEXTURAS) || p.textura, window.padraoClassificacao(p.acabamento, window.ACABAMENTOS) || p.acabamento].filter(Boolean).join(" · "))}</small>` : ""}</td>
           <td>${textoPreco(p)}</td>
           <td>${ehAdmin ? `<button type="button" class="admin-status ${r.ativo ? "on" : ""}" data-acao="alternar">${r.ativo ? "Visível" : "Oculto"}</button>` : (r.ativo ? "Visível" : "Oculto")}</td>
@@ -505,6 +506,7 @@
       if (nome === "pedidos") carregarPedidos();
       if (nome === "galeria") carregarGaleria();
       if (nome === "equipe") carregarEquipe();
+      if (nome === "recursos") carregarRecursos();
       if (nome === "notas") carregarNotas();
       if (nome === "relatorios") prepararRelatorios();
     };
@@ -905,6 +907,114 @@
 
     /* ---------- Equipe (só administradores) ---------- */
     const CARGOS = { admin: "Administrador", vendedor: "Vendedor" };
+    /* ---------- Comércio e Recursos (E03) ---------- */
+    const R = window.Recursos;
+    const dataHora = (iso) => (iso ? new Date(iso).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "");
+    const nomeCat = (k) => ((window.CATEGORIAS || {})[k] || {}).nome || k;
+    function resumoAlvos(d, r) {
+      if (!d.porProduto) return "";
+      const lista = window.PRODUTOS || [], a = r.alvos || {};
+      const vale = lista.filter((p) => R.disponivel(d.chave, p, Object.assign({ padrao: "todos" }, a))).length;
+      return `${(a.padrao || "todos") === "todos" ? "Todos os produtos" : "Só os escolhidos"} · vale para ${vale} de ${lista.length} produtos`;
+    }
+    function htmlExcecoes(d, r) {
+      if (!d.porProduto) return "";   // vale para o site todo: sem exceções por classe/produto
+      const a = r.alvos || {}, cats = Object.keys(window.CATEGORIAS || {}).filter((k) => (window.PRODUTOS || []).some((p) => p.categoria === k) || (a.categorias || {})[k] !== undefined);
+      const opc = (v) => ["", "true", "false"].map((o, i) => `<option value="${o}"${String(v === undefined ? "" : v) === o ? " selected" : ""}>${["Seguir o padrão", "Liga", "Desliga"][i]}</option>`).join("");
+      const prods = Object.entries(a.produtos || {});
+      return `<details class="rec-excecoes"><summary>Onde vale: <span data-resumo>${esc(resumoAlvos(d, r))}</span></summary>
+        <div class="rec-padrao" role="radiogroup" aria-label="Padrão">
+          <label><input type="radio" name="padrao-${d.chave}" value="todos"${(a.padrao || "todos") === "todos" ? " checked" : ""}> Todos os produtos</label>
+          <label><input type="radio" name="padrao-${d.chave}" value="escolhidos"${a.padrao === "escolhidos" ? " checked" : ""}> Só as classes e produtos marcados</label>
+        </div>
+        <div class="rec-colunas">
+          <div><h5>Por classe</h5>${cats.map((k) => `<label class="rec-linha"><span>${esc(nomeCat(k))}</span><select data-cat="${esc(k)}">${opc((a.categorias || {})[k])}</select></label>`).join("") || "<p class='dica'>Sem classes com produtos.</p>"}</div>
+          <div><h5>Por produto <small>(vale mais que a classe)</small></h5>
+            <div class="rec-prod-lista">${prods.map(([id, v]) => linhaProduto(id, v)).join("")}</div>
+            <label class="rec-add"><input type="search" list="rec-prods" placeholder="Código ou nome do produto" data-add-prod aria-label="Adicionar exceção de produto"></label>
+          </div>
+        </div>
+        <button type="button" class="btn btn-primario" data-salvar-alvos>Salvar onde vale</button>
+      </details>`;
+    }
+    function linhaProduto(id, v) {
+      const p = (window.PRODUTOS || []).find((x) => x.id === id);
+      return `<div class="rec-linha" data-prod="${esc(id)}"><span>${esc(p ? `${p.codigo || id.toUpperCase()} — ${p.nome}` : id.toUpperCase())}</span>
+        <select>${["true", "false"].map((o, i) => `<option value="${o}"${String(v) === o ? " selected" : ""}>${["Liga", "Desliga"][i]}</option>`).join("")}</select>
+        <button type="button" class="cor-sem-foto" data-tirar-prod aria-label="Tirar exceção">✕</button></div>`;
+    }
+    function desenharRecursos() {
+      const est = R.todos(), grupos = [...new Set(R.DEF.map((d) => d.grupo))];
+      $("#recursos-lista").innerHTML = `<datalist id="rec-prods">${(window.PRODUTOS || []).map((p) => `<option value="${esc((p.codigo || p.id.toUpperCase()) + " — " + p.nome)}">`).join("")}</datalist>` +
+        grupos.map((g) => `<section class="rec-grupo"><h3>${esc(g)}</h3>${R.DEF.filter((d) => d.grupo === g).map((d) => {
+          const r = est[d.chave] || {}, pronto = !!r.implementado, on = !!r.ligado;
+          const selo = !pronto ? `<span class="rec-selo rec-espera">Aguardando etapa ${esc(d.etapa)}</span>` : on ? `<span class="rec-selo rec-on">Ligado</span>` : `<span class="rec-selo">Desligado</span>`;
+          return `<article class="rec-card${on && pronto ? " ligado" : ""}" data-chave="${d.chave}">
+            <div class="rec-topo"><div><h4>${esc(d.titulo)}</h4><p>${esc(d.descricao)}</p></div>
+              <button type="button" class="rec-switch" role="switch" aria-checked="${on}" aria-label="${esc(d.titulo)}" data-alternar${!pronto && !on ? " disabled" : ""}><span></span></button></div>
+            <div class="rec-status">${selo}${r.atualizado_em ? `<small>Alterado por ${esc(r.atualizado_por || "—")} em ${dataHora(r.atualizado_em)}</small>` : ""}</div>
+            ${!pronto ? `<p class="rec-req"><b>Requisito:</b> ${esc(r.requisito || "")}</p>` : ""}
+            <p class="rec-info"><b>Ao ligar:</b> ${esc(d.impacto)}${d.aviso ? ` <span class="rec-aviso">${esc(d.aviso)}</span>` : ""}</p>
+            ${htmlExcecoes(d, r)}
+          </article>`;
+        }).join("")}</section>`).join("");
+    }
+    async function desenharHistorico() {
+      const tb = $("#recursos-historico");
+      try {
+        const lista = await R.auditoria(30);
+        const txt = (x) => !x ? "—" : (x.ligado ? "ligado" : "desligado") + (x.alvos && Object.keys(x.alvos).length ? " (com exceções)" : "");
+        tb.innerHTML = lista.length ? lista.map((l) => `<tr><td>${dataHora(l.em)}</td><td>${esc(l.ator_email || "—")}</td><td>${esc((R.definicao(l.chave) || {}).titulo || l.chave)}</td><td>${txt(l.antigo)} → ${txt(l.novo)}</td><td>${esc(l.motivo || "")}</td></tr>`).join("")
+          : `<tr><td colspan="5">Nenhuma alteração ainda.</td></tr>`;
+      } catch (e) { tb.innerHTML = `<tr><td colspan="5">${esc(e.message)}</td></tr>`; }
+    }
+    function erroRecursos(msg) { const el = $("#recursos-erro"); el.textContent = msg || ""; el.hidden = !msg; }
+    async function carregarRecursos() {
+      erroRecursos("");
+      try { await R.recarregar(); } catch (e) {
+        erroRecursos(/TABELA_AUSENTE/.test(e.message) ? "O banco ainda não tem a parte de recursos. Rode a PARTE R do supabase/setup.sql no SQL Editor do Supabase. Até lá, tudo fica desligado." : e.message);
+      }
+      desenharRecursos();
+      desenharHistorico();
+    }
+    function alvosDoCartao(card) {
+      const alvos = { padrao: ($("input[type=radio]:checked", card) || {}).value || "todos", categorias: {}, produtos: {} };
+      $$("select[data-cat]", card).forEach((s) => { if (s.value) alvos.categorias[s.dataset.cat] = s.value === "true"; });
+      $$("[data-prod]", card).forEach((l) => { alvos.produtos[l.dataset.prod] = $("select", l).value === "true"; });
+      return alvos;
+    }
+    $("#recursos-lista").addEventListener("click", async (e) => {
+      const card = e.target.closest(".rec-card"); if (!card) return;
+      const chave = card.dataset.chave, d = R.definicao(chave), r = R.todos()[chave];
+      if (e.target.closest("[data-tirar-prod]")) { e.target.closest("[data-prod]").remove(); return; }
+      const sw = e.target.closest("[data-alternar]"), salvar = e.target.closest("[data-salvar-alvos]");
+      if (!sw && !salvar) return;
+      const ligar = sw ? !r.ligado : null;
+      const motivo = prompt(sw ? `${ligar ? "Ligar" : "Desligar"} "${d.titulo}"?\nMotivo da alteração (opcional):` : `Salvar onde vale "${d.titulo}"?\nMotivo (opcional):`, "");
+      if (motivo === null) return;
+      (sw || salvar).disabled = true;
+      try {
+        await R.alterar(chave, ligar, salvar ? alvosDoCartao(card) : null, motivo);
+        CW.mostrarToast(sw ? `"${esc(d.titulo)}" ${ligar ? "ligado" : "desligado"}.` : "Exceções salvas.");
+        erroRecursos("");
+      } catch (err) { erroRecursos(err.message); }
+      desenharRecursos();
+      desenharHistorico();
+    });
+    $("#recursos-lista").addEventListener("change", (e) => {
+      const card = e.target.closest(".rec-card"); if (!card) return;
+      const add = e.target.closest("[data-add-prod]");
+      if (add) {
+        const cod = add.value.split(" — ")[0].trim().toLowerCase();
+        const p = (window.PRODUTOS || []).find((x) => x.id === cod || (x.codigo || "").toLowerCase() === cod);
+        if (!p) { erroRecursos("Produto não encontrado. Escolha da lista."); return; }
+        if (!$(`[data-prod="${CSS.escape(p.id)}"]`, card)) $(".rec-prod-lista", card).insertAdjacentHTML("beforeend", linhaProduto(p.id, true));
+        add.value = ""; erroRecursos("");
+      }
+      const d = R.definicao(card.dataset.chave);
+      const res = $("[data-resumo]", card); if (res && d) res.textContent = resumoAlvos(d, { alvos: alvosDoCartao(card) }) + " (não salvo)";
+    });
+
     async function carregarEquipe() {
       let lista = [];
       try { lista = await A.listarEquipe(); } catch (e) { $("#equipe-erro").textContent = e.message; }

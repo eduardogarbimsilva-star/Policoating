@@ -210,6 +210,7 @@
       const url = el.dataset.rede ? (CFG.redes || {})[el.dataset.rede] : (CFG.lojas || {})[el.dataset.loja];
       const ok = !!(url && /^https:\/\//.test(url));
       if (ok) { el.href = url; el.target = "_blank"; el.rel = "noopener"; }
+      else if (!el.getAttribute("href")) el.setAttribute("href", "#");   // oculto, mas com href (Lighthouse: link rastreável)
       el.hidden = !ok;
     });
     $$("[data-canais]").forEach((box) => { box.hidden = !box.querySelector("[data-rede]:not([hidden]), [data-loja]:not([hidden])"); });
@@ -297,7 +298,7 @@
   function montarEstruturaCarrinho() {
     const html = `
 <div class="sobreposicao" id="sobreposicao"></div>
-<aside class="carrinho" id="carrinho" aria-label="Carrinho de compras" aria-hidden="true">
+<aside class="carrinho" id="carrinho" aria-label="Carrinho de compras" aria-hidden="true" inert>
   <div class="carrinho-topo">
     <h3>Seu carrinho</h3>
     <button class="fechar" data-fechar-carrinho aria-label="Fechar carrinho">×</button>
@@ -317,7 +318,7 @@
       <button class="limpar" id="btn-limpar">Esvaziar carrinho</button></p>
   </div>
 </aside>
-<div class="modal" id="modal-produto" role="dialog" aria-modal="true" aria-hidden="true"></div>
+<div class="modal" id="modal-produto" role="dialog" aria-modal="true" aria-hidden="true" inert></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fale conosco no WhatsApp">${iconeWhats()}</a>`}`;
     document.body.insertAdjacentHTML("beforeend", html);
@@ -420,6 +421,7 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
     $("#toast").classList.remove("visivel");
     $("#carrinho").classList.add("aberto");
     $("#carrinho").setAttribute("aria-hidden", "false");
+    $("#carrinho").inert = false;
     $("#sobreposicao").classList.add("aberto");
     document.body.style.overflow = "hidden";
     const f = $("[data-fechar-carrinho]"); if (f) setTimeout(() => f.focus({ preventScroll: true }), 30);
@@ -429,6 +431,7 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
     const tinhaAberto = !!($("#carrinho.aberto") || $("#modal-produto.aberto"));
     $("#carrinho").classList.remove("aberto");
     $("#carrinho").setAttribute("aria-hidden", "true");
+    $("#carrinho").inert = true;
     fecharModal();
     $("#sobreposicao").classList.remove("aberto");
     document.body.style.overflow = "";
@@ -846,6 +849,7 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
     guardarFoco();
     modal.classList.add("aberto");
     modal.setAttribute("aria-hidden", "false");
+    modal.inert = false;
     $("#sobreposicao").classList.add("aberto");
     document.body.style.overflow = "hidden";
     setTimeout(() => { const f = $(".fechar", modal); if (f) f.focus({ preventScroll: true }); }, 30);
@@ -856,6 +860,7 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
     if (m) {
       m.classList.remove("aberto");
       m.setAttribute("aria-hidden", "true");
+      m.inert = true;
     }
   }
 

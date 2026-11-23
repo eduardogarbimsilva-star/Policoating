@@ -219,7 +219,7 @@
     const esc = CW.esc;
     const grupos = FR.GRUPOS.filter((g) => FR.FOTOS.some((f) => f.cor === g.id));
     raiz.innerHTML = `
-      <div class="insp-filtros" role="tablist" aria-label="Filtrar por cor">
+      <div class="insp-filtros" role="group" aria-label="Filtrar por cor">
         <button type="button" class="insp-chip ativo" data-cor="">Todas</button>
         ${grupos.map((g) => `<button type="button" class="insp-chip" data-cor="${g.id}"><i style="background:${g.hex}"></i>${esc(g.nome)}</button>`).join("")}
       </div>

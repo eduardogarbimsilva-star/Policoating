@@ -3427,3 +3427,27 @@ body.ca-aberta { overflow: hidden; }
   .btn-avisos { width: 40px; height: 40px; }
   .avisos-painel { position: fixed; top: 70px; right: 12px; left: 12px; width: auto; }
 }
+
+/* ===== E13: acessibilidade (Lighthouse) ===== */
+/* cor de texto/botão dos canais com contraste AA (a cor de marca segue na faixa lateral e no ícone) */
+.canal-whatsappBusiness { --cor-txt: #15803d; } .canal-instagram { --cor-txt: #c2185b; } .canal-facebook { --cor-txt: #1460c7; }
+.canal-youtube { --cor-txt: #cc0000; } .canal-shopee { --cor-txt: #c2361b; } .canal-aliexpress { --cor-txt: #c42702; }
+.canal-amazon { --cor-txt: #a85400; } .canal-magalu { --cor-txt: #0067c5; } .canal-tiktok { --cor-txt: #111; }
+.canal-texto small { color: var(--cor-txt, var(--cor-canal, #1558d6)); }
+.canal-cta { background: var(--cor-txt, var(--cor-canal, #1558d6)); }
+/* links dentro de texto: sublinhados (não dependem só da cor) */
+.aviso-lgpd p a, .cot-lgpd a, .texto-legal a, .migalhas a, .pp-garantias a, .legal-nota a, .painel-sub a, .dica a { text-decoration: underline; text-underline-offset: 2px; }
+/* páginas que montam o conteúdo depois de carregar: reservam a altura (o rodapé não "pula") */
+.pp-secao, .cot-pagina { min-height: 100vh; }
+
+/* ===== Painel: saúde do sistema ===== */
+.saude { margin: 0 0 18px; padding: 14px 16px; border: 1px solid var(--borda); border-radius: 12px; background: var(--fundo-alt); }
+.saude-topo { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 10px; }
+.saude-topo h3 { font-size: 1.05rem; }
+.saude-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; }
+.saude-kpis > div { padding: 12px; border-radius: 10px; background: #fff; border: 1px solid var(--borda); display: grid; }
+.saude-kpis strong { font-size: 1.35rem; color: var(--azul-escuro); }
+.saude-kpis span { font-size: .82rem; } .saude-kpis small { font-size: .74rem; color: var(--texto-suave); }
+.saude-alertas { list-style: none; padding: 0; margin: 10px 0 0; display: grid; gap: 6px; font-size: .86rem; }
+.saude-alertas li { padding: 8px 12px; border-radius: 8px; }
+.saude-ok { background: #e7f7ec; color: #17693a; } .saude-aviso { background: #fff4e5; color: #7a4d00; } .saude-erro { background: #fdecec; color: #a11d1d; }

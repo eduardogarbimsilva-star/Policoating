@@ -29,7 +29,7 @@ const d = F.distanciaRetaM({ lat: -21.6033, lng: -48.3658 }, { lat: -21.7845, ln
 R.add("V31-E05-12", "Linha reta Matão → Araraquara ≈ 28 km", d > 26000 && d < 30000, Math.round(d) + " m");
 
 /* ---------- função completa com serviços imitados ---------- */
-function imitar({ recursoLigado = true, disponivel = true, cep = { logradouro: "Avenida Brasil", localidade: "Araraquara", uf: "SP" }, geo = { lat: -21.7845, lng: -48.178 }, rotaM = 33000, admin = false, jaFeitos = 0, cfg = CFG, cotacaoLigada = true, freteLigado = recursoLigado, cotacoesHora = 0, usuario = null, colisoes = 0, formCfg = null } = {}) {
+function imitar({ recursoLigado = true, disponivel = true, cep = { logradouro: "Avenida Brasil", localidade: "Araraquara", uf: "SP" }, geo = { lat: -21.7845, lng: -48.178 }, rotaM = 33000, admin = false, jaFeitos = 0, cfg = CFG, cotacaoLigada = true, freteLigado = recursoLigado, cotacoesHora = 0, usuario = null, colisoes = 0, formCfg = null, consultasRecentes = [], existentes = ["COT-AAAA-BBBB-CC"] } = {}) {
   const log = { inseridos: [], orsGeo: 0, orsRota: 0, cotacoes: [] };
   globalThis.fetch = async (url, init = {}) => {
     const u = String(url);
@@ -39,6 +39,9 @@ function imitar({ recursoLigado = true, disponivel = true, cep = { logradouro: "
     if (u.includes("/v2/directions/driving-hgv")) { log.orsRota++; return rotaM == null ? json({ error: "sem rota" }, 404) : json({ routes: [{ summary: { distance: rotaM } }] }); }
     if (u.includes("/rpc/eh_admin")) return json(admin);
     if (u.includes("/rpc/recurso_disponivel")) return json(disponivel);
+    if (u.includes("/rest/v1/cotacoes_consultas") && init.method === "POST") { log.consultas = (log.consultas || []).concat(JSON.parse(init.body)); return new Response(null, { status: 201 }); }
+    if (u.includes("/rest/v1/cotacoes_consultas")) return json(consultasRecentes);
+    if (u.includes("/rpc/consultar_cotacao")) { const p = JSON.parse(init.body).p_protocolo; return json(existentes.includes(p) ? [{ protocolo: p, status: "recebida" }] : []); }
     if (u.includes("/rest/v1/configuracoes")) return json(formCfg ? [{ dados: { cotacao: formCfg } }] : []);
     if (u.includes("/auth/v1/user")) return usuario ? json(usuario) : json({ msg: "invalid" }, 401);
     if (u.includes("/rest/v1/recursos")) return json([{ ligado: u.includes("b2b_quote_enabled") ? cotacaoLigada : freteLigado, implementado: true }]);
@@ -151,5 +154,17 @@ x = await chamar({ ...SO_FRETE, entrega: { veiculo: "Caminhão" } }, { formCfg: 
 R.add("V31-E06-22s", "Veículo: Caminhão (até 200 kg) leva 120 kg e fica gravado", x.status === 200 && x.log.cotacoes[0].entrega.veiculo === "Caminhão" && x.log.cotacoes[0].entrega.veiculo_peso_max === 200);
 x = await chamar({ cep: "14801-000", numero: "500", itens: [] });
 R.add("V31-E05-28", "Frete pelo CEP sem produto (estimar sem itens)", x.status === 200 && x.d.zona === "externo" && x.d.valor === 500, JSON.stringify(x.d).slice(0, 120));
+
+/* ---------- acompanhar pelo número, com limite por IP (E13) ---------- */
+x = await chamar({ acao: "consultar", protocolos: ["cot-aaaa-bbbb-cc", "COT-ZZZZ-ZZZZ-ZZ"] });
+R.add("V31-E13-02a", "Consulta em lote pelo número (aceita minúsculas) e registra só IP em hash e quantidades", x.status === 200 && x.d.cotacoes.length === 1 && x.d.cotacoes[0].protocolo === "COT-AAAA-BBBB-CC" && x.d.nao_encontrados === 1 && x.log.consultas[0].erros === 1 && x.log.consultas[0].ip_hash.length === 24 && !JSON.stringify(x.log.consultas).includes("COT-"), JSON.stringify(x.d));
+x = await chamar({ acao: "consultar", protocolos: ["COT-ZZZZ-ZZZZ-ZZ"] }, { consultasRecentes: Array.from({ length: 5 }, () => ({ erros: 3 })) });
+R.add("V31-E13-02b", "15 números errados em 10 minutos: bloqueia (protege contra tentativa e erro)", x.status === 429);
+x = await chamar({ acao: "consultar", protocolos: ["COT-AAAA-BBBB-CC"] }, { consultasRecentes: Array.from({ length: 60 }, () => ({ erros: 0 })) });
+R.add("V31-E13-02c", "60 consultas em 10 minutos: bloqueia", x.status === 429);
+x = await chamar({ acao: "consultar", protocolos: ["abc"] });
+R.add("V31-E13-02d", "Número incompleto: erro claro", x.status === 400);
+const fonte = (await import("node:fs")).readFileSync(new URL("../supabase/functions/frete/index.ts", import.meta.url), "utf8");
+R.add("V31-E13-03", "A função não grava nada em log do servidor (sem console.log de pedido, CPF ou telefone)", !/console\.(log|info|warn|error)\(/.test(fonte));
 
 process.exitCode = R.imprimir() ? 1 : 0;

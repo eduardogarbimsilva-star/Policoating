@@ -47,7 +47,7 @@
       visiveis = itens.filter((it) => filtro === "todas" || it.categoria === filtro);
       grade.innerHTML = visiveis.map((it, i) => `
         <button type="button" class="galeria-item revelar${i % 7 === 0 ? " destaque" : ""}${it.video ? " eh-video" : ""}" data-i="${i}"${it.real ? " data-card-real" : ""} aria-label="Ampliar: ${esc(it.titulo)}">
-          ${it.video ? capaVideo(it) : it.svg ? it.svg : `<img src="${esc(it.img)}" alt="${esc(it.titulo)}" loading="lazy"${it.real ? " data-foto-real" : ""} width="600" height="480"${it.cor ? ` data-produto="${esc(it.produto)}" data-cor="${esc(it.cor)}"` : ""}>`}
+          ${it.video ? capaVideo(it) : it.svg ? it.svg : `<img src="${esc(it.img)}" alt="" loading="lazy"${it.real ? " data-foto-real" : ""} width="600" height="480"${it.cor ? ` data-produto="${esc(it.produto)}" data-cor="${esc(it.cor)}"` : ""}>`}
           <span><strong>${esc(it.titulo)}</strong> ${esc(it.sub)}</span>
         </button>`).join("");
       CW.observarRevelar();

@@ -111,11 +111,27 @@
   async function consultar(protocolo) {
     protocolo = normalizarCodigo(protocolo);
     if (!codigoValido(protocolo)) throw new Error("Código incompleto. Ele tem o formato COT-XXXX-XXXX-XX.");
-    if (!ONLINE) return demoTodas().find((c) => c.protocolo === protocolo) || null;
-    const r = await fetch(`${SB.url}/rest/v1/rpc/consultar_cotacao`, { method: "POST", headers: { apikey: SB.anonKey, "Content-Type": "application/json" }, body: JSON.stringify({ p_protocolo: protocolo }) })
-      .catch(() => { throw new Error("Sem conexão com o servidor."); });
-    if (!r.ok) { let d = {}; try { d = await r.json(); } catch (e) { /* */ } throw traduzir({ message: d.message || "consultar_cotacao " + r.status }); }
-    return (await r.json())[0] || null;
+    return (await consultarVarios([protocolo]))[protocolo] || null;
+  }
+  /** Consulta vários números de uma vez (pela função "frete", com limite por aparelho). Devolve { número: cotação } */
+  async function consultarVarios(lista) {
+    lista = lista.map(normalizarCodigo).filter(codigoValido).slice(0, 20);
+    const mapa = {};
+    if (!lista.length) return mapa;
+    if (!ONLINE) { demoTodas().filter((c) => lista.includes(c.protocolo)).forEach((c) => (mapa[c.protocolo] = c)); return mapa; }
+    try {
+      const d = await chamarFuncao({ acao: "consultar", protocolos: lista });
+      (d.cotacoes || []).forEach((c) => (mapa[c.protocolo] = c));
+      return mapa;
+    } catch (e) {
+      // função "frete" ainda na versão antiga (sem "consultar"): usa a consulta direta enquanto ela não é atualizada
+      if (!/Ação desconhecida/i.test(e.message || "")) throw e;
+      for (const p of lista) {
+        const r = await fetch(`${SB.url}/rest/v1/rpc/consultar_cotacao`, { method: "POST", headers: { apikey: SB.anonKey, "Content-Type": "application/json" }, body: JSON.stringify({ p_protocolo: p }) }).catch(() => null);
+        if (r && r.ok) { const c = (await r.json())[0]; if (c) mapa[c.protocolo] = c; }
+      }
+      return mapa;
+    }
   }
   /** Histórico do cliente: as da conta (se logado) + as que foram feitas neste aparelho */
   async function minhas() {
@@ -134,8 +150,9 @@
     }
     if (!ONLINE && u) demoTodas().filter((c) => c.cliente_id === (u.id || u.email)).forEach((c) => porCodigo.set(c.protocolo, Object.assign({}, c, { daConta: true })));
     const locais = lembradas().filter((x) => !porCodigo.has(x.protocolo)).slice(0, 20);
-    const achadas = await Promise.all(locais.map((x) => consultar(x.protocolo).catch(() => undefined)));
-    achadas.forEach((c, i) => { if (c) porCodigo.set(c.protocolo, Object.assign(c, { doAparelho: true })); else if (c === null) esquecer(locais[i].protocolo); });
+    let mapa = null;
+    try { mapa = await consultarVarios(locais.map((x) => x.protocolo)); } catch (e) { mapa = null; }   // sem conexão: não esquece nada
+    if (mapa) locais.forEach((x) => { const c = mapa[x.protocolo]; if (c) porCodigo.set(c.protocolo, Object.assign(c, { doAparelho: true })); else esquecer(x.protocolo); });
     return [...porCodigo.values()].sort((a, b) => String(b.emitida_em).localeCompare(String(a.emitida_em)));
   }
 

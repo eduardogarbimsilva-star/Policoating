@@ -1048,6 +1048,42 @@
       atualizarSeloCot(); desenharCotacoes();
       if (abrirId) { const d = $(`.adm-cot[data-id="${CSS.escape(abrirId)}"]`, box); if (d) d.open = true; }
     }
+    /* ---------- Saúde do sistema (E13): cotações de 168 h, limpeza automática, frete e consultas ---------- */
+    async function lerSaude() {
+      if (!A.online) {   // demonstração: calcula no navegador
+        const v = await COT.equipe.listar(), agora = Date.now();
+        return { cotacoes_ativas: v.length, vencem_24h: v.filter((c) => new Date(c.expira_em) - agora < 864e5).length, vencidas_pendentes: 0,
+          cotacoes_24h: v.filter((c) => agora - new Date(c.emitida_em) < 864e5).length, estimativas_24h: 0, estimativas_manuais_24h: 0, consultas_24h: 0, consultas_erradas_24h: 0,
+          ultima_limpeza: null, limpeza_agendada: { agendada: false, motivo: "modo demonstração" } };
+      }
+      const sb = await window.Conta.cliente();
+      const { data, error } = await sb.rpc("saude_sistema");
+      if (error) throw new Error(/saude_sistema|schema cache|does not exist/i.test(error.message) ? "Rode a PARTE AA do supabase/setup.sql para ver a saúde do sistema." : error.message);
+      return data;
+    }
+    async function desenharSaude() {
+      const box = $("#saude-kpis"), al = $("#saude-alertas"); if (!box) return;
+      let d; try { d = await lerSaude(); } catch (e) { box.innerHTML = `<p class="dica">${esc(e.message)}</p>`; al.innerHTML = ""; return; }
+      const kpi = (n, t, s) => `<div><strong>${esc(n)}</strong><span>${esc(t)}</span>${s ? `<small>${esc(s)}</small>` : ""}</div>`;
+      const lc = d.limpeza_agendada || {}, ul = d.ultima_limpeza;
+      box.innerHTML = kpi(d.cotacoes_ativas, "cotações válidas", `${d.vencem_24h} vencem em 24 h`) + kpi(d.cotacoes_24h, "cotações nas últimas 24 h") +
+        kpi(d.estimativas_24h, "fretes calculados em 24 h", d.estimativas_manuais_24h ? `${d.estimativas_manuais_24h} sem cálculo automático` : "") +
+        kpi(d.consultas_24h, "consultas pelo número em 24 h", d.consultas_erradas_24h ? `${d.consultas_erradas_24h} números errados` : "") +
+        kpi(lc.agendada ? (lc.ultimo_status === "failed" ? "Falhou" : "Ativa") : "Desligada", "limpeza automática (168 h)", ul ? `última: ${COT.dataHora(ul.em)} (${ul.apagadas} apagada${ul.apagadas === 1 ? "" : "s"})` : (lc.ultima_execucao ? `rodou em ${COT.dataHora(lc.ultima_execucao)}` : ""));
+      const alertas = [];
+      if (!lc.agendada) alertas.push(["aviso", "A limpeza automática não está agendada. Ative a extensão pg_cron (Database → Extensions) e rode a PARTE U de novo. Enquanto isso, as cotações vencidas ficam ocultas, mas não são apagadas."]);
+      if (lc.ultimo_status === "failed") alertas.push(["erro", "A última limpeza automática falhou. Veja em Database → Cron Jobs no Supabase."]);
+      if (d.vencidas_pendentes > 0) alertas.push(["erro", `${d.vencidas_pendentes} cotação(ões) vencida(s) há mais de 2 horas ainda no banco: a limpeza não está rodando.`]);
+      if (d.consultas_erradas_24h > 50) alertas.push(["aviso", "Muitos números de cotação errados em 24 h: pode ser alguém tentando adivinhar. O limite por aparelho já está bloqueando."]);
+      if (d.estimativas_24h >= 10 && d.estimativas_manuais_24h / d.estimativas_24h > 0.5) alertas.push(["aviso", "Mais da metade dos fretes de hoje saíram sem cálculo automático. Confira a chave do serviço de rotas (ORS_API_KEY)."]);
+      al.innerHTML = alertas.length ? alertas.map(([t, m]) => `<li class="saude-${t}">${esc(m)}</li>`).join("") : `<li class="saude-ok">Tudo certo.</li>`;
+    }
+    if ($("#saude-sistema") && ehAdmin && COT) {
+      $("#saude-sistema").hidden = false;
+      $("#saude-atualizar").addEventListener("click", desenharSaude);
+      $('.admin-abas [data-aba="cotacoes"]').addEventListener("click", desenharSaude);
+    }
+
     /* ---------- Configurar formulário da cotação (só administrador) ---------- */
     const CC = window.CotacaoConfig;
     let cfgCotacao = null;

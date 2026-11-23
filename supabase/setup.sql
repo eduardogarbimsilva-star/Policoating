@@ -1951,3 +1951,70 @@ alter table public.cotacoes drop constraint if exists cotacoes_descricao_check,
 alter table public.cotacoes drop constraint if exists cotacoes_itens_check,
   add constraint cotacoes_itens_check check (jsonb_typeof(itens) = 'array' and jsonb_array_length(itens) between 0 and 30);
 notify pgrst, 'reload schema';
+
+-- ===========================================================
+-- PARTE AA — Qualidade e segurança (etapa E13)
+--   Rode depois da PARTE Z e PUBLIQUE A FUNÇÃO "frete" NOVA ANTES (a consulta pelo número passa por ela).
+--   • Acompanhar pelo número: só pela função "frete" (limite de 60 consultas e 15 números errados por
+--     IP a cada 10 minutos). O registro guarda só o IP em hash e quantidades — nunca o número, nome ou CPF.
+--   • A limpeza de hora em hora também apaga o registro de consultas com mais de 1 dia.
+--   • saude_sistema(): números para o painel (cotações ativas, a vencer, vencidas não apagadas,
+--     última limpeza e situação do agendamento). Só o administrador vê.
+--   Desfazer: grant execute on function public.consultar_cotacao(text) to anon, authenticated;
+--             drop function public.saude_sistema(); drop table public.cotacoes_consultas;
+-- ===========================================================
+create table if not exists public.cotacoes_consultas (
+  id bigserial primary key, em timestamptz not null default now(), ip_hash text, n int not null default 1, erros int not null default 0
+);
+create index if not exists cotacoes_consultas_ip on public.cotacoes_consultas (ip_hash, em desc);
+alter table public.cotacoes_consultas enable row level security;   -- sem políticas: só a função (chave de servidor) lê e grava
+
+revoke execute on function public.consultar_cotacao(text) from public, anon, authenticated;
+grant execute on function public.consultar_cotacao(text) to service_role;
+
+create or replace function public.limpar_cotacoes_expiradas()
+returns int language plpgsql security definer set search_path = public
+as $$
+declare n int;
+begin
+  delete from public.cotacoes where expira_em <= now();
+  get diagnostics n = row_count;
+  if n > 0 then insert into public.cotacoes_limpezas (apagadas) values (n); end if;
+  delete from public.cotacoes_consultas where em < now() - interval '1 day';
+  return n;
+end $$;
+revoke all on function public.limpar_cotacoes_expiradas() from public, anon, authenticated;
+
+create or replace function public.saude_sistema()
+returns jsonb language plpgsql security definer set search_path = public
+as $$
+declare v_cron jsonb;
+begin
+  if not public.eh_admin() then raise exception 'Só o administrador (com as 2 etapas) vê a saúde do sistema.'; end if;
+  begin
+    if exists (select 1 from cron.job where jobname = 'limpar-cotacoes') then
+      select jsonb_build_object('agendada', true, 'ultima_execucao', d.end_time, 'ultimo_status', d.status)
+        into v_cron
+        from cron.job j left join lateral (select end_time, status from cron.job_run_details r where r.jobid = j.jobid order by end_time desc nulls last limit 1) d on true
+       where j.jobname = 'limpar-cotacoes' limit 1;
+    else v_cron := jsonb_build_object('agendada', false);
+    end if;
+  exception when others then v_cron := jsonb_build_object('agendada', false, 'motivo', 'pg_cron indisponível');
+  end;
+  return jsonb_build_object(
+    'agora', now(),
+    'cotacoes_ativas', (select count(*) from public.cotacoes where expira_em > now()),
+    'vencem_24h', (select count(*) from public.cotacoes where expira_em > now() and expira_em <= now() + interval '24 hours'),
+    'vencidas_pendentes', (select count(*) from public.cotacoes where expira_em <= now() - interval '2 hours'),
+    'cotacoes_24h', (select count(*) from public.cotacoes where emitida_em > now() - interval '24 hours'),
+    'ultima_limpeza', (select jsonb_build_object('em', em, 'apagadas', apagadas) from public.cotacoes_limpezas order by em desc limit 1),
+    'estimativas_24h', (select count(*) from public.frete_estimativas where em > now() - interval '24 hours' and not simulacao),
+    'estimativas_manuais_24h', (select count(*) from public.frete_estimativas where em > now() - interval '24 hours' and not simulacao and zona = 'manual'),
+    'consultas_24h', (select coalesce(sum(n), 0) from public.cotacoes_consultas where em > now() - interval '24 hours'),
+    'consultas_erradas_24h', (select coalesce(sum(erros), 0) from public.cotacoes_consultas where em > now() - interval '24 hours'),
+    'limpeza_agendada', v_cron
+  );
+end $$;
+revoke all on function public.saude_sistema() from public, anon;
+grant execute on function public.saude_sistema() to authenticated;
+notify pgrst, 'reload schema';

@@ -30,6 +30,8 @@ node testes/e02.mjs                    # E02: página própria do produto, dados
 node testes/catalogo_google.mjs        # E02: feed do Google Merchant Center (função catalogo-google) — não precisa do servidor local
 node testes/e12.mjs                    # E12: banners de novidades (só o que está ligado), foco ao fechar janelas, contraste, menos movimento, CLS
 node testes/cotacao_config.mjs         # cotação configurável no painel (campos, produto opcional, veículos, peso máximo), animação ao cotar e avisos
+node testes/e13_e14.mjs                # E13/E14: sitemap/robots sem páginas privadas, recursos desligados por padrão, desfazer no SQL, saúde do sistema
+node testes/producao.mjs               # site NO AR, só leitura: versão publicada, páginas sem erro, funções e recursos (rode depois de publicar)
 ```
 
 ## Testes do banco (`testes/sql/`)
@@ -41,3 +43,6 @@ psql -d teste_policoating -f <só a PARTE R do supabase/setup.sql>
 psql -d teste_policoating -f testes/sql/parte_r.sql             # os ERROR esperados são as recusas testadas
 # (o mesmo para parte_t.sql e parte_u.sql, depois das PARTES T e U; a parte U precisa de auth.users)
 ```
+
+
+Manual de operação (o que liga onde, ordem do SQL, publicar/desfazer, backup, monitoramento): `docs/OPERACAO.md`.

@@ -20,6 +20,7 @@
 //   { acao: "cotar", nome, documento, telefone, email?, cep, logradouro, numero, complemento?, bairro,
 //     descricao, peso_kg?, itens: [{ id, embalagem, cor?, qtd }] }      ← site (recurso "Cotação no site" ligado; PARTE U do setup.sql)
 //     → grava a cotação com um código COT-XXXX-XXXX-XX válido por 7 dias e devolve o código
+//   { acao: "consultar", protocolos: ["COT-…", …] }                      ← site (acompanhar pelo número; até 20 por pedido, com limite por IP)
 // =========================================================
 
 const ORIGENS = ["https://policoatingtintas.com.br", "https://www.policoatingtintas.com.br", "http://localhost:8000", "http://localhost:8765"];
@@ -182,6 +183,7 @@ export async function atender(req: Request): Promise<Response> {
     return responder({ lat: p.lat, lng: p.lng, rotulo: p.rotulo, confianca: p.confianca });
   }
   if (acao === "cotar") return await cotar(req, db, ors, corpo, token, responder);
+  if (acao === "consultar") return await consultar(req, db, corpo, responder);
   if (acao !== "estimar" && acao !== "simular") return responder({ erro: "Ação desconhecida." }, 400);
 
   const simulacao = acao === "simular";
@@ -414,6 +416,28 @@ async function cotar(req: Request, db: Banco, ors: string, corpo: any, token: st
     if (r.status !== 409) return responder({ erro: "Não foi possível registrar a cotação agora. Tente de novo ou fale com o vendedor." }, 500);
   }
   return responder({ erro: "Não foi possível gerar o código. Tente de novo." }, 500);
+}
+
+/* ---------- acompanhar pelo número (com limite por IP: protege contra tentativa e erro) ---------- */
+const LIMITE_CONSULTAS = 60, LIMITE_ERROS = 15;   // por IP a cada 10 minutos
+export const normalizarProtocolo = (v: unknown) => {
+  const t = String(v ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "").replace(/^COT/, "");
+  return t.length === 10 ? `COT-${t.slice(0, 4)}-${t.slice(4, 8)}-${t.slice(8)}` : "";
+};
+async function consultar(req: Request, db: Banco, corpo: any, responder: (d: unknown, s?: number) => Response) {
+  const lista = [...new Set((Array.isArray(corpo.protocolos) ? corpo.protocolos : [corpo.protocolo]).slice(0, 20).map(normalizarProtocolo).filter(Boolean))];
+  if (!lista.length) return responder({ erro: "Número incompleto. Ele tem o formato COT-XXXX-XXXX-XX." }, 400);
+  const ipHash = await hashIp(req);
+  const desde = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+  const recentes: any[] = (await db.get(`cotacoes_consultas?select=erros&ip_hash=eq.${ipHash}&em=gte.${encodeURIComponent(desde)}`)) || [];
+  const erros = recentes.reduce((t, r) => t + (Number(r.erros) || 0), 0);
+  if (recentes.length >= LIMITE_CONSULTAS || erros >= LIMITE_ERROS)
+    return responder({ erro: "Muitas consultas seguidas. Aguarde alguns minutos e tente de novo." }, 429);
+  const achadas: any[] = [];
+  for (const p of lista) { const r = await db.rpc("consultar_cotacao", { p_protocolo: p }); if (Array.isArray(r) && r[0]) achadas.push(r[0]); }
+  const falhas = lista.length - achadas.length;
+  await db.inserir("cotacoes_consultas", { ip_hash: ipHash, n: lista.length, erros: falhas });
+  return responder({ cotacoes: achadas, nao_encontrados: falhas });
 }
 
 if ((globalThis as any).Deno?.serve) (globalThis as any).Deno.serve(atender);

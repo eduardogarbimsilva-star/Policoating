@@ -110,16 +110,24 @@
         fundo.className = "slide-fundo";
         if (foto) fundo.style.backgroundImage = `url("${foto}")`;
         s.prepend(fundo);
-        if (s.dataset.video) {
-          const v = document.createElement("video");
-          Object.assign(v, { muted: true, loop: true, playsInline: true, autoplay: true, preload: "auto" });
-          v.className = "slide-video";
-          v.setAttribute("muted", ""); v.setAttribute("playsinline", ""); v.setAttribute("aria-hidden", "true");
-          if (foto) v.poster = foto;
-          v.src = s.dataset.video;
-          v.addEventListener("error", () => v.remove());
-          fundo.appendChild(v);
-          v.play().catch(() => {});
+        // vídeo de fundo (2,5 MB): só depois de a página carregar, e não em economia de dados,
+        // internet lenta ou "menos movimento" (fica a foto) — não atrasa a primeira imagem
+        const conexao = navigator.connection || {};
+        const podeVideo = s.dataset.video && !menosMovimento && !conexao.saveData && !/(^|-)2g|3g/.test(conexao.effectiveType || "");
+        if (podeVideo) {
+          const ligarVideo = () => {
+            const v = document.createElement("video");
+            Object.assign(v, { muted: true, loop: true, playsInline: true, autoplay: true, preload: "auto" });
+            v.className = "slide-video";
+            v.setAttribute("muted", ""); v.setAttribute("playsinline", ""); v.setAttribute("aria-hidden", "true");
+            if (foto) v.poster = foto;
+            v.src = s.dataset.video;
+            v.addEventListener("error", () => v.remove());
+            fundo.appendChild(v);
+            v.play().catch(() => {});
+          };
+          if (document.readyState === "complete") setTimeout(ligarVideo, 600);
+          else window.addEventListener("load", () => setTimeout(ligarVideo, 600), { once: true });
         }
         if (arte) arte.remove();
       } else if (arte && ARTES[s.dataset.arte]) {

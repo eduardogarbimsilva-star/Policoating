@@ -1,6 +1,6 @@
 /* =========================================================
    Policoating — Fotos reais de peças metálicas pintadas a pó
-   Fotos do banco gratuito Pexels (licença livre para uso comercial).
+   Fotos do banco gratuito Pexels (licença livre para uso comercial), guardadas em assets/img/inspiracao.
    Para trocar por fotos próprias: use `src` com o caminho do arquivo,
    ex.: { src: "assets/img/galeria/portao-cliente.jpg", cor: "preto", ... }
    ========================================================= */
@@ -23,7 +23,6 @@
   // pexels: código da foto no Pexels | produto/corProduto: tinta indicada para o visual da peça
   const FOTOS = [
     { pexels: 698772, cor: "preto", titulo: "Portão de aço", texto: "Portões e grades", produto: "poliester-fosco", corProduto: "Preto RAL 9005" },
-    { pexels: 4726, cor: "preto", titulo: "Grade ornamental", texto: "Gradis e cercas", produto: "texturizada-rugosa", corProduto: "Preto RAL 9005" },
     { pexels: 3392146, cor: "preto", titulo: "Esquadria de alumínio", texto: "Janelas e caixilhos", produto: "poliester-fosco", corProduto: "Preto RAL 9005" },
     { pexels: 17110820, cor: "preto", titulo: "Roda automotiva", texto: "Rodas e peças automotivas", produto: "poliester-brilhante", corProduto: "Preto Intenso RAL 9005" },
     { pexels: 18120179, cor: "branco", titulo: "Móveis de jardim", texto: "Mesas e cadeiras de metal", produto: "poliester-brilhante", corProduto: "Branco Tráfego RAL 9016" },
@@ -46,7 +45,8 @@
 
   function url(f, largura) {
     if (f.src) return f.src;
-    return `https://images.pexels.com/photos/${f.pexels}/pexels-photo-${f.pexels}.jpeg?auto=compress&cs=tinysrgb&w=${largura || 800}`;
+    // cópia guardada no próprio site (assets/img/inspiracao, 800 px): sem cookie de terceiros do Pexels
+    return `assets/img/inspiracao/pexels-${f.pexels}.jpg`;
   }
 
   // Foto que não carregar some da tela, sem deixar imagem quebrada

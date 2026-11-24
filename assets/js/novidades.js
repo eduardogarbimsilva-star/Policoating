@@ -12,7 +12,7 @@
     { chave: "b2b_quote_enabled", titulo: "Peça um orçamento pelo site", foto: "potes-cores", selo: "Orçamento", texto: "Receba na hora um número de cotação e acompanhe a resposta do vendedor, com preço e frete, sem precisar ligar.",
       passos: ["Escolha os produtos ou informe só o peso", "Digite o CEP de entrega e seus dados", "Guarde o número: vale por 7 dias"], link: "cotacao", acao: "Fazer orçamento",
       icone: ic('<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/>') },
-    { chave: "freight_estimate_enabled", titulo: "Simule o frete antes de pedir", foto: "caixa-policoating", selo: "Frete", texto: "Na página de cada produto, digite o seu CEP e veja quanto custa e quantos dias leva a entrega saindo de Matão-SP.",
+    { chave: "freight_estimate_enabled", titulo: "Simule o frete antes de pedir", foto: "frota-640", selo: "Frete", texto: "Na página de cada produto, digite o seu CEP e veja quanto custa e quantos dias leva a entrega saindo de Matão-SP.",
       passos: ["Abra um produto do catálogo", "Digite o CEP no campo \"Calcular frete\"", "Veja valor e prazo estimados (o valor final vem no orçamento)"], link: "produtos", acao: "Abrir o catálogo",
       icone: ic('<path d="M3 6h11v10H3zM14 9h4l3 3v4h-7"/><circle cx="7" cy="17.5" r="1.8"/><circle cx="17" cy="17.5" r="1.8"/>') },
     { chave: "direct_checkout_enabled", titulo: "Compra com Pix e cartão", foto: "caixa-policoating", selo: "Pagamento", texto: "Pague no site e acompanhe o pedido. O atendimento pelo WhatsApp continua.",

@@ -57,7 +57,7 @@
     const pub = itens.filter((x) => !x.equipe), eq = itens.filter((x) => x.equipe);
     tela.innerHTML = `<div class="nv-caixa" role="dialog" aria-modal="true" aria-labelledby="nv-titulo">
       <div class="nv-topo">
-        <img class="nv-foto" src="assets/img/novidades/fachada-frontal.jpg" alt="" width="1100" height="825" decoding="async">
+        <img class="nv-foto" src="assets/img/novidades/frota.jpg" alt="" width="1100" height="825" decoding="async">
         <button type="button" class="nv-fechar" aria-label="Fechar novidades">✕</button>
         <div class="nv-topo-txt">
           <span class="nv-selo">${I.estrela} Novidades no site</span>

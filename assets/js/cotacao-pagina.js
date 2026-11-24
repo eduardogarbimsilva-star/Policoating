@@ -210,6 +210,7 @@
     $$(".cot-etapa:not([hidden]) .cot-etapa-topo .cot-num").forEach((sp, i) => (sp.textContent = String(i + 1)));
     desenharItens();
     $('[data-campo-cot="veiculo"]').hidden = !cfg.veiculos.ativo;
+    $("#cot-frota").hidden = !cfg.veiculos.ativo;
     $("#cot-vol").hidden = cfg.volumetria.modo === "oculto";
     $("#cot-vol-opc").hidden = cfg.volumetria.modo !== "opcional";
     $("#cot-r-cub-linha").hidden = cfg.volumetria.modo === "oculto";

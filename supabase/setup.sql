@@ -2211,3 +2211,14 @@ grant execute on function public.criar_pedido(jsonb, text) to authenticated;
 update public.recursos set implementado = true, requisito = 'Precisa da conta de vendedor da empresa no Mercado Pago (Secrets MP_ACCESS_TOKEN e MP_WEBHOOK_SECRET), do frete ligado e da emissão de nota fiscal combinada.'
   where chave = 'direct_checkout_enabled';
 notify pgrst, 'reload schema';
+
+-- ===========================================================
+-- PARTE AE — Chat: "pediu atendimento" (o assistente chama a equipe)
+--   Rode depois da PARTE AC (pode ser antes ou depois da AD).
+--   Quando o assistente não entende ou o assunto precisa de uma pessoa (alteração, pagamento, nota,
+--   reclamação, "falar com a equipe"), a conversa fica marcada até alguém da equipe responder.
+--   Desfazer: alter table public.cotacoes_chat_estado drop column suporte_aberto, drop column suporte_em;
+-- ===========================================================
+alter table public.cotacoes_chat_estado add column if not exists suporte_aberto boolean not null default false;
+alter table public.cotacoes_chat_estado add column if not exists suporte_em timestamptz;
+notify pgrst, 'reload schema';

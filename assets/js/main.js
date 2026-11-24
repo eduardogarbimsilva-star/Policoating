@@ -1158,11 +1158,17 @@ ${window.Assistente ? "" : `<a class="whats-flutuante" data-whats aria-label="Fa
       <div class="mc-topo"><strong>${esc(Conta.nomeExibicao() || "Minha conta")}</strong><small>${esc(u.email || "")}</small></div>
       <a href="conta#resumo">${ic("casa")}Visão geral</a>
       <a href="conta#pedidos">${ic("caixa")}Meus pedidos</a>
+      <a href="conta#cotacoes" class="mc-cot" hidden>${ic("documento")}Minhas cotações</a>
       <a href="conta#favoritos">${ic("coracao")}Favoritos</a>
       <a href="conta#dados">${ic("usuario")}Meus dados</a>
       <a href="admin" class="mc-admin" hidden>${ic("industria")}<span>Painel da empresa</span></a>
       ${htmlTrocarConta(u.email)}
       <button type="button" data-sair>${ic("sair")}Sair</button>`;
+    // "Minhas cotações" no menu, com a mesma regra da aba da conta (recurso de cotação ligado)
+    const mostrarCot = () => { const x = $(".mc-cot", menu); if (x) x.hidden = !(window.Recursos && window.Recursos.ligado("b2b_quote_enabled")); };
+    mostrarCot();
+    if (window.Recursos) Promise.resolve(window.Recursos.pronto).then(mostrarCot, mostrarCot);
+    document.addEventListener("recursos-atualizados", mostrarCot);
     if (window.Catalogo) window.Catalogo.Admin.meuPapel().then((papel) => {
       if (Conta.lembrarConta && u.email) Conta.lembrarConta(u.email, Conta.nomeExibicao(), papel || "");
       const x = $(".mc-admin", menu); if (!x) return;

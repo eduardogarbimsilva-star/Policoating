@@ -36,11 +36,12 @@ Outras configurações:
 ## 2. Banco (Supabase → SQL Editor)
 
 Rodar **na ordem**, cada parte uma vez (todas podem ser rodadas de novo sem quebrar):
-R → S → T → U → V → W → X → Y → Z → AA → AB → AC → AD. Cada parte tem, no começo, o que faz e como **desfazer**.
+R → S → T → U → V → W → X → Y → Z → AA → AB → AC → AD → AE. Cada parte tem, no começo, o que faz e como **desfazer**.
 
 - A PARTE AA exige a função `frete` nova publicada **antes** (a consulta pelo número passa por ela).
 - A PARTE AB (cliente excluir/aparar a própria lista) vem depois da AA e da função `frete` atualizada.
 - A PARTE AC (chat da cotação aprovada) vem depois de publicar a função `chat`; o recurso começa **desligado**.
+- A PARTE AE (chat: "pediu atendimento") vem depois da AC; publique a função `chat` atualizada junto.
 - A PARTE AD (compra direta com Mercado Pago) vem depois de publicar a função `pagamento`; o recurso continua **desligado**.
 - A limpeza das cotações vencidas usa a extensão **pg_cron** (Database → Extensions).
 
@@ -108,7 +109,9 @@ Nenhum registro guarda IP aberto, nome ou CPF (só hash do IP e contagens).
 ## Chat da cotação aprovada (PARTE AC)
 
 - Aparece para o cliente só com a cotação **Aprovada** e o recurso "Chat da cotação aprovada" ligado.
-- O assistente virtual dá as boas-vindas e responde dúvidas básicas (frete, prazo, itens, validade) **só com os dados da cotação**.
+- O assistente virtual dá as boas-vindas, mostra **opções rápidas** (frete, prazo, itens, validade, pagamento, alterar entrega, falar com a equipe) e responde **só com os dados da cotação**.
+- O que ele não entende ou que precisa de uma pessoa (alteração, pagamento, nota, reclamação, "falar com a equipe") **abre um atendimento**: aviso na conversa, destaque "pediu atendimento" no painel e aviso no sino da equipe.
+- Respostas da equipe aparecem no **sino de avisos** do cliente (também no celular); o aviso abre a conversa.
 - Quando alguém da equipe **responde**, o assistente pausa. Quando a pessoa fecha o chat, clica em "Sair do chat" ou fica 2 minutos sem abrir, o assistente volta (com aviso na conversa).
 - Equipe: Painel → Cotações → "Conversas com clientes" (com não lidas) ou "Abrir chat com o cliente" dentro da cotação aprovada.
 - Limites: 20 mensagens do cliente a cada 10 min por conversa, 30 respostas do assistente por conversa, 15 números errados por IP a cada 10 min.

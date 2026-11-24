@@ -8,7 +8,7 @@
    ========================================================= */
 (function () {
   "use strict";
-  const K_ESTADO = "policoating_avisos_estado", K_LISTA = "policoating_avisos";
+  const K_ESTADO = "policoating_avisos_estado", K_LISTA = "policoating_avisos", K_CHAT = "policoating_avisos_chat";
   const ler = (k, p) => { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? p : v; } catch (e) { return p; } };
   const gravar = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* sem espaço */ } };
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -89,6 +89,44 @@
     } finally { conferindo = false; }
   }
 
+  /* ---------- chat das cotações (cliente: resposta da equipe; equipe: mensagem do cliente / pedido de atendimento) ---------- */
+  let conferindoChat = false;
+  async function conferirChat() {
+    const CH = window.ChatCotacao, C = window.Cotacao, Conta = window.Conta;
+    if (!CH || conferindoChat || document.hidden) return;
+    conferindoChat = true;
+    try {
+      const vistos = ler(K_CHAT, {}), novos = [];
+      // cliente: cotações aprovadas que ele tem (da conta ou deste aparelho)
+      const est = ler(K_ESTADO, {}) || {};
+      const protos = Object.keys(est.cot || {}).filter((k) => (est.cot[k] || {}).s === "aprovada");
+      (C ? C.lembradas() : []).forEach((x) => { if (!protos.includes(x.protocolo) && (est.cot || {})[x.protocolo] && est.cot[x.protocolo].s === "aprovada") protos.push(x.protocolo); });
+      if (protos.length) {
+        const conv = await CH.resumo(protos.slice(0, 20)).catch(() => []);
+        conv.forEach((c) => {
+          if (!c.nao_lidas || !c.ultima || vistos["c:" + c.protocolo] === c.ultima.id) return;
+          vistos["c:" + c.protocolo] = c.ultima.id;
+          novos.push({ id: `chat-${c.protocolo}-${c.ultima.id}`, tipo: "chat", titulo: `Resposta no chat · ${c.protocolo}`, texto: `${c.ultima.autor_nome || "Equipe"} (equipe): ${c.ultima.texto}`, link: `cotacao#chat=${c.protocolo}` });
+        });
+      }
+      // equipe: só quem é da equipe
+      let papel = "";
+      try { if (Conta && Conta.usuario && window.Catalogo && window.Catalogo.Admin) papel = await window.Catalogo.Admin.meuPapel(); } catch (e) { papel = ""; }
+      if (papel) {
+        const conv = await CH.resumoEquipe().catch(() => []);
+        conv.forEach((c) => {
+          const marca = (c.ultima_cliente && c.ultima_cliente.em) || (c.ultima && c.ultima.em) || "";
+          if (!(c.nao_lidas > 0 || c.suporte) || !marca || vistos["e:" + c.protocolo] === marca) return;
+          vistos["e:" + c.protocolo] = marca;
+          novos.push({ id: `chateq-${c.protocolo}-${marca}`, tipo: "chat", titulo: c.suporte ? `Cliente pediu atendimento · ${c.protocolo}` : `Mensagem no chat · ${c.protocolo}`,
+            texto: `${c.nome}: ${c.ultima_cliente ? c.ultima_cliente.texto : "aguarda resposta da equipe"}`, link: `admin#chat=${c.protocolo}` });
+        });
+      }
+      gravar(K_CHAT, vistos);
+      if (novos.length) { adicionar(novos); mostrarBotao(true); }
+    } finally { conferindoChat = false; }
+  }
+
   /* ---------- sino e painel ---------- */
   const quando = (iso) => { const m = Math.round((Date.now() - new Date(iso).getTime()) / 60000); return m < 1 ? "agora" : m < 60 ? `há ${m} min` : m < 1440 ? `há ${Math.round(m / 60)} h` : new Date(iso).toLocaleDateString("pt-BR"); };
   function desenhar() {
@@ -137,9 +175,11 @@
     const comecar = () => setTimeout(conferir, 1200);
     Promise.resolve(window.ContaPronta).then(comecar, comecar);
     setInterval(conferir, 3 * 60 * 1000);
+    setTimeout(conferirChat, 4000);
+    setInterval(conferirChat, 45 * 1000);   // respostas do chat chegam rápido
     document.addEventListener("visibilitychange", () => { if (!document.hidden) conferir(); });
     if (window.Conta && window.Conta.aoMudar) window.Conta.aoMudar(() => setTimeout(conferir, 500));
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", iniciar); else iniciar();
-  window.Avisos = { conferir, lista, naoLidos };
+  window.Avisos = { conferir, conferirChat, lista, naoLidos };
 })();

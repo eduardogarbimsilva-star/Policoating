@@ -18,8 +18,16 @@ R.add("CHAT-03", "Assistente ativo sem ninguém da equipe; pausado quando a equi
 const COT = { id: "c1", protocolo: "COT-AB12-CD34-EF", nome: "Maria Silva", status: "aprovada", cidade: "Araraquara", uf: "SP", itens: [{ id: "pol-0001", nome: "Poliéster Preto", embalagem: "Caixa 25 kg", qtd: 4 }],
   peso_kg: 100, frete: { zona: "externo", valor: 612.5, km: 33, prazo_dias: 2 }, valor_proposta: 4321, resposta: null, expira_em: new Date(agora + 5 * 864e5).toISOString(), entrega: { veiculo: "Montana" } };
 R.add("CHAT-04", "Boas-vindas com o primeiro nome e o número", /Olá, Maria!/.test(F.boasVindas(COT)) && F.boasVindas(COT).includes("COT-AB12-CD34-EF"));
-R.add("CHAT-05", "Resposta básica: prazo e frete com os dados da cotação", /2 dias úteis/.test(F.respostaBasica("qual o prazo de entrega?", COT)) && /R\$\s?612,50/.test(F.respostaBasica("quanto fica o frete", COT)));
-R.add("CHAT-06", "Resposta básica: sem dado → não inventa (equipe confirma)", /equipe/.test(F.respostaBasica("e o prazo?", { ...COT, frete: { zona: "manual" } })) && !/\d+ dias/.test(F.respostaBasica("e o prazo?", { ...COT, frete: { zona: "manual" } })));
+const rb = (t, c = COT, s = false) => F.respostaBasica(t, c, s);
+R.add("CHAT-05", "Resposta básica: prazo e frete com os dados da cotação (sem chamar a equipe)", /2 dias úteis/.test(rb("qual o prazo de entrega?").texto) && /R\$\s?612,50/.test(rb("quanto fica o frete").texto) && !rb("quanto fica o frete").chamar);
+R.add("CHAT-06", "Resposta básica: sem dado → não inventa (equipe confirma)", /equipe/.test(rb("e o prazo?", { ...COT, frete: { zona: "manual" } }).texto) && !/\d+ dias/.test(rb("e o prazo?", { ...COT, frete: { zona: "manual" } }).texto));
+R.add("CHAT-26", "Conversa natural: \"tudo e você?\" e \"ok\" têm respostas próprias (não repete a frase padrão)",
+  /Tudo ótimo/.test(rb("tudo e voce?").texto) && /Combinado/.test(rb("ok").texto) && !rb("ok").chamar && rb("ok").texto !== rb("tudo bem?").texto);
+R.add("CHAT-27", "Não entendeu, alteração, pagamento ou \"falar com a equipe\": chama a equipe",
+  rb("Pode me enviar então").chamar && /chamei a equipe/.test(rb("Pode me enviar então").texto) && rb("preciso mudar o endereço").chamar && rb("quero pagar no pix").chamar && rb("quero falar com um atendente").chamar);
+R.add("CHAT-28", "Com o chamado já aberto, não promete de novo: avisa que a equipe já foi chamada", /já foi chamada/.test(rb("asdfgh", COT, true).texto));
+R.add("CHAT-29", "IA: marcador [[EQUIPE]] vira chamado e some do texto", (() => { const r = F.lerMarcador("Vou chamar a equipe para isso. [[EQUIPE]]"); return r.chamar && r.texto === "Vou chamar a equipe para isso."; })() && !F.lerMarcador("Seu frete é R$ 10.").chamar);
+R.add("CHAT-30", "Opções rápidas: frete, prazo, itens, validade, pagamento, alterar e falar com a equipe", F.OPCOES.length === 7 && F.OPCOES.some((o) => o.id === "equipe"));
 const res = JSON.parse(F.resumoCotacao({ ...COT, documento: "11222333000181", telefone: "16999990000" }));
 R.add("CHAT-07", "Dados enviados ao assistente não levam documento, telefone nem sobrenome", !JSON.stringify(res).includes("11222333000181") && !JSON.stringify(res).includes("1699999") && res.cliente_primeiro_nome === "Maria");
 
@@ -116,9 +124,24 @@ const P = "cot-ab12-cd34-ef";
   // equipe responde e "some" (fecha a aba): depois de 2 min o assistente volta sozinho, com aviso
   await pedir({ acao: "equipe_enviar", protocolo: P, texto: "Voltei, já confiro." }, "h.dono.s");
   T.cotacoes_chat_estado[0].agente_visto = new Date(Date.now() - 3 * 60 * 1000).toISOString();
-  r = await pedir({ acao: "enviar", protocolo: P, texto: "alguém aí?" }); d = await r.json();
+  r = await pedir({ acao: "enviar", protocolo: P, texto: "e o frete?" }); d = await r.json();
   const ult3 = T.cotacoes_chat.slice(-3).map((m) => m.autor).join(",");
   R.add("CHAT-21", "Equipe 2 min sem abrir o chat: aviso de saída e o assistente responde", ult3 === "sistema,cliente,ia" && d.estado.ia_ativa, ult3);
+  // não entendeu: chama a equipe (aviso uma vez só) e a conversa sobe na lista da equipe como "pediu atendimento"
+  r = await pedir({ acao: "enviar", protocolo: P, texto: "Pode me enviar então" }); d = await r.json();
+  const sis = T.cotacoes_chat.filter((m) => m.autor === "sistema" && /Atendimento solicitado/.test(m.texto)).length;
+  await pedir({ acao: "enviar", protocolo: P, texto: "xpto" });
+  const sis2 = T.cotacoes_chat.filter((m) => m.autor === "sistema" && /Atendimento solicitado/.test(m.texto)).length;
+  r = await pedir({ acao: "equipe_lista" }, "h.dono.s"); let dl = await r.json();
+  R.add("CHAT-31", "Pedido de atendimento: aviso na conversa uma vez, opções na tela e destaque na lista da equipe",
+    sis === 1 && sis2 === 1 && d.estado.suporte && d.estado.opcoes.length === 7 && dl.conversas[0].suporte === true, JSON.stringify({ sis, sis2, suporte: d.estado.suporte }));
+  await pedir({ acao: "equipe_enviar", protocolo: P, texto: "Olá! Já te ajudo." }, "h.dono.s");
+  r = await pedir({ acao: "resumo", protocolos: [P, "COT-ZZZZ-ZZZZ-ZZ", "lixo"] }); let dr = await r.json();
+  R.add("CHAT-32", "Resumo para o sino do cliente: mensagem da equipe ainda não vista, com o texto", dr.conversas.length === 1 && dr.conversas[0].nao_lidas === 1 && /Já te ajudo/.test(dr.conversas[0].ultima.texto), JSON.stringify(dr));
+  r = await pedir({ acao: "equipe_lista" }, "h.dono.s"); dl = await r.json();
+  R.add("CHAT-33", "A equipe respondeu: o chamado é atendido (sai o destaque)", dl.conversas[0].suporte === false);
+  r = await pedir({ acao: "ler", protocolo: P, depois: 0 }); d = await r.json();
+  R.add("CHAT-34", "Com a equipe na conversa, as opções do assistente somem", d.estado.opcoes.length === 0 && !d.estado.ia_ativa);
   r = await pedir({ acao: "enviar", protocolo: P, texto: "   " });
   R.add("CHAT-22", "Mensagem vazia é recusada", r.status === 400);
   for (let i = 0; i < 25; i++) await pedir({ acao: "enviar", protocolo: P, texto: "teste " + i });

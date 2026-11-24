@@ -51,42 +51,73 @@
   const cotDemo = (p) => { try { return (JSON.parse(localStorage.getItem("policoating_demo_cotacoes")) || []).find((c) => c.protocolo === p); } catch (e) { return null; } };
   const iaAtiva = (e) => !e.agente_respondeu || !e.agente_visto || Date.now() - e.agente_visto >= AUSENTE_MS;
   const reais = (v) => Number(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-  function basica(t, c) {
-    const q = String(t).normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase(), f = c.frete || {};
-    if (/obrigad|valeu/.test(q)) return "Por nada! Se precisar de mais alguma coisa, é só escrever aqui.";
-    if (/prazo|chega|demora|dias|entrega/.test(q)) return f.prazo_dias ? `O prazo estimado de entrega é de ${f.prazo_dias} dias úteis após a expedição, saindo de Matão-SP. A equipe de frete e envio confirma esse ponto aqui no chat.` : `O prazo de entrega é confirmado pela equipe de frete e envio, conforme a rota até ${c.cidade}/${c.uf}.`;
-    if (/frete|envio|transporte/.test(q)) return f.valor != null && f.zona !== "manual" ? `O frete estimado para ${c.cidade}/${c.uf} é de ${reais(f.valor)}, saindo de Matão-SP. O valor final é confirmado pela equipe.` : `O frete até ${c.cidade}/${c.uf} é calculado pela equipe de frete e envio e informado aqui no chat.`;
-    return "Recebi sua mensagem e a equipe de frete e envio já foi avisada. Enquanto isso, posso informar o frete estimado, o prazo, os itens e a validade da sua cotação.";
+  // opções rápidas (iguais às da função "chat")
+  const OPCOES = [
+    { id: "frete", rotulo: "Valor do frete", texto: "Qual o valor do frete?" }, { id: "prazo", rotulo: "Prazo de entrega", texto: "Qual o prazo de entrega?" },
+    { id: "itens", rotulo: "Itens da cotação", texto: "Quais são os itens da cotação?" }, { id: "validade", rotulo: "Validade", texto: "Até quando vale a cotação?" },
+    { id: "pagamento", rotulo: "Pagamento e nota fiscal", texto: "Quero falar sobre pagamento e nota fiscal." },
+    { id: "alterar", rotulo: "Alterar entrega", texto: "Preciso alterar o endereço ou a data da entrega." }, { id: "equipe", rotulo: "Falar com a equipe", texto: "Quero falar com alguém da equipe." }];
+  /* mesmas regras da função (versão curta para a demonstração): { texto, chamar } */
+  function basica(t, c, suporte) {
+    const q = " " + String(t).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ") + " ", f = c.frete || {};
+    const tem = (re) => re.test(q);
+    const chamado = suporte ? "A equipe de frete e envio já foi chamada e responde por aqui em breve." : "Já chamei a equipe de frete e envio: alguém responde por aqui em breve.";
+    if (tem(/humano|atendente|pessoa|falar com|equipe|suporte|vendedor/)) return { texto: chamado, chamar: true };
+    if (tem(/endereco|mudar|alterar|trocar|cancelar|reagendar/)) return { texto: "Para alterar a entrega eu preciso da equipe. " + chamado, chamar: true };
+    if (tem(/pagamento|pagar|pix|boleto|cartao|nota fiscal/)) return { texto: "Pagamento, nota fiscal e condições são combinados com a equipe. " + chamado, chamar: true };
+    if (tem(/prazo|chega|demora|dias|entrega/)) return { texto: f.prazo_dias ? `O prazo estimado é de ${f.prazo_dias} dias úteis depois da expedição, saindo de Matão-SP até ${c.cidade}/${c.uf}. A data exata é confirmada pela equipe.` : `O prazo até ${c.cidade}/${c.uf} depende da rota e é confirmado pela equipe de frete e envio.`, chamar: false };
+    if (tem(/frete|envio|transporte/)) return { texto: f.valor != null && f.zona !== "manual" ? `O frete estimado até ${c.cidade}/${c.uf} é de ${reais(f.valor)}, saindo de Matão-SP. O valor final é confirmado pela equipe.` : `O frete até ${c.cidade}/${c.uf} é calculado pela equipe de frete e envio e informado aqui no chat.`, chamar: false };
+    if (tem(/ item|itens|produto|caixa/)) return { texto: "Itens da cotação: " + (c.itens || []).map((i) => `${i.qtd} × ${i.nome || i.id}`).join("; ") + ".", chamar: false };
+    if (tem(/valid|vence|expira|ate quando/)) return { texto: `A cotação vale até ${new Date(c.expira_em).toLocaleDateString("pt-BR")}.`, chamar: false };
+    if (tem(/obrigad|valeu/)) return { texto: "Por nada! Se precisar de mais alguma coisa, é só escolher uma opção abaixo.", chamar: false };
+    if (tem(/ (oi|ola|opa|bom dia|boa tarde|boa noite) |tudo bem|tudo bom|e voce/)) return { texto: "Tudo ótimo, obrigado! Em que posso ajudar? Escolha uma opção abaixo ou escreva a sua dúvida.", chamar: false };
+    if (tem(/ (ok|certo|beleza|blz|entendi|perfeito|show|combinado|sim) /)) return { texto: "Combinado! Se precisar de mais alguma coisa, é só escolher uma opção abaixo.", chamar: false };
+    return { texto: suporte ? "A equipe já foi chamada e vai responder essa mensagem por aqui. Enquanto isso, se quiser, escolha uma das opções abaixo."
+      : "Não tenho certeza de que entendi, então chamei a equipe de frete e envio para te ajudar: alguém responde por aqui em breve. Enquanto isso, você pode escolher uma das opções abaixo.", chamar: true };
   }
   function demo(corpo) {
     const todos = lerDemo(), equipe = String(corpo.acao).startsWith("equipe_");
     if (!ligado()) throw new Error("O chat ainda não está disponível.");
     if (corpo.acao === "equipe_lista") {
       return { conversas: Object.keys(todos).map((p) => { const x = todos[p], c = cotDemo(p) || {}, ult = x.msgs[x.msgs.length - 1];
-        return { protocolo: p, nome: c.nome || "Cliente", cidade: c.cidade || "", uf: c.uf || "", nao_lidas: x.msgs.filter((m) => m.autor === "cliente" && m.id > (x.estado.equipe_lida_ate || 0)).length,
-          ultima: ult ? { autor: ult.autor, texto: ult.texto.slice(0, 120), em: ult.criada_em } : null, ia_ativa: iaAtiva(x.estado), agente: !iaAtiva(x.estado) ? x.estado.agente_nome : null }; }) };
+        return { protocolo: p, nome: c.nome || "Cliente", cidade: c.cidade || "", uf: c.uf || "", suporte: !!x.estado.suporte, nao_lidas: x.msgs.filter((m) => m.autor === "cliente" && m.id > (x.estado.equipe_lida_ate || 0)).length,
+          ultima: ult ? { autor: ult.autor, texto: ult.texto.slice(0, 120), em: ult.criada_em } : null,
+          ultima_cliente: (() => { const cl = x.msgs.filter((m) => m.autor === "cliente"), u = cl[cl.length - 1]; return u ? { texto: u.texto.slice(0, 120), em: u.criada_em } : null; })(),
+          ia_ativa: iaAtiva(x.estado), agente: !iaAtiva(x.estado) ? x.estado.agente_nome : null }; })
+        .sort((a, b) => Number(b.suporte) - Number(a.suporte)) };
+    }
+    if (corpo.acao === "resumo") {
+      return { conversas: (corpo.protocolos || []).filter((p) => todos[p]).map((p) => { const x = todos[p], eq = x.msgs.filter((m) => m.autor === "equipe"), u = eq[eq.length - 1];
+        return { protocolo: p, nao_lidas: eq.filter((m) => m.id > (x.estado.cliente_lida_ate || 0)).length, ultima: u ? { id: u.id, autor_nome: u.autor_nome, texto: u.texto.slice(0, 120), em: u.criada_em } : null }; }) };
     }
     const p = String(corpo.protocolo || "").toUpperCase(), c = cotDemo(p);
     if (!c) throw new Error("Cotação não encontrada ou vencida.");
     if (!equipe && c.status !== "aprovada") throw new Error("O chat abre quando a cotação for aprovada.");
-    const x = todos[p] || (todos[p] = { seq: 0, msgs: [], estado: { agente_nome: null, agente_respondeu: false, agente_visto: 0, equipe_lida_ate: 0 } });
+    const x = todos[p] || (todos[p] = { seq: 0, msgs: [], estado: { agente_nome: null, agente_respondeu: false, agente_visto: 0, equipe_lida_ate: 0, cliente_lida_ate: 0, suporte: false } });
     const add = (autor, texto, nome) => { x.msgs.push({ id: ++x.seq, autor, autor_nome: nome || null, texto, criada_em: new Date().toISOString() }); };
     const eu = window.Conta && window.Conta.usuario ? String(window.Conta.usuario.email || "Equipe").split("@")[0].replace(/[._-]+/g, " ").replace(/\b\w/g, (l) => l.toUpperCase()) : "Equipe";
     // equipe sumiu (2 min sem abrir): assistente volta
     if (x.estado.agente_respondeu && iaAtiva(x.estado) && x.estado.agente_nome) { add("sistema", `${x.estado.agente_nome} saiu da conversa. O assistente volta a responder.`); x.estado.agente_respondeu = false; x.estado.agente_nome = null; }
-    if (corpo.acao === "abrir" && !x.msgs.length) add("ia", `Olá, ${String(c.nome || "").split(" ")[0]}! Sou o assistente virtual da Policoating. Sua cotação ${p} foi aprovada e eu já avisei a equipe de frete e envio. Enquanto ela não chega, posso informar o frete estimado, o prazo e os itens da cotação. Como posso ajudar?`, "Assistente virtual");
-    if (corpo.acao === "enviar") { const t = String(corpo.texto || "").trim().slice(0, 1000); if (!t) throw new Error("Escreva a mensagem."); add("cliente", t, String(c.nome || "").split(" ")[0]); if (iaAtiva(x.estado)) add("ia", basica(t, c), "Assistente virtual"); }
+    if (corpo.acao === "abrir" && !x.msgs.length) add("ia", `Olá, ${String(c.nome || "").split(" ")[0]}! Sou o assistente virtual da Policoating e cuido do atendimento da sua cotação ${p}, que foi aprovada. Escolha uma das opções abaixo ou escreva a sua dúvida. Se eu não souber resolver, chamo a equipe de frete e envio na hora.`, "Assistente virtual");
+    if (corpo.acao === "enviar") {
+      const t = String(corpo.texto || "").trim().slice(0, 1000); if (!t) throw new Error("Escreva a mensagem.");
+      add("cliente", t, String(c.nome || "").split(" ")[0]);
+      if (iaAtiva(x.estado)) {
+        const r = basica(t, c, x.estado.suporte); add("ia", r.texto, "Assistente virtual");
+        if (r.chamar && !x.estado.suporte) { add("sistema", "Atendimento solicitado: a equipe de frete e envio foi avisada e responde por aqui."); x.estado.suporte = true; }
+      }
+    }
     if (corpo.acao === "equipe_enviar") {
       const t = String(corpo.texto || "").trim().slice(0, 1000); if (!t) throw new Error("Escreva a mensagem.");
       if (!x.estado.agente_respondeu) add("sistema", `${eu}, da equipe de frete e envio, entrou na conversa.`);
-      Object.assign(x.estado, { agente_nome: eu, agente_respondeu: true, agente_visto: Date.now() }); add("equipe", t, eu);
+      Object.assign(x.estado, { agente_nome: eu, agente_respondeu: true, agente_visto: Date.now(), suporte: false }); add("equipe", t, eu);
     }
     if (corpo.acao === "equipe_ler" && x.estado.agente_respondeu && x.estado.agente_nome === eu) x.estado.agente_visto = Date.now();
     if (corpo.acao === "equipe_sair" && x.estado.agente_respondeu && x.estado.agente_nome === eu) { add("sistema", `${eu} saiu da conversa. O assistente volta a responder.`); Object.assign(x.estado, { agente_nome: null, agente_respondeu: false }); }
-    if (equipe && x.msgs.length) x.estado.equipe_lida_ate = x.msgs[x.msgs.length - 1].id;
+    if (x.msgs.length) x.estado[equipe ? "equipe_lida_ate" : "cliente_lida_ate"] = x.msgs[x.msgs.length - 1].id;
     gravarDemo(todos);
-    const depois = Number(corpo.depois) || 0;
-    return { ok: true, mensagens: x.msgs.filter((m) => m.id > depois), estado: { protocolo: p, status: c.status, ia_ativa: iaAtiva(x.estado), agente: !iaAtiva(x.estado) ? x.estado.agente_nome : null, eu_no_chat: equipe && !iaAtiva(x.estado) && x.estado.agente_nome === eu } };
+    const depois = Number(corpo.depois) || 0, ia = iaAtiva(x.estado);
+    return { ok: true, mensagens: x.msgs.filter((m) => m.id > depois), estado: { protocolo: p, status: c.status, ia_ativa: ia, agente: !ia ? x.estado.agente_nome : null, suporte: !!x.estado.suporte, opcoes: ia ? OPCOES : [], eu_no_chat: equipe && !ia && x.estado.agente_nome === eu } };
   }
 
   /* ---------- janela do chat ---------- */
@@ -111,6 +142,7 @@
       </header>
       <div class="ch-msgs" role="log" aria-live="polite" aria-label="Mensagens"><div class="ch-carregando">Abrindo a conversa…</div></div>
       <p class="ch-erro" role="alert" hidden></p>
+      ${equipe ? "" : `<div class="ch-opcoes" role="group" aria-label="Opções rápidas" hidden></div>`}
       <form class="ch-rodape" autocomplete="off">
         <textarea rows="1" maxlength="1000" placeholder="${equipe ? "Responder ao cliente…" : "Escreva sua mensagem…"}" aria-label="Mensagem"></textarea>
         <button type="submit" class="ch-enviar" aria-label="Enviar">${I.enviar}</button>
@@ -130,14 +162,21 @@
       if (equipe) {
         sub.textContent = `${protocolo} · ${e.ia_ativa ? "assistente virtual atendendo" : e.eu_no_chat ? "você está atendendo" : (e.agente || "equipe") + " atendendo"}`;
         $(".ch-sair").hidden = !euNoChat;
-      } else sub.innerHTML = e.ia_ativa ? `<i class="ch-ponto"></i>Assistente virtual · equipe avisada` : `<i class="ch-ponto ch-on"></i>${esc(e.agente || "Equipe")} (equipe) está na conversa`;
+        if (e.suporte && e.ia_ativa) sub.textContent = `${protocolo} · pediu atendimento da equipe`;
+      } else {
+        sub.innerHTML = e.ia_ativa ? `<i class="ch-ponto"></i>Assistente virtual · ${e.suporte ? "equipe chamada" : "equipe avisada"}` : `<i class="ch-ponto ch-on"></i>${esc(e.agente || "Equipe")} (equipe) está na conversa`;
+        const op = $(".ch-opcoes"), lista2 = e.opcoes || [];
+        op.hidden = !lista2.length;
+        const chave = lista2.map((o) => o.id).join();
+        if (op.dataset.chave !== chave) { op.dataset.chave = chave; op.innerHTML = lista2.map((o) => `<button type="button" class="ch-opcao${o.id === "equipe" ? " ch-opcao-eq" : ""}" data-texto="${esc(o.texto)}">${esc(o.rotulo)}</button>`).join(""); }
+      }
     }
     function bolha(m) {
       const meu = equipe ? m.autor === "equipe" : m.autor === "cliente";
       const d = dia(m.criada_em);
       let h = "";
       if (d !== ultimoDia) { ultimoDia = d; h += `<div class="ch-dia"><span>${esc(d)}</span></div>`; }
-      if (m.autor === "sistema") return h + `<div class="ch-sistema"><span>${esc(m.texto)}</span></div>`;
+      if (m.autor === "sistema") return h + `<div class="ch-sistema${/^Atendimento solicitado/.test(m.texto) ? " ch-sis-chamado" : ""}"><span>${esc(m.texto)}</span></div>`;
       const rot = m.autor === "ia" ? `<span class="ch-rot ch-rot-ia">${I.robo}Assistente virtual</span>`
         : m.autor === "equipe" ? `<span class="ch-rot ch-rot-eq">${esc(m.autor_nome || "Equipe")} <em>equipe</em></span>`
         : equipe ? `<span class="ch-rot">${esc(m.autor_nome || "Cliente")}</span>` : "";
@@ -196,6 +235,7 @@
     campo.addEventListener("input", ajustar);
     campo.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); $(".ch-rodape").requestSubmit(); } });
     $(".ch-rodape").addEventListener("submit", enviar);
+    if (!equipe) $(".ch-opcoes").addEventListener("click", (e) => { const b = e.target.closest("[data-texto]"); if (!b || ocupado) return; campo.value = b.dataset.texto; $(".ch-rodape").requestSubmit(); });
     $(".ch-voltar").addEventListener("click", fechar);
     tela.addEventListener("click", (e) => { if (e.target === tela) fechar(); });
     if (equipe) $(".ch-sair").addEventListener("click", async () => { sair(false); $(".ch-sair").hidden = true; setTimeout(() => ler(), 400); });
@@ -233,11 +273,11 @@
       const badge = caixa.querySelector(".ch-badge"); badge.hidden = !total; badge.textContent = total;
       const aba = document.querySelector('[data-aba="cotacoes"]');
       if (aba) { let b = aba.querySelector(".ch-badge"); if (!b) { aba.insertAdjacentHTML("beforeend", ' <span class="ch-badge" hidden></span>'); b = aba.querySelector(".ch-badge"); } b.hidden = !total; b.textContent = total; b.setAttribute("aria-label", `${total} mensagens não lidas`); }
-      caixa.querySelector(".ch-conv-lista").innerHTML = l.length ? l.map((c) => `<button type="button" class="ch-conv${c.nao_lidas ? " ch-conv-nova" : ""}" data-chat-abrir="${esc(c.protocolo)}" data-chat-equipe="1" data-chat-nome="${esc(c.nome)}">
+      caixa.querySelector(".ch-conv-lista").innerHTML = l.length ? l.map((c) => `<button type="button" class="ch-conv${c.nao_lidas ? " ch-conv-nova" : ""}${c.suporte ? " ch-conv-suporte" : ""}" data-chat-abrir="${esc(c.protocolo)}" data-chat-equipe="1" data-chat-nome="${esc(c.nome)}">
           <span class="ch-avatar" aria-hidden="true">${esc(String(c.nome || "?").charAt(0).toUpperCase())}</span>
           <span class="ch-conv-txt"><b>${esc(c.nome)}</b> <small>${esc(c.protocolo)} · ${esc(c.cidade)}/${esc(c.uf)}</small>
             <em>${c.ultima ? esc((c.ultima.autor === "cliente" ? "" : c.ultima.autor === "ia" ? "Assistente: " : c.ultima.autor === "equipe" ? "Equipe: " : "") + c.ultima.texto) : "Sem mensagens"}</em></span>
-          <span class="ch-conv-lado"><small>${c.ultima ? hora(c.ultima.em) : ""}</small>${c.nao_lidas ? `<span class="ch-badge">${c.nao_lidas}</span>` : ""}<i class="ch-chip ${c.ia_ativa ? "" : "ch-chip-on"}">${c.ia_ativa ? "assistente" : esc(c.agente || "equipe")}</i></span>
+          <span class="ch-conv-lado"><small>${c.ultima ? hora(c.ultima.em) : ""}</small>${c.nao_lidas ? `<span class="ch-badge">${c.nao_lidas}</span>` : ""}${c.suporte ? `<i class="ch-chip ch-chip-sup">pediu atendimento</i>` : `<i class="ch-chip ${c.ia_ativa ? "" : "ch-chip-on"}">${c.ia_ativa ? "assistente" : esc(c.agente || "equipe")}</i>`}</span>
         </button>`).join("") : `<p class="dica">Nenhuma conversa ainda. O chat aparece para o cliente quando a cotação fica "Aprovada".</p>`;
     } catch (e) { caixa.querySelector(".ch-conv-lista").innerHTML = `<p class="form-erro">${esc(e.message)}</p>`; }
   }
@@ -258,5 +298,21 @@
     document.addEventListener("chat-fechado", desenharLista);
     timerLista = setInterval(() => { if (!document.hidden && document.getElementById("ch-conversas") && !aberto) desenharLista(); }, 20000);
   }
-  window.ChatCotacao = { abrir, htmlConvite, atualizarLista: desenharLista };
+  /* resumo para o sino de avisos */
+  const resumo = (protocolos) => (protocolos.length && ligado() ? chamar({ acao: "resumo", protocolos }).then((d) => d.conversas || []) : Promise.resolve([]));
+  const resumoEquipe = () => (ligado() ? chamar({ acao: "equipe_lista" }).then((d) => d.conversas || []) : Promise.resolve([]));
+  /* link de aviso: ...#chat=COT-XXXX-XXXX-XX abre a conversa (no painel, como equipe) */
+  function abrirPeloLink() {
+    const m = /chat=(COT-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{2})/i.exec(location.hash || "");
+    if (!m) return;
+    const ir = () => {
+      if (!ligado()) return;
+      if (PAINEL) { const aba = document.querySelector('[data-aba="cotacoes"]'); if (aba) aba.click(); }
+      abrir(m[1].toUpperCase(), PAINEL, "");
+    };
+    if (window.Recursos && window.Recursos.pronto) Promise.resolve(window.Recursos.pronto).then(() => setTimeout(ir, PAINEL ? 1200 : 300), ir); else setTimeout(ir, 800);
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", abrirPeloLink); else abrirPeloLink();
+  window.addEventListener("hashchange", abrirPeloLink);
+  window.ChatCotacao = { abrir, htmlConvite, atualizarLista: desenharLista, resumo, resumoEquipe };
 })();

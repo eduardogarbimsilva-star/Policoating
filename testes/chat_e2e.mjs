@@ -76,6 +76,51 @@ const msgs = (p) => p.$$eval(".ch-msgs .ch-msg, .ch-msgs .ch-sistema", (l) => l.
   R.add("CHE-14", "Sem erros de JavaScript", !erros.length, erros.join(" | "));
   await ctx.close();
 }
+{ // opções rápidas, chamar a equipe, avisos no sino (cliente e equipe) e "Minhas cotações" no menu
+  const ctx = await contexto(["b2b_quote_enabled", "quote_chat_enabled"]);
+  const cli = await ctx.newPage(); const erros = []; cli.on("pageerror", (e) => erros.push(e.message));
+  const cod = await cotar(cli, "aprovada");
+  await consultar(cli, cod);
+  await cli.evaluate(() => window.Avisos.conferir()); await espera(cli, 600);   // memoriza a cotação aprovada
+  await cli.click(".ch-convite [data-chat-abrir]"); await espera(cli, 800);
+  const ops = await cli.$$eval(".ch-opcoes .ch-opcao", (l) => l.map((b) => b.textContent));
+  R.add("CHE-19", "Opções rápidas na tela (frete, prazo, itens, validade, pagamento, alterar, falar com a equipe)", ops.length === 7 && ops.includes("Valor do frete") && ops.includes("Falar com a equipe"), ops.join(", "));
+  await cli.click('.ch-opcao[data-texto="Qual o valor do frete?"]'); await espera(cli, 700);
+  let m = await msgs(cli);
+  R.add("CHE-20", "Tocar numa opção envia a pergunta e o assistente responde", m.at(-2) === "cliente:Qual o valor do frete?" && /612,50/.test(m.at(-1)), m.slice(-2).join(" | "));
+  await cli.fill(".ch-rodape textarea", "tudo e voce?"); await cli.keyboard.press("Enter"); await espera(cli, 600);
+  await cli.fill(".ch-rodape textarea", "ok"); await cli.keyboard.press("Enter"); await espera(cli, 600);
+  m = await msgs(cli);
+  R.add("CHE-21", "Conversa natural: cumprimento e \"ok\" com respostas próprias", /Tudo ótimo/.test(m.at(-3)) && /Combinado/.test(m.at(-1)), m.slice(-4).join(" | "));
+  await cli.fill(".ch-rodape textarea", "Pode me enviar então"); await cli.keyboard.press("Enter"); await espera(cli, 700);
+  m = await msgs(cli);
+  R.add("CHE-22", "Não entendeu: chama a equipe, com aviso na conversa e topo \"equipe chamada\"", /chamei a equipe/.test(m.at(-2)) && /^sistema:Atendimento solicitado/.test(m.at(-1)) && /equipe chamada/.test(await cli.textContent(".ch-sub")), m.slice(-2).join(" | "));
+
+  await cli.keyboard.press("Escape"); await espera(cli, 400);   // cliente fecha o chat: as respostas chegam pelo sino
+  const adm = await ctx.newPage(); adm.on("pageerror", (e) => erros.push("painel: " + e.message));
+  await adm.goto(`${BASE}/admin.html`); await espera(adm, 1500);
+  await adm.evaluate(() => window.Avisos.conferirChat()); await espera(adm, 800);
+  const avEq = await adm.evaluate(() => window.Avisos.lista().map((a) => a.titulo + " | " + a.texto + " | " + a.link));
+  R.add("CHE-23", "Sino da equipe: \"Cliente pediu atendimento\" com a mensagem do cliente e link que abre a conversa", avEq.some((t) => t.includes("pediu atendimento") && t.includes("Pode me enviar então") && t.includes("admin#chat=" + cod)), avEq.join(" || "));
+  await adm.evaluate(() => document.querySelector('[data-aba="cotacoes"]').click()); await espera(adm, 900);
+  R.add("CHE-24", "Lista da equipe: conversa em destaque \"pediu atendimento\"", await adm.$$eval("#ch-conversas .ch-conv-suporte .ch-chip-sup", (l) => l.length) === 1);
+  await adm.goto(`${BASE}/admin.html#chat=${cod}`); await espera(adm, 2600);
+  R.add("CHE-25", "Abrir pelo link do aviso: já cai na conversa", await adm.isVisible(".ch-janela") && (await adm.textContent(".ch-sub")).includes(cod));
+  await adm.fill(".ch-rodape textarea", "Oi Maria, aqui é o Eduardo. Te envio o comprovante agora."); await adm.click(".ch-enviar"); await espera(adm, 600);
+  await adm.keyboard.press("Escape"); await espera(adm, 400);
+  await cli.evaluate(() => window.Avisos.conferirChat()); await espera(cli, 900);
+  const av = await cli.evaluate(() => ({ lista: window.Avisos.lista().map((a) => a.titulo + " | " + a.texto + " | " + a.link), cont: document.querySelector(".avisos-cont").textContent, sino: !document.querySelector(".btn-avisos").hidden }));
+  R.add("CHE-26", "Sino do cliente: \"Resposta no chat\" com o texto da equipe e link para a conversa", av.sino && av.cont !== "" && av.lista.some((t) => t.includes("Resposta no chat") && t.includes("Te envio o comprovante") && t.includes("cotacao#chat=" + cod)), JSON.stringify(av));
+  await cli.evaluate(() => window.Avisos.conferirChat()); await espera(cli, 600);
+  R.add("CHE-27", "Mesma resposta não avisa duas vezes", (await cli.evaluate(() => window.Avisos.lista().filter((a) => a.tipo === "chat" && /Resposta no chat/.test(a.titulo)).length)) === 1);
+  await cli.setViewportSize({ width: 390, height: 844 }); await espera(cli, 400);
+  R.add("CHE-28", "Celular: o sino aparece no topo", await cli.isVisible(".btn-avisos"));
+  await cli.setViewportSize({ width: 1280, height: 860 }); await espera(cli, 300);
+  const menu = await cli.evaluate(() => { const a = document.querySelector(".mc-cot"); return a && { href: a.getAttribute("href"), oculto: a.hidden, txt: a.textContent.trim() }; });
+  R.add("CHE-29", "Menu da conta tem \"Minhas cotações\" levando à aba de cotações", !!menu && !menu.oculto && menu.href === "conta#cotacoes" && /Minhas cotações/.test(menu.txt), JSON.stringify(menu));
+  R.add("CHE-30", "Sem erros de JavaScript", !erros.length, erros.join(" | "));
+  await ctx.close();
+}
 { // só cotação aprovada; recurso desligado = nada aparece
   const ctx = await contexto(["b2b_quote_enabled", "quote_chat_enabled"]);
   const p = await ctx.newPage();

@@ -3886,3 +3886,15 @@ body.cb-aberta { overflow: hidden; }
 .pg-aviso strong { grid-column: 1; } .pg-aviso span { grid-column: 1; font-size: .9rem; color: var(--texto-suave); }
 .pg-aviso button { grid-column: 2; grid-row: 1 / span 2; align-self: start; border: 0; background: none; font-size: 1rem; cursor: pointer; }
 .pg-av-pend { border-left-color: #e0a100; } .pg-av-nao { border-left-color: #d92d20; }
+
+/* ===== Chat: opções rápidas e "pediu atendimento" ===== */
+.ch-opcoes { display: flex; gap: 6px; overflow-x: auto; padding: 8px 10px 2px; background: #f0f2f5; scrollbar-width: none; flex-shrink: 0; }
+.ch-opcoes::-webkit-scrollbar { display: none; }
+.ch-opcao { flex-shrink: 0; padding: 7px 12px; border: 1px solid #cfe0ff; border-radius: 999px; background: #fff; color: #1558d6; font: 600 .82rem inherit; cursor: pointer; white-space: nowrap; transition: background .15s, color .15s; }
+.ch-opcao:hover, .ch-opcao:focus-visible { background: #1558d6; color: #fff; }
+.ch-opcao-eq { border-color: #bfe6cc; color: #0d7a43; }
+.ch-opcao-eq:hover, .ch-opcao-eq:focus-visible { background: #0d7a43; color: #fff; }
+.ch-sis-chamado span { background: #e8f0ff; color: #0b3a9c; font-weight: 600; }
+.ch-conv-suporte { border-color: #f5c2bd !important; background: #fff5f4 !important; }
+.ch-chip-sup { background: #fde8e6; color: #a1261c; font-weight: 700; }
+.aviso-ic.aviso-chat { background: #7a4cc2; }

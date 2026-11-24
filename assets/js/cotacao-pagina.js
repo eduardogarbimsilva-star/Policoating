@@ -369,7 +369,7 @@
     if (cfg.veiculos.ativo && !veiculoEscolhido) return erro("Nenhum veículo cadastrado comporta esse peso. Fale com o vendedor.", "#cot-veiculo");
     erro("");
     const bt = $("#cot-enviar"); bt.disabled = true; bt.textContent = "Cotando…";
-    const fimAnim = window.CotacaoAnimacao ? window.CotacaoAnimacao.mostrar() : async () => {};
+    const fimAnim = window.CotacaoAnimacao ? window.CotacaoAnimacao.mostrar({ veiculo: veiculoEscolhido }) : async () => {};
     try {
       let r;
       try { r = await C.enviar(d); } catch (errEnvio) { await fimAnim(false); const m = /Aguarde (\d+) segundos/.exec(errEnvio.message || ""); if (m) marcarUltima(+m[1]); throw errEnvio; }

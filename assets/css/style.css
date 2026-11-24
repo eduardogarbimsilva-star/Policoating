@@ -3913,3 +3913,10 @@ body.cb-aberta { overflow: hidden; }
 .nv-topo { min-height: 290px; }
 .nv-foto { object-position: 50% 64%; }
 @media (max-width: 640px) { .nv-topo { min-height: 200px; } .nv-foto { object-position: 55% 66%; } }
+
+/* fotos em WebP com JPG de reserva: o <picture> não cria caixa, o layout continua igual */
+picture { display: contents; }
+
+/* primeiro banner: foto WebP do tamanho da tela antes mesmo do JavaScript (JPG para navegador antigo) */
+.slide-inicial { background-image: url("../img/marca/aplicacao-pistola.jpg"); background-image: image-set(url("../img/marca/aplicacao-pistola.webp") type("image/webp"), url("../img/marca/aplicacao-pistola.jpg") type("image/jpeg")); background-size: cover; background-position: center; }
+@media (max-width: 900px) { .slide-inicial { background-image: image-set(url("../img/marca/aplicacao-pistola-800.webp") type("image/webp"), url("../img/marca/aplicacao-pistola.jpg") type("image/jpeg")); } }

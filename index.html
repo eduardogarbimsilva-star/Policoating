@@ -30,9 +30,12 @@
   </script>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Barlow:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="preload" as="image" href="assets/img/marca/aplicacao-pistola.jpg" fetchpriority="high">
-  <link rel="stylesheet" href="assets/css/style.css?v=964d1fc9">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Barlow:wght@500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+  <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Barlow:wght@500;600;700&display=swap" rel="stylesheet"></noscript>
+  <link rel="preload" as="image" type="image/webp" href="assets/img/marca/aplicacao-pistola-800.webp" media="(max-width: 900px)" fetchpriority="high">
+  <link rel="preload" as="image" type="image/webp" href="assets/img/marca/aplicacao-pistola.webp" media="(min-width: 901px)" fetchpriority="high">
+  <link rel="stylesheet" href="assets/css/style.css?v=6d10d65e">
 </head>
 <body>
   <a class="pular" href="#conteudo">Pular para o conteúdo</a>
@@ -100,7 +103,7 @@
     <!-- ===== Slides ===== -->
     <section class="slider" data-slider aria-roledescription="carrossel" aria-label="Destaques Policoating" tabindex="0">
       <div class="slides">
-        <article class="slide ativo com-foto" style="background-image:url('assets/img/marca/aplicacao-pistola.jpg')" data-arte="linha" data-foto="assets/img/marca/aplicacao-pistola.jpg" data-video="assets/video/fundo-topo.webm">
+        <article class="slide ativo com-foto slide-inicial" data-arte="linha" data-foto="assets/img/marca/aplicacao-pistola.jpg" data-video="assets/video/fundo-topo.webm">
           <div class="container slide-grade">
             <div class="slide-texto">
               <span class="sobretitulo">Tinta eletrostática em pó</span>
@@ -212,27 +215,27 @@
         </div>
         <div class="linhas-grade">
           <a class="linha-card revelar" href="produtos?categoria=poliester">
-            <img src="assets/img/marca/peca-grade.jpg" alt="Poliéster" loading="lazy">
+            <picture><source type="image/webp" srcset="assets/img/marca/peca-grade.webp" sizes="(max-width: 900px) 100vw, 60vw"><img src="assets/img/marca/peca-grade.jpg" alt="Poliéster" loading="lazy"></picture>
             <div class="linha-info"><h3>Poliéster</h3><p>Portões, grades, esquadrias e fachadas. Resiste ao sol e à chuva.</p><span class="linha-seta"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></div>
           </a>
           <a class="linha-card revelar" href="produtos?categoria=epoxi">
-            <img src="assets/img/marca/peca-armario.jpg" alt="Epóxi" loading="lazy">
+            <picture><source type="image/webp" srcset="assets/img/marca/peca-armario.webp" sizes="(max-width: 900px) 100vw, 60vw"><img src="assets/img/marca/peca-armario.jpg" alt="Epóxi" loading="lazy"></picture>
             <div class="linha-info"><h3>Epóxi</h3><p>Painéis elétricos, máquinas e prateleiras. Alta resistência química.</p><span class="linha-seta"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></div>
           </a>
           <a class="linha-card revelar" href="produtos?categoria=hibrida">
-            <img src="assets/img/inspiracao/pexels-11513526.jpg" alt="Híbrida" loading="lazy" data-foto-real data-reserva="assets/img/marca/pecas-linha.jpg">
+            <picture><source type="image/webp" srcset="assets/img/inspiracao/pexels-11513526.webp" sizes="(max-width: 900px) 100vw, 60vw"><img src="assets/img/inspiracao/pexels-11513526.jpg" alt="Híbrida" loading="lazy" data-foto-real data-reserva="assets/img/marca/pecas-linha.jpg"></picture>
             <div class="linha-info"><h3>Híbrida</h3><p>Móveis de aço, armários e eletrodomésticos de uso interno.</p><span class="linha-seta"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></div>
           </a>
           <a class="linha-card revelar" href="produtos?categoria=texturizada">
-            <img src="assets/img/marca/placas-acabamentos.jpg" alt="Texturizadas" loading="lazy">
+            <picture><source type="image/webp" srcset="assets/img/marca/placas-acabamentos-800.webp 800w, assets/img/marca/placas-acabamentos.webp 1600w" sizes="(max-width: 900px) 100vw, 60vw"><img src="assets/img/marca/placas-acabamentos.jpg" alt="Texturizadas" loading="lazy"></picture>
             <div class="linha-info"><h3>Texturizadas</h3><p>Rugosas e marteladas: disfarçam imperfeições e resistem a riscos.</p><span class="linha-seta"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></div>
           </a>
           <a class="linha-card revelar" href="produtos?categoria=metalica">
-            <img src="assets/img/marca/esquadria-bronze.jpg" alt="Metálicas" loading="lazy">
+            <picture><source type="image/webp" srcset="assets/img/marca/esquadria-bronze-800.webp 800w, assets/img/marca/esquadria-bronze.webp 1420w" sizes="(max-width: 900px) 100vw, 60vw"><img src="assets/img/marca/esquadria-bronze.jpg" alt="Metálicas" loading="lazy"></picture>
             <div class="linha-info"><h3>Metálicas</h3><p>Cobre, bronze, prata e ouro velho para peças decorativas.</p><span class="linha-seta"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></div>
           </a>
           <a class="linha-card revelar" href="produtos?categoria=especiais">
-            <img src="assets/img/marca/estufa-cura.jpg" alt="Especiais" loading="lazy">
+            <picture><source type="image/webp" srcset="assets/img/marca/estufa-cura-800.webp 800w, assets/img/marca/estufa-cura.webp 1600w" sizes="(max-width: 900px) 100vw, 60vw"><img src="assets/img/marca/estufa-cura.jpg" alt="Especiais" loading="lazy"></picture>
             <div class="linha-info"><h3>Especiais</h3><p>Primer rico em zinco, verniz, alta temperatura e cores sob medida.</p><span class="linha-seta"><svg class="icone-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></div>
           </a>
         </div>
@@ -252,31 +255,31 @@
         <button type="button" class="seg-seta ant" aria-label="Anterior">‹</button>
         <div class="seg-trilho" tabindex="0">
           <a class="segmento" href="produtos?categoria=poliester" draggable="false">
-            <img src="assets/img/marca/peca-grade.jpg" alt="Serralherias" loading="lazy" draggable="false">
+            <picture><source type="image/webp" srcset="assets/img/marca/peca-grade.webp" sizes="(max-width: 900px) 100vw, 60vw"><img src="assets/img/marca/peca-grade.jpg" alt="Serralherias" loading="lazy" draggable="false"></picture>
             <div><h3>Serralherias</h3><p>Portões, grades e gradis com acabamento duradouro.</p></div>
           </a>
           <a class="segmento" href="produtos?categoria=poliester" draggable="false">
-            <img src="assets/img/marca/esquadria-bronze.jpg" alt="Esquadrias e fachadas" loading="lazy" draggable="false">
+            <picture><source type="image/webp" srcset="assets/img/marca/esquadria-bronze-800.webp 800w, assets/img/marca/esquadria-bronze.webp 1420w" sizes="(max-width: 900px) 100vw, 60vw"><img src="assets/img/marca/esquadria-bronze.jpg" alt="Esquadrias e fachadas" loading="lazy" draggable="false"></picture>
             <div><h3>Esquadrias e fachadas</h3><p>Perfis de alumínio com alta resistência ao sol.</p></div>
           </a>
           <a class="segmento" href="produtos?categoria=epoxi" draggable="false">
-            <img src="assets/img/marca/peca-armario.jpg" alt="Painéis elétricos" loading="lazy" draggable="false">
+            <picture><source type="image/webp" srcset="assets/img/marca/peca-armario.webp" sizes="(max-width: 900px) 100vw, 60vw"><img src="assets/img/marca/peca-armario.jpg" alt="Painéis elétricos" loading="lazy" draggable="false"></picture>
             <div><h3>Painéis elétricos</h3><p>Quadros e gabinetes com epóxi de alta dureza.</p></div>
           </a>
           <a class="segmento" href="produtos?categoria=metalica" draggable="false">
-            <img src="assets/img/marca/peca-banco.jpg" alt="Móveis e decoração" loading="lazy" draggable="false">
+            <picture><source type="image/webp" srcset="assets/img/marca/peca-banco.webp" sizes="(max-width: 900px) 100vw, 60vw"><img src="assets/img/marca/peca-banco.jpg" alt="Móveis e decoração" loading="lazy" draggable="false"></picture>
             <div><h3>Móveis e decoração</h3><p>Efeitos metálicos e texturas para design.</p></div>
           </a>
           <a class="segmento" href="produtos?categoria=poliester" draggable="false">
-            <img src="assets/img/marca/pecas-pintadas.jpg" alt="Automotivo e duas rodas" loading="lazy" draggable="false">
+            <picture><source type="image/webp" srcset="assets/img/marca/pecas-pintadas-800.webp 800w, assets/img/marca/pecas-pintadas.webp 1600w" sizes="(max-width: 900px) 100vw, 60vw"><img src="assets/img/marca/pecas-pintadas.jpg" alt="Automotivo e duas rodas" loading="lazy" draggable="false"></picture>
             <div><h3>Automotivo e duas rodas</h3><p>Rodas, quadros e peças com brilho e proteção.</p></div>
           </a>
           <a class="segmento" href="produtos?categoria=especiais" draggable="false">
-            <img src="assets/img/inspiracao/pexels-11667731.jpg" alt="Estruturas metálicas" loading="lazy" draggable="false" data-foto-real data-reserva="assets/img/marca/estufa-cura.jpg">
+            <picture><source type="image/webp" srcset="assets/img/inspiracao/pexels-11667731.webp" sizes="(max-width: 900px) 100vw, 60vw"><img src="assets/img/inspiracao/pexels-11667731.jpg" alt="Estruturas metálicas" loading="lazy" draggable="false" data-foto-real data-reserva="assets/img/marca/estufa-cura.jpg"></picture>
             <div><h3>Estruturas metálicas</h3><p>Sistemas anticorrosivos com primer rico em zinco.</p></div>
           </a>
           <a class="segmento" href="produtos?categoria=todas" draggable="false">
-            <img src="assets/img/marca/linha-fabrica.jpg" alt="Aplicadores e indústrias" loading="lazy" draggable="false">
+            <picture><source type="image/webp" srcset="assets/img/marca/linha-fabrica-800.webp 800w, assets/img/marca/linha-fabrica.webp 1600w" sizes="(max-width: 900px) 100vw, 60vw"><img src="assets/img/marca/linha-fabrica.jpg" alt="Aplicadores e indústrias" loading="lazy" draggable="false"></picture>
             <div><h3>Aplicadores e indústrias</h3><p>Pó com rendimento estável para linhas de pintura.</p></div>
           </a>
         </div>
@@ -386,20 +389,20 @@
     <!-- ===== Faixa de imagens rolando ===== -->
     <section class="faixa-imagens" aria-label="Imagens da Policoating">
       <div class="faixa-linha"><div class="faixa-trilho" data-faixa>
-            <a class="faixa-item" href="galeria"><img src="assets/img/marca/aplicacao-pistola.jpg" alt="Aplicação eletrostática" loading="lazy" width="480" height="270"><span>Aplicação eletrostática</span></a>
-            <a class="faixa-item" href="galeria"><img src="assets/img/marca/estoque-ral.jpg" alt="Estoque por cor RAL" loading="lazy" width="480" height="270"><span>Estoque por cor RAL</span></a>
-            <a class="faixa-item" href="galeria"><img src="assets/img/marca/estufa-cura.jpg" alt="Cura na estufa" loading="lazy" width="480" height="270"><span>Cura na estufa</span></a>
-            <a class="faixa-item" href="galeria"><img src="assets/img/marca/esquadria-bronze.jpg" alt="Esquadrias metálicas" loading="lazy" width="480" height="270"><span>Esquadrias metálicas</span></a>
-            <a class="faixa-item" href="galeria"><img src="assets/img/marca/teste-impacto.jpg" alt="Teste de impacto" loading="lazy" width="480" height="270"><span>Teste de impacto</span></a>
-            <a class="faixa-item" href="galeria"><img src="assets/img/marca/placas-acabamentos.jpg" alt="Acabamentos" loading="lazy" width="480" height="270"><span>Acabamentos</span></a>
+            <a class="faixa-item" href="galeria"><picture><source type="image/webp" srcset="assets/img/marca/aplicacao-pistola-800.webp 800w, assets/img/marca/aplicacao-pistola.webp 1264w" sizes="(max-width: 900px) 100vw, 60vw"><img src="assets/img/marca/aplicacao-pistola.jpg" alt="Aplicação eletrostática" loading="lazy" width="480" height="270"></picture><span>Aplicação eletrostática</span></a>
+            <a class="faixa-item" href="galeria"><picture><source type="image/webp" srcset="assets/img/marca/estoque-ral-800.webp 800w, assets/img/marca/estoque-ral.webp 1600w" sizes="(max-width: 900px) 100vw, 60vw"><img src="assets/img/marca/estoque-ral.jpg" alt="Estoque por cor RAL" loading="lazy" width="480" height="270"></picture><span>Estoque por cor RAL</span></a>
+            <a class="faixa-item" href="galeria"><picture><source type="image/webp" srcset="assets/img/marca/estufa-cura-800.webp 800w, assets/img/marca/estufa-cura.webp 1600w" sizes="(max-width: 900px) 100vw, 60vw"><img src="assets/img/marca/estufa-cura.jpg" alt="Cura na estufa" loading="lazy" width="480" height="270"></picture><span>Cura na estufa</span></a>
+            <a class="faixa-item" href="galeria"><picture><source type="image/webp" srcset="assets/img/marca/esquadria-bronze-800.webp 800w, assets/img/marca/esquadria-bronze.webp 1420w" sizes="(max-width: 900px) 100vw, 60vw"><img src="assets/img/marca/esquadria-bronze.jpg" alt="Esquadrias metálicas" loading="lazy" width="480" height="270"></picture><span>Esquadrias metálicas</span></a>
+            <a class="faixa-item" href="galeria"><picture><source type="image/webp" srcset="assets/img/marca/teste-impacto-800.webp 800w, assets/img/marca/teste-impacto.webp 1560w" sizes="(max-width: 900px) 100vw, 60vw"><img src="assets/img/marca/teste-impacto.jpg" alt="Teste de impacto" loading="lazy" width="480" height="270"></picture><span>Teste de impacto</span></a>
+            <a class="faixa-item" href="galeria"><picture><source type="image/webp" srcset="assets/img/marca/placas-acabamentos-800.webp 800w, assets/img/marca/placas-acabamentos.webp 1600w" sizes="(max-width: 900px) 100vw, 60vw"><img src="assets/img/marca/placas-acabamentos.jpg" alt="Acabamentos" loading="lazy" width="480" height="270"></picture><span>Acabamentos</span></a>
       </div></div>
       <div class="faixa-linha reversa"><div class="faixa-trilho" data-faixa>
-            <a class="faixa-item" href="galeria"><img src="assets/img/marca/linha-fabrica.jpg" alt="Linha de pintura" loading="lazy" width="480" height="270"><span>Linha de pintura</span></a>
-            <a class="faixa-item" href="galeria"><img src="assets/img/marca/painel-estufa.jpg" alt="Controle de temperatura" loading="lazy" width="480" height="270"><span>Controle de temperatura</span></a>
-            <a class="faixa-item" href="galeria"><img src="assets/img/marca/aplicacao-roda.jpg" alt="Rodas automotivas" loading="lazy" width="480" height="270"><span>Rodas automotivas</span></a>
-            <a class="faixa-item" href="galeria"><img src="assets/img/marca/inspecao-qualidade.jpg" alt="Controle de espessura" loading="lazy" width="480" height="270"><span>Controle de espessura</span></a>
-            <a class="faixa-item" href="galeria"><img src="assets/img/marca/pecas-linha.jpg" alt="Grades, esquadrias e painéis" loading="lazy" width="480" height="270"><span>Grades, esquadrias e painéis</span></a>
-            <a class="faixa-item" href="galeria"><img src="assets/img/marca/alimentador-po.jpg" alt="Alimentação do pó" loading="lazy" width="480" height="270"><span>Alimentação do pó</span></a>
+            <a class="faixa-item" href="galeria"><picture><source type="image/webp" srcset="assets/img/marca/linha-fabrica-800.webp 800w, assets/img/marca/linha-fabrica.webp 1600w" sizes="(max-width: 900px) 100vw, 60vw"><img src="assets/img/marca/linha-fabrica.jpg" alt="Linha de pintura" loading="lazy" width="480" height="270"></picture><span>Linha de pintura</span></a>
+            <a class="faixa-item" href="galeria"><picture><source type="image/webp" srcset="assets/img/marca/painel-estufa-800.webp 800w, assets/img/marca/painel-estufa.webp 1600w" sizes="(max-width: 900px) 100vw, 60vw"><img src="assets/img/marca/painel-estufa.jpg" alt="Controle de temperatura" loading="lazy" width="480" height="270"></picture><span>Controle de temperatura</span></a>
+            <a class="faixa-item" href="galeria"><picture><source type="image/webp" srcset="assets/img/marca/aplicacao-roda-800.webp 800w, assets/img/marca/aplicacao-roda.webp 1600w" sizes="(max-width: 900px) 100vw, 60vw"><img src="assets/img/marca/aplicacao-roda.jpg" alt="Rodas automotivas" loading="lazy" width="480" height="270"></picture><span>Rodas automotivas</span></a>
+            <a class="faixa-item" href="galeria"><picture><source type="image/webp" srcset="assets/img/marca/inspecao-qualidade-800.webp 800w, assets/img/marca/inspecao-qualidade.webp 1600w" sizes="(max-width: 900px) 100vw, 60vw"><img src="assets/img/marca/inspecao-qualidade.jpg" alt="Controle de espessura" loading="lazy" width="480" height="270"></picture><span>Controle de espessura</span></a>
+            <a class="faixa-item" href="galeria"><picture><source type="image/webp" srcset="assets/img/marca/pecas-linha-800.webp 800w, assets/img/marca/pecas-linha.webp 1600w" sizes="(max-width: 900px) 100vw, 60vw"><img src="assets/img/marca/pecas-linha.jpg" alt="Grades, esquadrias e painéis" loading="lazy" width="480" height="270"></picture><span>Grades, esquadrias e painéis</span></a>
+            <a class="faixa-item" href="galeria"><picture><source type="image/webp" srcset="assets/img/marca/alimentador-po-800.webp 800w, assets/img/marca/alimentador-po.webp 1600w" sizes="(max-width: 900px) 100vw, 60vw"><img src="assets/img/marca/alimentador-po.jpg" alt="Alimentação do pó" loading="lazy" width="480" height="270"></picture><span>Alimentação do pó</span></a>
       </div></div>
     </section>
 
@@ -413,19 +416,19 @@
         </div>
         <div class="passos-cards">
           <article class="passo-card revelar">
-            <div class="passo-img"><img src="assets/img/inspiracao/pexels-29385994.jpg" alt="Preparação mecânica de peça metálica" loading="lazy" data-foto-real data-reserva="assets/img/marca/placas-acabamentos.jpg"></div>
+            <div class="passo-img"><picture><source type="image/webp" srcset="assets/img/inspiracao/pexels-29385994.webp" sizes="(max-width: 900px) 100vw, 60vw"><img src="assets/img/inspiracao/pexels-29385994.jpg" alt="Preparação mecânica de peça metálica" loading="lazy" data-foto-real data-reserva="assets/img/marca/placas-acabamentos.jpg"></picture></div>
             <div class="passo-txt"><span>01</span><h3>Preparação</h3><p>Jateamento, desengraxe e pré-tratamento deixam o metal limpo e pronto para a tinta aderir.</p></div>
           </article>
           <article class="passo-card revelar">
-            <div class="passo-img"><img src="assets/img/marca/aplicacao-pistola.jpg" alt="Aplicação com pistola eletrostática Policoating" loading="lazy"></div>
+            <div class="passo-img"><picture><source type="image/webp" srcset="assets/img/marca/aplicacao-pistola-800.webp 800w, assets/img/marca/aplicacao-pistola.webp 1264w" sizes="(max-width: 900px) 100vw, 60vw"><img src="assets/img/marca/aplicacao-pistola.jpg" alt="Aplicação com pistola eletrostática Policoating" loading="lazy"></picture></div>
             <div class="passo-txt"><span>02</span><h3>Aplicação eletrostática</h3><p>A pistola carrega o pó, que é atraído pela peça aterrada dentro da cabine.</p></div>
           </article>
           <article class="passo-card revelar">
-            <div class="passo-img"><img src="assets/img/marca/estufa-cura.jpg" alt="Peças penduradas dentro da estufa de cura" loading="lazy"><em class="passo-selo">160–200 °C</em></div>
+            <div class="passo-img"><picture><source type="image/webp" srcset="assets/img/marca/estufa-cura-800.webp 800w, assets/img/marca/estufa-cura.webp 1600w" sizes="(max-width: 900px) 100vw, 60vw"><img src="assets/img/marca/estufa-cura.jpg" alt="Peças penduradas dentro da estufa de cura" loading="lazy"></picture><em class="passo-selo">160–200 °C</em></div>
             <div class="passo-txt"><span>03</span><h3>Cura na estufa</h3><p>No calor, o pó derrete, se nivela e endurece, formando uma película contínua.</p></div>
           </article>
           <article class="passo-card revelar">
-            <div class="passo-img"><img src="assets/img/marca/inspecao-qualidade.jpg" alt="Inspetor medindo a espessura da camada em peça azul" loading="lazy"><em class="passo-selo">60–120 µm</em></div>
+            <div class="passo-img"><picture><source type="image/webp" srcset="assets/img/marca/inspecao-qualidade-800.webp 800w, assets/img/marca/inspecao-qualidade.webp 1600w" sizes="(max-width: 900px) 100vw, 60vw"><img src="assets/img/marca/inspecao-qualidade.jpg" alt="Inspetor medindo a espessura da camada em peça azul" loading="lazy"></picture><em class="passo-selo">60–120 µm</em></div>
             <div class="passo-txt"><span>04</span><h3>Controle de qualidade</h3><p>Espessura, aderência e brilho conferidos antes da entrega.</p></div>
           </article>
         </div>
@@ -453,7 +456,7 @@
           <p>Trabalhamos com cores do padrão RAL e desenvolvemos cores e efeitos sob medida, com suporte técnico para escolher o produto certo para cada peça e ambiente.</p>
           <a href="sobre" class="btn btn-primario" style="margin-top:8px">Conheça a empresa</a>
         </div>
-        <figure class="foto-real revelar revelar-lado"><img src="assets/img/marca/linha-fabrica.jpg" alt="Linha de pintura a pó com cabine robotizada e estufa Policoating" width="1600" height="720" loading="lazy"></figure>
+        <figure class="foto-real revelar revelar-lado"><picture><source type="image/webp" srcset="assets/img/marca/linha-fabrica-800.webp 800w, assets/img/marca/linha-fabrica.webp 1600w" sizes="(max-width: 900px) 100vw, 60vw"><img src="assets/img/marca/linha-fabrica.jpg" alt="Linha de pintura a pó com cabine robotizada e estufa Policoating" width="1600" height="720" loading="lazy"></picture></figure>
       </div>
     </section>
 
@@ -475,15 +478,15 @@
       </div>
       <div class="pilula-slider revelar" data-pilulas>
         <article class="pilula ativa">
-          <div class="pilula-foto"><img src="assets/img/inspiracao/pexels-227416.jpg" alt="Lago cercado por floresta" loading="lazy" data-foto-real data-reserva="assets/img/marca/potes-cores.jpg"></div>
+          <div class="pilula-foto"><picture><source type="image/webp" srcset="assets/img/inspiracao/pexels-227416-800.webp 800w, assets/img/inspiracao/pexels-227416.webp 1100w" sizes="(max-width: 900px) 100vw, 60vw"><img src="assets/img/inspiracao/pexels-227416.jpg" alt="Lago cercado por floresta" loading="lazy" data-foto-real data-reserva="assets/img/marca/potes-cores.jpg"></picture></div>
           <div class="pilula-card"><h3>Sustentabilidade</h3><p>Tinta em pó não usa solventes e o pó que não adere à peça é recuperado. Menos emissões e menos desperdício na sua linha de pintura.</p><a href="aplicacao#vantagens" class="btn btn-contorno-escuro">Veja mais sobre o assunto</a></div>
         </article>
         <article class="pilula">
-          <div class="pilula-foto"><img src="assets/img/marca/teste-impacto.jpg" alt="Teste de resistência ao impacto em placa pintada" loading="lazy"></div>
+          <div class="pilula-foto"><picture><source type="image/webp" srcset="assets/img/marca/teste-impacto-800.webp 800w, assets/img/marca/teste-impacto.webp 1560w" sizes="(max-width: 900px) 100vw, 60vw"><img src="assets/img/marca/teste-impacto.jpg" alt="Teste de resistência ao impacto em placa pintada" loading="lazy"></picture></div>
           <div class="pilula-card"><h3>Qualidade controlada</h3><p>Cada lote é conferido em cor, brilho, cura e aderência, com boletim técnico e FISPQ disponíveis para todos os produtos.</p><a href="recursos#documentos" class="btn btn-contorno-escuro">Fichas técnicas</a></div>
         </article>
         <article class="pilula">
-          <div class="pilula-foto"><img src="assets/img/marca/aplicacao-roda.jpg" alt="Aplicação de tinta em pó em roda" loading="lazy"></div>
+          <div class="pilula-foto"><picture><source type="image/webp" srcset="assets/img/marca/aplicacao-roda-800.webp 800w, assets/img/marca/aplicacao-roda.webp 1600w" sizes="(max-width: 900px) 100vw, 60vw"><img src="assets/img/marca/aplicacao-roda.jpg" alt="Aplicação de tinta em pó em roda" loading="lazy"></picture></div>
           <div class="pilula-card"><h3>Suporte técnico</h3><p>Ajudamos a escolher o pó, ajustar a aplicação e a cura e resolver problemas na linha de pintura.</p><a class="btn btn-contorno-escuro" data-whats="Olá! Preciso de suporte técnico com a pintura a pó.">Falar com um técnico</a></div>
         </article>
         <div class="pilula-setas"><button type="button" class="ant" aria-label="Anterior">‹</button><button type="button" class="prox" aria-label="Próximo">›</button></div>
@@ -634,7 +637,7 @@
   <script src="assets/js/catalogo.js?v=2eec3424"></script>
   <script src="assets/js/recursos.js?v=d83dccf2"></script>
   <script src="assets/js/flutuante.js?v=9645d8eb"></script>
-  <script src="assets/js/pwa.js?v=eaafcbcb"></script>
+  <script src="assets/js/pwa.js?v=6cd2186a"></script>
   <script src="assets/js/frete.js?v=83c78857"></script>
   <script src="assets/js/cotacao.js?v=474afdb5"></script>
   <script src="assets/js/avisos.js?v=624a8f33"></script>
@@ -646,12 +649,12 @@
   <script src="assets/js/loja.js?v=67be2651"></script>
   <script src="assets/js/pagamento.js?v=dd6d39bc"></script>
   <script src="assets/js/chat-cotacao.js?v=7434af6f" defer></script>
-  <script src="assets/js/main.js?v=90cca571"></script>
-  <script src="assets/js/novidades-janela.js?v=f9619c49" defer></script>
-  <script src="assets/js/animacoes.js?v=d2c27710"></script>
+  <script src="assets/js/main.js?v=b5a9cde3"></script>
+  <script src="assets/js/novidades-janela.js?v=8cd3d042" defer></script>
+  <script src="assets/js/animacoes.js?v=fc9a5ccb"></script>
   <script src="assets/js/secoes.js?v=7befe6f9"></script>
   <script src="assets/js/assistente.js?v=bb8498c5"></script>
-  <script src="assets/js/novidades.js?v=dd72ba23"></script>
+  <script src="assets/js/novidades.js?v=c12bfb31"></script>
   <script>
     document.addEventListener("DOMContentLoaded", function () {
       var CW = window.ColorWeg;

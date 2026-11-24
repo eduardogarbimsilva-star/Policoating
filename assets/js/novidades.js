@@ -32,7 +32,7 @@
     caixa.hidden = !ativos.length;
     if (!ativos.length) { caixa.querySelector(".novidades-grade").innerHTML = ""; return; }
     caixa.querySelector(".novidades-grade").innerHTML = ativos.map((c) => `<article class="novidade revelar visivel">
-        <div class="novidade-foto"><img src="assets/img/novidades/${esc(c.foto)}.jpg" alt="" width="640" height="360" loading="lazy" decoding="async"><span class="novidade-selo">${esc(c.selo)}</span></div>
+        <div class="novidade-foto"><picture><source type="image/webp" srcset="assets/img/novidades/${esc(c.foto)}.webp"><img src="assets/img/novidades/${esc(c.foto)}.jpg" alt="" width="640" height="360" loading="lazy" decoding="async"></picture><span class="novidade-selo">${esc(c.selo)}</span></div>
         <span class="novidade-ic">${c.icone}</span>
         <h3>${esc(c.titulo)}</h3><p>${esc(c.texto)}</p>
         ${c.passos ? `<ol class="novidade-passos">${c.passos.map((x) => `<li>${esc(x)}</li>`).join("")}</ol>` : ""}

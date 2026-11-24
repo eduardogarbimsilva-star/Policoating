@@ -32,8 +32,16 @@
       fecharConvite();
       // recurso desligado: tira o service worker e o cache deste site
       const regs = await navigator.serviceWorker.getRegistrations().catch(() => []);
-      regs.forEach((r) => { if (r.active) r.active.postMessage("limpar"); r.unregister(); });
+      await Promise.all(regs.map((r) => { if (r.active) r.active.postMessage("limpar"); return r.unregister().catch(() => false); }));
       registrado = false;
+      // o service worker que já controla esta página ainda pode guardar o que ela está baixando agora:
+      // a própria página apaga o cache e repete depois que tudo carregar
+      const limparCache = () => { try { if (window.caches) caches.keys().then((ks) => Promise.all(ks.map((k) => caches.delete(k)))).catch(() => {}); } catch (e) { /* sem suporte */ } };
+      if (regs.length) {
+        limparCache();
+        const depois = () => { limparCache(); setTimeout(limparCache, 1500); };
+        if (document.readyState === "complete") setTimeout(depois, 300); else window.addEventListener("load", depois, { once: true });
+      }
     }
   }
 

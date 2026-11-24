@@ -108,19 +108,27 @@
         s.classList.add("com-foto");
         const fundo = document.createElement("div");
         fundo.className = "slide-fundo";
-        if (foto) fundo.style.backgroundImage = `url("${foto}")`;
+        if (foto) {
+          fundo.style.backgroundImage = `url("${foto}")`;   // reserva (navegador antigo)
+          // fotos do próprio site: WebP (800 px no celular) — bem mais leve que o JPG
+          if (/^assets\/img\/[a-z]+\/[a-z0-9-]+\.jpg$/.test(foto)) {
+            const webp = foto.replace(/\.jpg$/, innerWidth <= 900 ? "-800.webp" : ".webp");
+            fundo.style.backgroundImage = `image-set(url("${webp}") type("image/webp"), url("${foto}") type("image/jpeg"))`;
+          }
+        }
         s.prepend(fundo);
         // vídeo de fundo (2,5 MB): só depois de a página carregar, e não em economia de dados,
         // internet lenta ou "menos movimento" (fica a foto) — não atrasa a primeira imagem
         const conexao = navigator.connection || {};
-        const podeVideo = s.dataset.video && !menosMovimento && !conexao.saveData && !/(^|-)2g|3g/.test(conexao.effectiveType || "");
+        // celular/tablet (até 900 px) fica com a foto: o vídeo pesa 2,5 MB
+        const podeVideo = s.dataset.video && !menosMovimento && !conexao.saveData && !/(^|-)2g|3g/.test(conexao.effectiveType || "") && window.matchMedia("(min-width: 901px)").matches;
         if (podeVideo) {
           const ligarVideo = () => {
             const v = document.createElement("video");
             Object.assign(v, { muted: true, loop: true, playsInline: true, autoplay: true, preload: "auto" });
             v.className = "slide-video";
             v.setAttribute("muted", ""); v.setAttribute("playsinline", ""); v.setAttribute("aria-hidden", "true");
-            if (foto) v.poster = foto;
+            if (foto) v.poster = /\.jpg$/.test(foto) && /^assets\//.test(foto) ? foto.replace(/\.jpg$/, ".webp") : foto;
             v.src = s.dataset.video;
             v.addEventListener("error", () => v.remove());
             fundo.appendChild(v);

@@ -3920,3 +3920,8 @@ picture { display: contents; }
 /* primeiro banner: foto WebP do tamanho da tela antes mesmo do JavaScript (JPG para navegador antigo) */
 .slide-inicial { background-image: url("../img/marca/aplicacao-pistola.jpg"); background-image: image-set(url("../img/marca/aplicacao-pistola.webp") type("image/webp"), url("../img/marca/aplicacao-pistola.jpg") type("image/jpeg")); background-size: cover; background-position: center; }
 @media (max-width: 900px) { .slide-inicial { background-image: image-set(url("../img/marca/aplicacao-pistola-800.webp") type("image/webp"), url("../img/marca/aplicacao-pistola.jpg") type("image/jpeg")); } }
+/* o <source> do <picture> nunca ocupa lugar no layout (em grade/flex ele virava uma "célula" vazia) */
+picture > source { display: none !important; }
+.cot-frota img { grid-column: 1; grid-row: 1; }
+.cot-frota figcaption { grid-column: 2; grid-row: 1; min-width: 0; }
+@media (max-width: 520px) { .cot-frota figcaption { grid-column: 1; grid-row: 2; } }

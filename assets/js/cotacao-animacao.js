@@ -1,6 +1,7 @@
 /* =========================================================
    Animação enquanto a cotação é calculada (tela por cima, transparente)
-   - Sorteia: caminhão Policoating na estrada (luz do dia, névoa ao longe, rodas com aro cromado,
+   - Veículo da cotação: Montana → picape; caminhão → caminhão baú. Sem veículo, sorteia entre os dois e o avião.
+   - Cenas: caminhão Policoating na estrada (luz do dia, névoa ao longe, rodas com aro cromado,
      escapamento, reflexo no baú e sombra no asfalto) ou jato sobre o mar (vai se afastando, faz a
      curva e volta mais perto, com rastro), com nuvens em camadas, navio com esteira, ilha e pássaros.
    - Fica no mínimo 6 segundos (em loop) e libera assim que a cotação fica pronta.
@@ -32,7 +33,7 @@
       <circle cx="${x}" cy="${y}" r="12" fill="url(#cb3-giro)" opacity=".55"/>
     </g>`;
 
-  const CAMINHAO = `<svg class="cb-cena cb-cam" viewBox="0 0 640 300" role="img" aria-label="Caminhão da Policoating na estrada">
+  const estrada = (classe, rotulo, veiculo) => `<svg class="cb-cena cb-cam ${classe}" viewBox="0 0 640 300" role="img" aria-label="${rotulo}">
     <defs>
       <linearGradient id="cb3-ceu" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3d86e0"/><stop offset=".55" stop-color="#9fcdf7"/><stop offset=".78" stop-color="#e6f2fb"/><stop offset="1" stop-color="#ffe8c4"/></linearGradient>
       <radialGradient id="cb3-sol"><stop offset="0" stop-color="#fffbe6"/><stop offset=".25" stop-color="#fff0b0" stop-opacity=".95"/><stop offset=".6" stop-color="#ffd978" stop-opacity=".35"/><stop offset="1" stop-color="#ffd978" stop-opacity="0"/></radialGradient>
@@ -43,6 +44,9 @@
       <linearGradient id="cb3-nevoa" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".7" stop-color="#fff6e6" stop-opacity=".55"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
       <linearGradient id="cb3-asfalto" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4a525d"/><stop offset="1" stop-color="#2b3038"/></linearGradient>
       <linearGradient id="cb3-bau" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset=".55" stop-color="#f1f4f8"/><stop offset="1" stop-color="#d3dbe5"/></linearGradient>
+      <linearGradient id="cb3-alu" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#eef1f4"/><stop offset=".5" stop-color="#cfd6dd"/><stop offset="1" stop-color="#aeb8c2"/></linearGradient>
+      <linearGradient id="cb3-branco" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset=".6" stop-color="#f1f4f8"/><stop offset="1" stop-color="#d5dde6"/></linearGradient>
+      <clipPath id="cb3-alu-clip"><rect x="40" y="96" width="250" height="126" rx="3"/></clipPath>
       <linearGradient id="cb3-cab" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4b8bff"/><stop offset=".45" stop-color="#1d5fe0"/><stop offset="1" stop-color="#0a3189"/></linearGradient>
       <linearGradient id="cb3-vidro" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#d9efff"/><stop offset=".5" stop-color="#8fbde6"/><stop offset="1" stop-color="#3f6f9f"/></linearGradient>
       <linearGradient id="cb3-cromo" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f6f8fa"/><stop offset=".45" stop-color="#a7b1bc"/><stop offset=".55" stop-color="#d5dbe1"/><stop offset="1" stop-color="#7f8a96"/></linearGradient>
@@ -71,54 +75,70 @@
     <rect y="216" width="640" height="3" fill="#e9edf2" opacity=".85"/>
     <rect y="290" width="640" height="3" fill="#e9edf2" opacity=".6"/>
     <line class="cb-faixa" x1="0" y1="262" x2="1280" y2="262" stroke="#ffd34d" stroke-width="5" stroke-dasharray="44 34"/>
-    <g class="cb3-veiculo">
-      <ellipse cx="216" cy="250" rx="190" ry="9" fill="#000" opacity=".35" filter="url(#cb3-desf2)"/>
-      <g class="cb3-fumaca" fill="#d9dee5"><circle cx="300" cy="96" r="5"/><circle cx="300" cy="96" r="6"/><circle cx="300" cy="96" r="7"/></g>
-      <g class="cb-sacode">
-        <!-- chassi e saia lateral -->
-        <rect x="40" y="222" width="352" height="10" rx="2" fill="#20252c"/>
-        <rect x="150" y="224" width="70" height="14" rx="2" fill="#3a414b"/>
-        <!-- baú -->
-        <rect x="40" y="110" width="252" height="112" rx="4" fill="url(#cb3-bau)" stroke="#c3ccd7" stroke-width="1.5"/>
-        <g clip-path="url(#cb3-bau-clip)">
-          <g stroke="#dde3ea" stroke-width="1.2">${Array.from({ length: 8 }, (_, i) => `<path d="M${68 + i * 28} 112v108"/>`).join("")}</g>
-          <rect x="40" y="110" width="252" height="10" fill="#fff" opacity=".8"/>
-          <rect class="cb3-reflexo" x="-60" y="110" width="60" height="112" fill="url(#cb3-reflexo)" transform="skewX(-18)"/>
-        </g>
-        <rect x="40" y="192" width="252" height="14" fill="#1558d6"/>
-        <rect x="40" y="206" width="252" height="5" fill="#f7c600"/>
-        <rect x="40" y="110" width="252" height="5" fill="#1558d6"/>
-        <path d="M56 146 l10 -18 h11 l-10 18z M73 146 l10 -18 h11 l-10 18z" fill="#1558d6"/>
-        <text x="182" y="160" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-weight="900" font-style="italic" font-size="27" fill="#0b1424" textLength="180" lengthAdjust="spacingAndGlyphs">POLI<tspan fill="#1558d6">COATING</tspan></text>
-        <text x="182" y="178" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-weight="700" font-size="9" letter-spacing="2" fill="#5a6775" textLength="176" lengthAdjust="spacingAndGlyphs">TINTA ELETROSTÁTICA EM PÓ</text>
-        <rect x="36" y="196" width="6" height="16" rx="1.5" fill="#d92d20"/><rect x="36" y="198" width="6" height="4" fill="#ff8a7a"/>
-        <!-- escapamento vertical atrás da cabine -->
-        <rect x="296" y="98" width="6" height="96" rx="2" fill="url(#cb3-cromo)"/>
-        <rect x="294" y="96" width="10" height="4" rx="1" fill="#6b7682"/>
-        <!-- cabine -->
-        <path d="M304 132 h46 q10 0 16 7 l22 30 q5 7 5 15 v38 h-89z" fill="url(#cb3-cab)"/>
-        <path d="M304 132 h46 q10 0 16 7 l2 3 h-64z" fill="#7fb0ff" opacity=".45"/>
-        <path d="M316 140 h32 q6 0 9 4 l17 24 h-58z" fill="url(#cb3-vidro)"/>
-        <path d="M320 142 h9 l-8 24 h-4z" fill="#fff" opacity=".55"/>
-        <path d="M374 168 l14 20 v3 h-14z" fill="url(#cb3-vidro)" opacity=".9"/>
-        <path d="M312 172 h44 v34 h-44z" fill="none" stroke="#0a2a72" stroke-width="1.4" opacity=".7"/>
-        <rect x="344" y="180" width="9" height="3" rx="1.5" fill="#cdd6e0"/>
-        <path d="M308 146 l-8 2 v14 l8 -2z" fill="#1b2a44"/><rect x="298" y="146" width="3" height="18" rx="1" fill="#0f1726"/>
-        <rect x="384" y="196" width="10" height="26" rx="2" fill="#1b2a44"/>
-        <g stroke="#7f8a96" stroke-width="1"><path d="M386 200h6M386 205h6M386 210h6M386 215h6"/></g>
-        <rect x="378" y="190" width="14" height="7" rx="2" fill="#fff6cf"/>
-        <circle class="cb-farol" cx="398" cy="194" r="34" fill="url(#cb3-farol)"/>
-        <rect x="300" y="218" width="96" height="9" rx="3" fill="url(#cb3-cromo)"/>
-        <rect x="318" y="212" width="40" height="12" rx="6" fill="url(#cb3-cromo)"/>
-        <rect x="310" y="206" width="12" height="3" rx="1" fill="#0a2a72"/>
-        <!-- para-lamas -->
-        <path d="M68 222 a24 24 0 0 1 48 0" fill="#20252c"/><path d="M116 222 a24 24 0 0 1 48 0" fill="#20252c"/><path d="M226 222 a24 24 0 0 1 48 0" fill="#20252c"/><path d="M332 222 a24 24 0 0 1 48 0" fill="#0a2a72"/>
-        <rect x="170" y="226" width="5" height="18" rx="1" fill="#14171c"/><rect x="282" y="226" width="5" height="18" rx="1" fill="#14171c"/>
-      </g>
-      ${roda(92, 238)}${roda(140, 238)}${roda(250, 238)}${roda(356, 238)}
-    </g>
+    ${veiculo}
     ${faixa("cb3-c5", `<g filter="url(#cb3-veloc)" opacity=".85">${[30, 190, 350, 510].map((x) => `<rect x="${x}" y="278" width="7" height="22" fill="#d7dde4"/><rect x="${x - 20}" y="280" width="60" height="5" fill="#b9c2cc"/>`).join("")}</g>`)}
   </svg>`;
+
+  /* caminhão baú (cabine branca, baú de alumínio canelado) — como o da frota */
+  const BAU = `<g class="cb3-veiculo">
+      <ellipse cx="214" cy="250" rx="186" ry="9" fill="#000" opacity=".35" filter="url(#cb3-desf2)"/>
+      <g class="cb-sacode">
+        <rect x="40" y="222" width="350" height="9" rx="2" fill="#20252c"/>
+        <rect x="160" y="223" width="64" height="13" rx="2" fill="#3a414b"/>
+        <rect x="40" y="96" width="250" height="126" rx="3" fill="url(#cb3-alu)" stroke="#9aa6b2" stroke-width="1.4"/>
+        <g clip-path="url(#cb3-alu-clip)">
+          <g stroke="#ffffff" stroke-width="2.2" opacity=".55">${Array.from({ length: 24 }, (_, i) => `<path d="M${50 + i * 10} 98v122"/>`).join("")}</g>
+          <g stroke="#8794a2" stroke-width="1" opacity=".55">${Array.from({ length: 24 }, (_, i) => `<path d="M${53 + i * 10} 98v122"/>`).join("")}</g>
+          <rect class="cb3-reflexo" x="-60" y="96" width="60" height="126" fill="url(#cb3-reflexo)" transform="skewX(-18)"/>
+        </g>
+        <rect x="40" y="96" width="250" height="7" fill="#c5ced8"/><rect x="40" y="214" width="250" height="8" fill="#8a96a3"/>
+        <rect x="92" y="136" width="146" height="46" rx="6" fill="#fff" opacity=".93"/>
+        <path d="M102 168 l7 -13 h8 l-7 13z M114 168 l7 -13 h8 l-7 13z" fill="#1558d6"/>
+        <text x="182" y="166" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-weight="900" font-style="italic" font-size="19" fill="#0b1424" textLength="96" lengthAdjust="spacingAndGlyphs">POLI<tspan fill="#1558d6">COATING</tspan></text>
+        <rect x="36" y="198" width="6" height="16" rx="1.5" fill="#d92d20"/>
+        <!-- cabine branca alta, de frente arredondada -->
+        <path d="M292 120 h40 q16 0 24 12 l26 40 q6 9 6 20 v30 h-96z" fill="url(#cb3-branco)" stroke="#c9d2dc" stroke-width="1.2"/>
+        <path d="M304 128 h28 q10 0 15 8 l20 32 h-63z" fill="url(#cb3-vidro)"/>
+        <path d="M308 130 h8 l-6 34 h-4z" fill="#fff" opacity=".55"/>
+        <path d="M300 172 h50 v38 h-50z" fill="none" stroke="#b9c3cf" stroke-width="1.3"/>
+        <rect x="338" y="182" width="9" height="3" rx="1.5" fill="#9aa6b2"/>
+        <rect x="282" y="142" width="4" height="22" rx="1.5" fill="#1d2430"/><path d="M286 148 h8" stroke="#1d2430" stroke-width="2.5"/>
+        <path d="M352 196 h36 v20 h-36z" fill="#2a3038"/><g stroke="#4a525d" stroke-width="1.2"><path d="M356 201h28M356 206h28M356 211h28"/></g>
+        <rect x="372" y="186" width="16" height="8" rx="3" fill="#fff6cf"/>
+        <circle class="cb-farol" cx="398" cy="190" r="32" fill="url(#cb3-farol)"/>
+        <rect x="292" y="216" width="100" height="10" rx="3" fill="#2a3038"/>
+        <path d="M70 222 a24 24 0 0 1 48 0" fill="#20252c"/><path d="M118 222 a24 24 0 0 1 48 0" fill="#20252c"/><path d="M332 222 a24 24 0 0 1 48 0" fill="#e5eaf0"/>
+      </g>
+      ${roda(94, 238)}${roda(142, 238)}${roda(356, 238)}
+    </g>`;
+  /* picape Montana (branca, cabine dupla) com caixas Policoating na caçamba */
+  const PICAPE = `<g class="cb3-veiculo cb3-picape">
+      <ellipse cx="300" cy="250" rx="140" ry="8" fill="#000" opacity=".35" filter="url(#cb3-desf2)"/>
+      <g class="cb-sacode">
+        <!-- caixas na caçamba -->
+        <g><rect x="176" y="150" width="40" height="34" rx="2" fill="#c89a5b"/><rect x="176" y="150" width="40" height="5" fill="#b0874e"/><text x="196" y="172" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-weight="800" font-size="6.5" fill="#123a7a">POLICOATING</text>
+          <rect x="218" y="142" width="44" height="42" rx="2" fill="#d1a565"/><rect x="218" y="142" width="44" height="5" fill="#b78c50"/><text x="240" y="167" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-weight="800" font-size="7" fill="#123a7a">POLICOATING</text>
+          <rect x="226" y="176" width="28" height="3" fill="#123a7a"/></g>
+        <!-- carroceria -->
+        <path d="M160 186 h120 l18 -40 q4 -8 14 -8 h52 q12 0 20 8 l26 30 q16 2 30 8 q12 5 12 16 v22 h-292z" fill="url(#cb3-branco)" stroke="#c9d2dc" stroke-width="1.2"/>
+        <path d="M160 182 h122 v8 h-122z" fill="#e7ecf2"/>
+        <path d="M306 146 h40 q8 0 13 6 l20 24 h-86z" fill="url(#cb3-vidro)"/>
+        <path d="M300 152 l-8 24 h8z" fill="url(#cb3-vidro)" opacity=".9"/>
+        <path d="M336 148 v28" stroke="#e6ebf1" stroke-width="3"/>
+        <path d="M310 150 h7 l-6 22 h-4z" fill="#fff" opacity=".5"/>
+        <path d="M296 180 h46 v30 h-46z M342 180 h40 v30 h-40z" fill="none" stroke="#c3ccd7" stroke-width="1.2"/>
+        <rect x="330" y="188" width="8" height="2.6" rx="1.3" fill="#9aa6b2"/><rect x="370" y="188" width="8" height="2.6" rx="1.3" fill="#9aa6b2"/>
+        <path d="M160 212 h292 v8 q0 6 -6 6 h-280 q-6 0 -6 -6z" fill="#2a3038"/>
+        <path d="M440 190 h12 v10 h-14z" fill="#2a3038"/><rect x="430" y="182" width="20" height="7" rx="3" fill="#fff6cf"/>
+        <circle class="cb-farol" cx="456" cy="186" r="28" fill="url(#cb3-farol)"/>
+        <rect x="158" y="190" width="6" height="12" rx="1.5" fill="#d92d20"/>
+        <path d="M186 214 a23 23 0 0 1 46 0" fill="#1b2027"/><path d="M370 214 a23 23 0 0 1 46 0" fill="#1b2027"/>
+        <path d="M352 196 l14 -8" stroke="#1558d6" stroke-width="3" stroke-linecap="round"/>
+      </g>
+      ${roda(209, 232)}${roda(393, 232)}
+    </g>`;
+  const CAMINHAO = estrada("cb-cena-bau", "Caminhão baú da Policoating na estrada", BAU);
+  const MONTANA = estrada("cb-cena-picape", "Picape Montana da Policoating na estrada", PICAPE);
 
   const AVIAO = `<svg class="cb-cena cb-avi" viewBox="0 0 640 300" role="img" aria-label="Avião indo e voltando sobre o mar">
     <defs>
@@ -187,8 +207,10 @@
 
   const ETAPAS = ["Conferindo o CEP de entrega", "Calculando a rota saindo de Matão-SP", "Somando peso, volumes e veículo", "Gerando o número da cotação"];
 
-  function mostrar() {
-    const cena = Math.random() < 0.5 ? CAMINHAO : AVIAO;
+  /** opcoes.veiculo: o veículo escolhido na cotação decide a cena (Montana → picape; caminhão → baú) */
+  function mostrar(opcoes) {
+    const v = String((opcoes && opcoes.veiculo) || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    const cena = /montana|picape|pick/.test(v) ? MONTANA : /caminh|bau|truck/.test(v) ? CAMINHAO : [CAMINHAO, MONTANA, AVIAO][Math.floor(Math.random() * 3) % 3];
     const tela = document.createElement("div");
     tela.className = "cb-tela";
     tela.setAttribute("role", "status"); tela.setAttribute("aria-live", "polite");

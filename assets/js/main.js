@@ -60,7 +60,7 @@
     cor = cor || p.cores[0];
     if (!Fotos) return caixaSVG(cor.hex);
     const url = fotoProduto(p, cor, tam);
-    return `<img class="${classe || "foto-produto"}" src="${esc(url)}"${tam === FOTO_CARTAO ? estiloEnq(p, url) : ""} alt="${esc(p.nome)} — ${esc(cor.nome)}" width="${tam.largura}" height="${tam.altura}" decoding="async" data-produto="${esc(p.id)}" data-cor="${esc(cor.nome)}">`;
+    return `<img class="${classe || "foto-produto"}" src="${esc(url)}"${tam === FOTO_CARTAO ? estiloEnq(p, url) : ""} alt="${esc(p.nome)} — ${esc(cor.nome)}" width="${tam.largura}" height="${tam.altura}"${tam === FOTO_CARTAO ? ' loading="lazy"' : ""} decoding="async" data-produto="${esc(p.id)}" data-cor="${esc(cor.nome)}">`;
   }
 
   /* ---------- Utilidades ---------- */

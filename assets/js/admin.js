@@ -1131,7 +1131,7 @@
         });
         // modelo pedido pelo cliente: abaixo de 750 kg (e não volumoso) vai de Montana; acima, caminhão
         $("#cot-cfg-veic-modelo").addEventListener("click", () => {
-          desenharVeiculosCfg([{ nome: "Montana", pesoMax: 750, volumeMax: "" }, { nome: "Caminhão", pesoMax: "", volumeMax: "" }]);
+          desenharVeiculosCfg([{ nome: "Montana", pesoMax: 750, volumeMax: "" }, { nome: "Caminhão baú", pesoMax: "", volumeMax: "" }]);
           $("#cot-cfg-veic-ativo").checked = true;
           $("#cot-cfg-erro").textContent = "Preencha o peso máximo do caminhão (e, se quiser, o volume máximo da Montana para carga volumosa) e clique em Salvar.";
           const k = $$('#cot-cfg-veiculos [data-v="pesoMax"]')[1]; if (k) k.focus();

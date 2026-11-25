@@ -210,6 +210,7 @@
     $$(".cot-etapa:not([hidden]) .cot-etapa-topo .cot-num").forEach((sp, i) => (sp.textContent = String(i + 1)));
     desenharItens();
     $('[data-campo-cot="veiculo"]').hidden = !cfg.veiculos.ativo;
+    $("#cot-frota").hidden = !cfg.veiculos.ativo;
     $("#cot-vol").hidden = cfg.volumetria.modo === "oculto";
     $("#cot-vol-opc").hidden = cfg.volumetria.modo !== "opcional";
     $("#cot-r-cub-linha").hidden = cfg.volumetria.modo === "oculto";
@@ -369,7 +370,7 @@
     if (cfg.veiculos.ativo && !veiculoEscolhido) return erro("Nenhum veículo cadastrado comporta esse peso. Fale com o vendedor.", "#cot-veiculo");
     erro("");
     const bt = $("#cot-enviar"); bt.disabled = true; bt.textContent = "Cotando…";
-    const fimAnim = window.CotacaoAnimacao ? window.CotacaoAnimacao.mostrar() : async () => {};
+    const fimAnim = window.CotacaoAnimacao ? window.CotacaoAnimacao.mostrar({ veiculo: veiculoEscolhido }) : async () => {};
     try {
       let r;
       try { r = await C.enviar(d); } catch (errEnvio) { await fimAnim(false); const m = /Aguarde (\d+) segundos/.exec(errEnvio.message || ""); if (m) marcarUltima(+m[1]); throw errEnvio; }
